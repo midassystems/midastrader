@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from unittest.mock import Mock, patch
 
-from midas_research.backtester import PerformanceStatistics
+from research.backtester import PerformanceStatistics
 
 # TODO: edge cases
 class TestPerformancStatistics(unittest.TestCase):    

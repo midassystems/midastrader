@@ -2,7 +2,7 @@ import logging
 import numpy as np
 import pandas as pd
 from .statistics import PerformanceStatistics
-from midas_research.strategy import BaseStrategy
+from research.strategy import BaseStrategy
 
 logging.basicConfig(level=logging.INFO)
 
