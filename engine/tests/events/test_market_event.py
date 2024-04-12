@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime
 
-from midas.events import QuoteData, BarData, MarketEvent
+from engine.events import QuoteData, BarData, MarketEvent
 
 #TODO: Edge cases
 

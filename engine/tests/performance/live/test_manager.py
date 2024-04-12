@@ -7,12 +7,12 @@ from unittest.mock import Mock, patch
 from datetime import datetime, timezone
 from pandas.testing import assert_frame_equal
 
-from midas.command.parameters import Parameters
-from midas.account_data import EquityDetails, Trade
-from midas.events import SignalEvent, Action, ExecutionDetails
-from midas.events import MarketEvent, OrderEvent, SignalEvent, ExecutionEvent
-from midas.performance.live.manager import LiveTradingSession, LivePerformanceManager
-from midas.events import MarketData, BarData, QuoteData, OrderType, Action, TradeInstruction, MarketDataType
+from engine.command.parameters import Parameters
+from engine.account_data import EquityDetails, Trade
+from engine.events import SignalEvent, Action, ExecutionDetails
+from engine.events import MarketEvent, OrderEvent, SignalEvent, ExecutionEvent
+from engine.performance.live.manager import LiveTradingSession, LivePerformanceManager
+from engine.events import MarketData, BarData, QuoteData, OrderType, Action, TradeInstruction, MarketDataType
 
 
 # 2024-04-10 13:13:48,126 - cointegrationzscore_logger - INFO - [{'BuyingPower': 2563178.43, 'Currency': 'USD', 'ExcessLiquidity': 768953.53, 'FullAvailableFunds': 768953.53, 'FullInitMarginReq': 263.95, 'FullMaintMarginReq': 263.95, 'FuturesPNL': -367.5, 'NetLiquidation': 769217.48, 'TotalCashBalance': -10557.9223, 'UnrealizedPnL': 0.0, 'Timestamp': '2024-04-10T13:12:24.127576'}, {'BuyingPower': 2541533.29, 'Currency': 'USD', 'ExcessLiquidity': 763767.68, 'FullAvailableFunds': 762459.99, 'FullInitMarginReq': 6802.69, 'FullMaintMarginReq': 5495.0, 'FuturesPNL': -373.3, 'NetLiquidation': 769262.67, 'TotalCashBalance': 768538.5532, 'UnrealizedPnL': -11.73, 'Timestamp': '2024-04-10T13:13:43.160076'}]

@@ -1,5 +1,5 @@
 import unittest
-from midas.observer import EventType, Observer,  Subject
+from engine.observer import EventType, Observer,  Subject
 
 class TestObserver(unittest.TestCase):
     def setUp(self) -> None:

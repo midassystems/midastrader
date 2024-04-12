@@ -2,9 +2,9 @@ import random
 import unittest
 from datetime import datetime
 
-from midas.command import Parameters
-from midas.events import MarketDataType
-from midas.symbols.symbols import Equity, Future, Currency, Exchange, Symbol
+from engine.command import Parameters
+from engine.events import MarketDataType
+from engine.symbols.symbols import Equity, Future, Currency, Exchange, Symbol
 
 
 #TODO: Edge cases

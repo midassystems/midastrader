@@ -3,10 +3,10 @@ from unittest.mock import Mock
 from unittest.mock import patch
 from ibapi.contract import Contract
 
-from midas.order_manager import OrderManager
-from midas.symbols.symbols import Equity, Currency,Exchange, Future
-from midas.events import BarData, MarketEvent, SignalEvent, TradeInstruction, MarketOrder, LimitOrder, StopLoss
-from midas.events import  SignalEvent, MarketEvent, OrderEvent, TradeInstruction, Action, OrderType
+from engine.order_manager import OrderManager
+from engine.symbols.symbols import Equity, Currency,Exchange, Future
+from engine.events import BarData, MarketEvent, SignalEvent, TradeInstruction, MarketOrder, LimitOrder, StopLoss
+from engine.events import  SignalEvent, MarketEvent, OrderEvent, TradeInstruction, Action, OrderType
 
 # TODO : Edge Cases
 

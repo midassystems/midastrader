@@ -4,8 +4,8 @@ from ibapi.contract import Contract
 from unittest.mock import patch, Mock
 
 
-from midas.gateways.live import ContractManager
-from midas.symbols.symbols import Future, Equity, Currency, Exchange
+from engine.gateways.live import ContractManager
+from engine.symbols.symbols import Future, Equity, Currency, Exchange
 
 #TODO : edge cases
 

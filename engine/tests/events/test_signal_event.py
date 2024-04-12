@@ -1,8 +1,8 @@
 import unittest
 from datetime import datetime, timezone
 
-from midas.events import OrderType, Action
-from midas.events import TradeInstruction, SignalEvent
+from engine.events import OrderType, Action
+from engine.events import TradeInstruction, SignalEvent
 
 # TODO : Edge Cases
 

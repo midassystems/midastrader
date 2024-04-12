@@ -2,9 +2,9 @@ import unittest
 from unittest.mock import Mock
 from unittest.mock import patch
 
-from midas.strategies import BaseStrategy
-from midas.events import BarData, MarketEvent, SignalEvent
-from midas.events import  SignalEvent, MarketEvent, TradeInstruction, Action, OrderType
+from engine.strategies import BaseStrategy
+from engine.events import BarData, MarketEvent, SignalEvent
+from engine.events import  SignalEvent, MarketEvent, TradeInstruction, Action, OrderType
 
 # TODO: Edge case testing
 

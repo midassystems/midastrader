@@ -5,19 +5,19 @@ from contextlib import ExitStack
 from unittest.mock import Mock, patch
 from pandas.testing import assert_frame_equal
 
-from midas.observer import EventType
-from midas.order_book import OrderBook
-from midas.events import MarketDataType
-from midas.strategies import BaseStrategy
-from midas.risk_model import BaseRiskModel
-from midas.utils.logger import SystemLogger
-from midas.portfolio import PortfolioServer
-from midas.order_manager import OrderManager
-from midas.command import Config, Mode, Parameters
-from midas.performance.live import LivePerformanceManager
-from midas.performance.backtest import BacktestPerformanceManager
-from midas.order_book import OrderBook
-from midas.symbols.symbols import Future, Equity, Currency, Exchange
+from engine.observer import EventType
+from engine.order_book import OrderBook
+from engine.events import MarketDataType
+from engine.strategies import BaseStrategy
+from engine.risk_model import BaseRiskModel
+from engine.utils.logger import SystemLogger
+from engine.portfolio import PortfolioServer
+from engine.order_manager import OrderManager
+from engine.command import Config, Mode, Parameters
+from engine.performance.live import LivePerformanceManager
+from engine.performance.backtest import BacktestPerformanceManager
+from engine.order_book import OrderBook
+from engine.symbols.symbols import Future, Equity, Currency, Exchange
 
 #TODO: edge cases
 class TestConfig(unittest.TestCase):    
@@ -55,7 +55,7 @@ class TestConfig(unittest.TestCase):
             self.config.broker_client.connect.assert_called_once() # connect broker 
 
     def test_set_live_environment(self):
-        from midas.gateways.live import (DataClient, BrokerClient, ContractManager)
+        from engine.gateways.live import (DataClient, BrokerClient, ContractManager)
         
         mode = Mode.LIVE
         
@@ -78,7 +78,7 @@ class TestConfig(unittest.TestCase):
             mock_connect_live.assert_called_once() # check _connect_live method called
     
     def test_set_backtest_environment(self):
-        from midas.gateways.backtest import (DataClient, BrokerClient, DummyBroker)
+        from engine.gateways.backtest import (DataClient, BrokerClient, DummyBroker)
         
         mode = Mode.BACKTEST
         
