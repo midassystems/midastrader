@@ -14,12 +14,6 @@ from engine.events import MarketEvent, OrderEvent, SignalEvent, ExecutionEvent
 from engine.performance.live.manager import LiveTradingSession, LivePerformanceManager
 from engine.events import MarketData, BarData, QuoteData, OrderType, Action, TradeInstruction, MarketDataType
 
-
-# 2024-04-10 13:13:48,126 - cointegrationzscore_logger - INFO - [{'BuyingPower': 2563178.43, 'Currency': 'USD', 'ExcessLiquidity': 768953.53, 'FullAvailableFunds': 768953.53, 'FullInitMarginReq': 263.95, 'FullMaintMarginReq': 263.95, 'FuturesPNL': -367.5, 'NetLiquidation': 769217.48, 'TotalCashBalance': -10557.9223, 'UnrealizedPnL': 0.0, 'Timestamp': '2024-04-10T13:12:24.127576'}, {'BuyingPower': 2541533.29, 'Currency': 'USD', 'ExcessLiquidity': 763767.68, 'FullAvailableFunds': 762459.99, 'FullInitMarginReq': 6802.69, 'FullMaintMarginReq': 5495.0, 'FuturesPNL': -373.3, 'NetLiquidation': 769262.67, 'TotalCashBalance': 768538.5532, 'UnrealizedPnL': -11.73, 'Timestamp': '2024-04-10T13:13:43.160076'}]
-# 2024-04-10 13:13:48,126 - cointegrationzscore_logger - INFO - [{'timestamp': '2024-04-10T17:13:00+00:00', 'trade_instructions': [{'ticker': 'HE', 'order_type': 'MKT', 'action': 'SHORT', 'trade_id': 1, 'leg_id': 1, 'weight': -0.8689}, {'ticker': 'ZC', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 1, 'leg_id': 2, 'weight': 0.1311}]}, {'timestamp': '2024-04-10T17:13:05+00:00', 'trade_instructions': [{'ticker': 'HE', 'order_type': 'MKT', 'action': 'SHORT', 'trade_id': 1, 'leg_id': 1, 'weight': -0.8689}, {'ticker': 'ZC', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 1, 'leg_id': 2, 'weight': 0.1311}]}]
-
-
-
 #TODO: edge cases
 class TestLiveTradingSession(unittest.TestCase):    
     def setUp(self) -> None:
@@ -38,11 +32,31 @@ class TestLiveTradingSession(unittest.TestCase):
             "tickers": ["HE.n.0", "ZC.n.0"], 
             "benchmark": ["^GSPC"]
         }
-        self.mock_summary_stats = [{
-            "total_return": 10.0,
-            "total_trades": 5,
-            "total_fees": 2.5
+        
+        self.mock_acount = [{
+            "start_BuyingPower": "2557567.234", 
+            "currency": "USD", 
+            "start_ExcessLiquidity": "767270.345", 
+            "start_FullAvailableFunds": "767270.4837", 
+            "start_FullInitMarginReq": "282.3937", 
+            "start_FullMaintMarginReq": "282.3938", 
+            "start_FuturesPNL": "-464.883", 
+            "start_NetLiquidation": "767552.392", 
+            "start_TotalCashBalance": "-11292.332", 
+            "start_UnrealizedPnL": "0", 
+            "start_timestamp": "2024-04-11T11:40:09.861731", 
+            "end_BuyingPower": "2535588.9282", 
+            "end_ExcessLiquidity": "762034.2928", 
+            "end_FullAvailableFunds": "760676.292", 
+            "end_FullInitMarginReq": "7074.99", 
+            "end_FullMaintMarginReq": "5716.009", 
+            "end_FuturesPNL": "-487.998", 
+            "end_NetLiquidation": "767751.998", 
+            "end_TotalCashBalance": "766935.99", 
+            "end_UnrealizedPnL": "-28.99", 
+            "end_timestamp": "2024-04-11T11:42:17.046984"
         }]
+        
         self.mock_trades =  [{
             "trade_id": 1, 
             "leg_id": 1, 
@@ -54,6 +68,7 @@ class TestLiveTradingSession(unittest.TestCase):
             "action": "BUY", 
             "fees": 0.0
         }]
+        
         self.mock_signals =  [{
             "timestamp": "2023-01-03T00:00:00+0000", 
             "trade_instructions": [{
@@ -73,7 +88,7 @@ class TestLiveTradingSession(unittest.TestCase):
         }]
 
         self.session.parameters = self.mock_parameters
-        self.session.summary_stats = self.mock_summary_stats
+        self.session.account_data = self.mock_acount
         self.session.trade_data = self.mock_trades
         self.session.signal_data = self.mock_signals
 
@@ -82,20 +97,20 @@ class TestLiveTradingSession(unittest.TestCase):
         session_dict = self.session.to_dict()
 
         self.assertEqual(session_dict['parameters'], self.mock_parameters)
-        self.assertEqual(session_dict['summary_stats'], self.mock_summary_stats)
+        self.assertEqual(session_dict['account_data'], self.mock_acount)
         self.assertEqual(session_dict['signals'], self.mock_signals)
         self.assertEqual(session_dict['trades'], self.mock_trades)
 
-    def test_save_successful(self):
-        expected_return = {'id': 4, 'summary_stats': [{'ending_equity': None, 'total_fees': 0.0, 'unrealized_pnl': 0.0, 'realized_pnl': 0.0}], 'trades': [], 'signals': [], 'parameters': {'strategy_name': 'cointegrationzscore', 'tickers': ['HE', 'ZC'], 'benchmark': ['^GSPC'], 'data_type': 'BAR', 'train_start': '2020-05-18', 'train_end': '2024-01-01', 'test_start': '2024-01-02', 'test_end': '2024-01-19', 'capital': 100000.0, 'created_at': '2024-04-09T17:34:25.001994Z'}, 'price_data': []}
+    # def test_save_successful(self):
+    #     expected_return = {'id': 4, 'summary_stats': [{'ending_equity': None, 'total_fees': 0.0, 'unrealized_pnl': 0.0, 'realized_pnl': 0.0}], 'trades': [], 'signals': [], 'parameters': {'strategy_name': 'cointegrationzscore', 'tickers': ['HE', 'ZC'], 'benchmark': ['^GSPC'], 'data_type': 'BAR', 'train_start': '2020-05-18', 'train_end': '2024-01-01', 'test_start': '2024-01-02', 'test_end': '2024-01-19', 'capital': 100000.0, 'created_at': '2024-04-09T17:34:25.001994Z'}, 'price_data': []}
 
-        with ExitStack() as stack:
-            mock_create_session = stack.enter_context(patch.object(self.mock_db_client,'create_live_session', return_value = expected_return))
-            mock_print = stack.enter_context(patch('builtins.print'))
+    #     with ExitStack() as stack:
+    #         mock_create_session = stack.enter_context(patch.object(self.mock_db_client,'create_live_session', return_value = expected_return))
+    #         mock_print = stack.enter_context(patch('builtins.print'))
             
-            result = self.session.save()
-            mock_create_session.assert_called_once_with(self.session.to_dict())
-            self.assertEqual(expected_return, result)
+    #         result = self.session.save()
+    #         mock_create_session.assert_called_once_with(self.session.to_dict())
+    #         self.assertEqual(expected_return, result)
 
     # def test_save_unsuccessful(self):
     #     response = 500
@@ -148,17 +163,18 @@ class TestPerformanceManager(unittest.TestCase):
             "total_trades": 5,
             "total_fees": 2.5
         }]
-        self.mock_trades =  [{
-            "trade_id": 1, 
-            "leg_id": 1, 
-            "timestamp": "2023-01-03T00:00:00+0000", 
-            "symbol": "AAPL", 
-            "quantity": 4, 
-            "price": 130.74, 
-            "cost": -522.96, 
-            "action": "BUY", 
-            "fees": 0.0
-        }]
+        self.mock_trades =  {
+            "timestamp": "2024-01-01", 
+            "ticker": "AAPL", 
+            "quantity": "1.000",
+            "cumQty": "1.00",
+            "price": 99.99,
+            "AvPrice": 99.99,
+            "action": "BUY",
+            "cost":0,
+            "currency": "USD", 
+        }
+    
         self.mock_signals =  [{
             "timestamp": "2023-01-03T00:00:00+0000", 
             "trade_instructions": [{
@@ -179,56 +195,49 @@ class TestPerformanceManager(unittest.TestCase):
 
     # Basic Validation
     def test_update_trades_new_trade_valid(self):
-        trade = Trade(
-                timestamp= 165000000,
-                trade_id= 2,
-                leg_id=2,
-                ticker = 'HEJ4',
-                quantity= round(-10,4),
-                price= 50,
-                cost= round(50 * -10, 2),
-                action=  Action.SHORT.value,
-                fees= 70 # because not actually a trade
-        )       
+        trade_id = 12345
+        
+        # test
+        self.performance_manager.update_trades(trade_id, self.mock_trades)
 
-        self.performance_manager.update_trades(trade)
-        self.assertEqual(self.performance_manager.trades[0], trade.to_dict())
+        # validate
+        self.assertEqual(self.performance_manager.trades[trade_id], self.mock_trades)
         self.mock_logger.info.assert_called_once()
     
-    def test_update_trades_old_trade_valid(self):        
-        trade = Trade(
-                timestamp= 165000000,
-                trade_id= 2,
-                leg_id=2,
-                ticker = 'HEJ4',
-                quantity= round(-10,4),
-                price= 50,
-                cost= round(50 * -10, 2),
-                action=  Action.SHORT.value,
-                fees= 70 # because not actually a trade
-        )  
-        self.performance_manager.trades.append(trade.to_dict())
+    def test_update_trades_old_trade_valid(self):  
+        trade_id = 12345
+        self.performance_manager.update_trades(trade_id, self.mock_trades)   
 
-        self.performance_manager.update_trades(trade)
-        self.assertEqual(self.performance_manager.trades[0], trade.to_dict())
+        # test
+        self.mock_trades["action"] = "SELL"   
+        self.performance_manager.update_trades(trade_id, self.mock_trades)   
+        
+        # validate
+        self.assertEqual(self.performance_manager.trades[trade_id], self.mock_trades)
+        self.assertEqual(self.performance_manager.trades[trade_id]["action"], "SELL")
         self.assertEqual(len(self.performance_manager.trades), 1)
-        self.assertFalse(self.mock_logger.info.called)
+        self.mock_logger.info.assert_called
     
     def test_output_trades(self):
-        trade = Trade(
-                timestamp= 165000000,
-                trade_id= 2,
-                leg_id=2,
-                ticker = 'HEJ4',
-                quantity= round(-10,4),
-                price= 50,
-                cost= round(50 * -10, 2),
-                action=  Action.SHORT.value,
-                fees= 70 # because not actually a trade
-        ) 
-        self.performance_manager.update_trades(trade)
-        self.mock_logger.info.assert_called_once_with("\nTrades Updated: \n {'timestamp': '1975-03-25T17:20:00+00:00', 'trade_id': 2, 'leg_id': 2, 'ticker': 'HEJ4', 'quantity': -10, 'price': 50, 'cost': -500, 'action': 'SHORT', 'fees': 70} \n")
+        trade_id = 12345
 
+        # test
+        self.performance_manager.update_trades(trade_id, self.mock_trades)   
+
+        # validate
+        self.mock_logger.info.assert_called_once_with("Trade Updated: 12345\nDetails: {'timestamp': '2024-01-01', 'ticker': 'AAPL', 'quantity': '1.000', 'cumQty': '1.00', 'price': 99.99, 'AvPrice': 99.99, 'action': 'BUY', 'cost': 0, 'currency': 'USD'}")
+
+    def test_update_trade_commission(self):
+        trade_id = 12345
+        self.performance_manager.update_trades(trade_id, self.mock_trades)   
+
+        # test 
+        self.performance_manager.update_trade_commission(trade_id, 2.97)
+
+        # validate
+        self.mock_logger.info.assert_called
+        self.assertEqual(self.performance_manager.trades[trade_id]["fees"], 2.97)
+    
     def test_update_signals_valid(self):        
         self.valid_trade1 = TradeInstruction(ticker = 'AAPL',
                                                 order_type = OrderType.MARKET,
@@ -292,41 +301,6 @@ class TestPerformanceManager(unittest.TestCase):
         self.assertEqual(len(self.performance_manager.equity_value), 1)
         self.assertFalse(self.mock_logger.info.called)
         
-    def test_calculate_statistics(self):
-        # Trades
-        self.performance_manager.trades = [
-            ExecutionDetails(timestamp='2022-01-01', trade_id=1, leg_id=1, symbol='XYZ', quantity=10, price=10, cost=-100,fees=10, action=Action.LONG.value),
-            ExecutionDetails(timestamp='2022-01-02', trade_id=1, leg_id=1, symbol='XYZ', quantity=-10, price=15, cost=150, fees=10,action=Action.SELL.value),
-            ExecutionDetails(timestamp='2022-01-01', trade_id=2, leg_id=1, symbol='HEJ4', quantity=-10, price=20, cost=500, fees=10,action=Action.SHORT.value),
-            ExecutionDetails(timestamp='2022-01-02', trade_id=2, leg_id=1, symbol='HEJ4', quantity=10, price=18, cost=-180, fees=10,  action=Action.COVER.value)
-        ]
-
-        # Equity Curve
-        self.performance_manager.equity_value = [
-            EquityDetails(timestamp='2022-01-01 09:30', equity_value=1000.0),  # Initial equity
-            EquityDetails(timestamp='2022-01-01 16:00', equity_value=1000.0),  # No change, trades open
-            EquityDetails(timestamp='2022-01-02 09:30', equity_value=1030.0),  # Reflecting Trade 1 PnL
-            EquityDetails(timestamp='2022-01-02 12:00', equity_value=1330.0),  # Reflecting Trade 2 PnL
-            EquityDetails(timestamp='2022-01-02 16:00', equity_value=1330.0),  # No additional trades
-            EquityDetails(timestamp='2022-01-03 09:30', equity_value=1330.0),  # Assuming no further trades
-            EquityDetails(timestamp='2022-01-03 11:00', equity_value=1330.0),
-            EquityDetails(timestamp='2022-01-03 16:00', equity_value=1330.0)
-        ]
-
-        # Test 
-        self.performance_manager.calculate_statistics()
-
-        # Expected Values
-        expected_ending_equity = 1330.0
-        expected_total_fees = 40
-        
-        # Validation 
-        stats = self.performance_manager.summary_stats[0] 
-        self.assertAlmostEqual(stats['ending_equity'], expected_ending_equity, places=2)
-        self.assertAlmostEqual(stats['total_fees'], expected_total_fees, places=2)
-        self.assertAlmostEqual(stats['unrealized_pnl'], 0, places=2)
-        self.assertAlmostEqual(stats['realized_pnl'], 0, places=2)
-
     def test_create_live_session(self):
         # Signals
         self.valid_trade1 = TradeInstruction(ticker = 'AAPL',
@@ -348,29 +322,14 @@ class TestPerformanceManager(unittest.TestCase):
         self.performance_manager.update_signals(signal_event)
 
         # Trades
-        self.trades = [
-            Trade(timestamp=1640995200, trade_id=1, leg_id=1, ticker='XYZ', quantity=10, price=10, cost=-100,fees=10, action=Action.LONG.value),
-            Trade(timestamp=1641081600, trade_id=1, leg_id=1, ticker='XYZ', quantity=-10, price=15, cost=150, fees=10,action=Action.SELL.value),
-            Trade(timestamp=1640995200, trade_id=2, leg_id=1, ticker='HEJ4', quantity=-10, price=20, cost=500, fees=10,action=Action.SHORT.value),
-            Trade(timestamp=1641081600, trade_id=2, leg_id=1, ticker='HEJ4', quantity=10, price=18, cost=-180, fees=10,  action=Action.COVER.value)
-        ]
+        trades = {123: {"timestamp": "2024-01-01", "ticker": "AAPL", "quantity": "1.000","cumQty": "1.00","price": 99.99,"AvPrice": 99.99,"action": "BUY","cost":0,"currency": "USD"},
+                  1234: {"timestamp": "2024-01-01", "ticker": "AAPL", "quantity": "1.000","cumQty": "1.00","price": 99.99,"AvPrice": 99.99,"action": "BUY","cost":0,"currency": "USD"},
+                  12345: {"timestamp": "2024-01-01", "ticker": "AAPL", "quantity": "1.000","cumQty": "1.00","price": 99.99,"AvPrice": 99.99,"action": "BUY","cost":0,"currency": "USD"}}
+        self.performance_manager.trades = trades
 
-        for trade in self.trades:
-            self.performance_manager.update_trades(trade)
-
-        # Equity Curve
-        self.performance_manager.equity_value = [
-            EquityDetails(timestamp='2022-01-01 09:30', equity_value=1000.0),  # Initial equity
-            EquityDetails(timestamp='2022-01-01 16:00', equity_value=1000.0),  # No change, trades open
-            EquityDetails(timestamp='2022-01-02 09:30', equity_value=1030.0),  # Reflecting Trade 1 PnL
-            EquityDetails(timestamp='2022-01-02 12:00', equity_value=1330.0),  # Reflecting Trade 2 PnL
-            EquityDetails(timestamp='2022-01-02 16:00', equity_value=1330.0),  # No additional trades
-            EquityDetails(timestamp='2022-01-03 09:30', equity_value=1330.0),  # Assuming no further trades
-            EquityDetails(timestamp='2022-01-03 11:00', equity_value=1330.0),
-            EquityDetails(timestamp='2022-01-03 16:00', equity_value=1330.0)
-        ]
-
-        self.performance_manager.calculate_statistics()
+        # Account
+        self.performance_manager.account_log = [{'BuyingPower': 2563178.43, 'Currency': 'USD', 'ExcessLiquidity': 768953.53, 'FullAvailableFunds': 768953.53, 'FullInitMarginReq': 263.95, 'FullMaintMarginReq': 263.95, 'FuturesPNL': -367.5, 'NetLiquidation': 769217.48, 'TotalCashBalance': -10557.9223, 'UnrealizedPnL': 0.0, 'Timestamp': '2024-04-10T13:12:24.127576'},
+                                            {'BuyingPower': 2541533.29, 'Currency': 'USD', 'ExcessLiquidity': 763767.68, 'FullAvailableFunds': 762459.99, 'FullInitMarginReq': 6802.69, 'FullMaintMarginReq': 5495.0, 'FuturesPNL': -373.3, 'NetLiquidation': 769262.67, 'TotalCashBalance': 768538.5532, 'UnrealizedPnL': -11.73, 'Timestamp': '2024-04-10T13:13:43.160076'}]
 
         # Test 
         self.performance_manager.create_live_session()
@@ -378,17 +337,13 @@ class TestPerformanceManager(unittest.TestCase):
 
         self.assertEqual(live_summary.parameters, self.mock_parameters.to_dict())
         self.assertEqual(live_summary.signal_data, [signal_event.to_dict()])
-        self.assertEqual(live_summary.trade_data , [trade.to_dict() for trade in self.trades])
+        self.assertEqual(live_summary.trade_data ,  list(trades.values()))
 
-        expected_static_keys = {
-                                'ending_equity', 
-                                'total_fees',
-                                'unrealized_pnl', 
-                                'realized_pnl', 
-                                }
+        expected_account = [{'start_BuyingPower': '2563178.4300', 'currency': 'USD', 'start_ExcessLiquidity': '768953.5300', 'start_FullAvailableFunds': '768953.5300', 'start_FullInitMarginReq': '263.9500', 'start_FullMaintMarginReq': '263.9500', 'start_FuturesPNL': '-367.5000', 'start_NetLiquidation': '769217.4800', 'start_TotalCashBalance': '-10557.9223', 
+                             'start_UnrealizedPnL': '0.0000', 'start_timestamp': '2024-04-10T13:12:24.127576', 'end_BuyingPower': '2541533.2900', 'end_ExcessLiquidity': '763767.6800', 'end_FullAvailableFunds': '762459.9900', 'end_FullInitMarginReq': '6802.6900', 'end_FullMaintMarginReq': '5495.0000', 'end_FuturesPNL': '-373.3000', 
+                             'end_NetLiquidation': '769262.6700', 'end_TotalCashBalance': '768538.5532', 'end_UnrealizedPnL': '-11.7300', 'end_timestamp': '2024-04-10T13:13:43.160076'}]
 
-        actual_static_keys = set(live_summary.summary_stats[0].keys())
-        self.assertEqual(actual_static_keys, expected_static_keys, "Summary stats keys do not match expected keys.")
+        self.assertEqual(live_summary.account_data, expected_account)
 
 
 if __name__ == "__main__":

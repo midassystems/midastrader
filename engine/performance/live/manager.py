@@ -63,27 +63,8 @@ class LivePerformanceManager(BasePerformanceManager):
             self.logger.info(f"Commission Updated for Trade {trade_id}: {commission}")
         else:
             self.logger.warning(f"Trade ID {trade_id} not found for commission update.")
-    
-    # def calculate_statistics(self):
-    #     try:
-    #         self.logger.info(self.account_log)
-    #         self.logger.info(self.signals)
-    #         self.logger.info(self.trades)
-    #         stats = {
-    #             "ending_equity": self.equity_value[-1]['equity_value'], #TODO : Figure out stats to save
-    #             "total_fees" : sum(trade['fees'] for trade in self.trades),
-    #             "unrealized_pnl" : 0, 
-    #             "realized_pnl" : 0
-    #         }        
-    #         self.summary_stats.append(stats)
-    #         self.logger.info(f"Summary statistics successfully calculated.")
-
-    #     except ValueError as e:
-    #         raise ValueError(f"Error while calculcating summary statistics. {e}")
-    #     except TypeError as e:
-    #         raise TypeError(f"Error while calculcating summary statistics. {e}")
             
-    def process_account_snapshot(self, snapshot:dict, prefix:str, combined_data:dict):
+    def _process_account_snapshot(self, snapshot:dict, prefix:str, combined_data:dict):
         for key, value in snapshot.items():
             # Currency is added without a prefix and only once
             if key == 'Currency':
@@ -95,8 +76,8 @@ class LivePerformanceManager(BasePerformanceManager):
 
     def create_live_session(self):
         combined_data = {}
-        self.process_account_snapshot(self.account_log[0], 'start', combined_data)
-        self.process_account_snapshot(self.account_log[-1], 'end', combined_data)
+        self._process_account_snapshot(self.account_log[0], 'start', combined_data)
+        self._process_account_snapshot(self.account_log[-1], 'end', combined_data)
 
         # Create Live Summary Object
         self.live_summary.parameters = self.params.to_dict()

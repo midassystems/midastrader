@@ -177,38 +177,38 @@ class TestController(unittest.TestCase):
         self.assertTrue(self.mock_config.performance_manager.create_backtest.called)
     
     # ---- Have to exit is Ctrl + C or will hang ---- 
-    # def test_run_live(self):
-    #     self.mock_config.mode = Mode.LIVE
-    #     self.event_controller = EventController(self.mock_config)
+    def test_run_live(self):
+        self.mock_config.mode = Mode.LIVE
+        self.event_controller = EventController(self.mock_config)
         
-    #     market_event = MarketEvent(timestamp=1651500000,
-    #                         data = {'AAPL': BarData(timestamp = 1651500000,
-    #                                                     open = 80.90,
-    #                                                     close = 9000.90,
-    #                                                     high = 75.90,
-    #                                                     low = 8800.09,
-    #                                                     volume = 880000)}
-    #                         )
+        market_event = MarketEvent(timestamp=1651500000,
+                            data = {'AAPL': BarData(timestamp = 1651500000,
+                                                        open = 80.90,
+                                                        close = 9000.90,
+                                                        high = 75.90,
+                                                        low = 8800.09,
+                                                        volume = 880000)}
+                            )
         
-    #     self.mock_config.strategy.handle_market_data.return_value = False
-    #     self.event_controller.event_queue.put(market_event)
+        self.mock_config.strategy.handle_market_data.return_value = False
+        self.event_controller.event_queue.put(market_event)
         
-    #     # Run the backtest
-    #     self.event_controller._run_live()
+        # Run the backtest
+        self.event_controller._run_live()
 
-    #     # Verify interactions
-    #     self.mock_config.strategy.handle_market_data.assert_called()
+        # Verify interactions
+        self.mock_config.strategy.handle_market_data.assert_called()
 
-    # def test_run_live_stops_gracefully1(self):
-    #     self.mock_config.mode = Mode.LIVE
-    #     self.event_controller = EventController(self.mock_config)
-    #     self.event_controller._run_live()
+    def test_run_live_stops_gracefully1(self):
+        self.mock_config.mode = Mode.LIVE
+        self.event_controller = EventController(self.mock_config)
+        self.event_controller._run_live()
 
-    #     # Verify that the signal handler was called and the loop exited
-    #     self.mock_config.logger.info.assert_called_with("Live trading stopped. Performing cleanup...")
-    #     self.mock_config.db_updater.delete_session.assert_called_once()
-    #     self.mock_config.performance_manager.calculate_statistics.assert_called_once()
-    #     self.mock_config.performance_manager.create_live_session.assert_called_once()
+        # Verify that the signal handler was called and the loop exited
+        self.mock_config.logger.info.assert_called_with("Live trading stopped. Performing cleanup...")
+        self.mock_config.db_updater.delete_session.assert_called_once()
+        # self.mock_config.performance_manager.calculate_statistics.assert_called_once()
+        self.mock_config.performance_manager.create_live_session.assert_called_once()
 
 
 
