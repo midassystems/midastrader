@@ -4,7 +4,7 @@ import pandas as pd
 from enum import Enum
 import yfinance as yf
 from decouple import config
-from ..midas_database import DatabaseClient, SecurityType, Exchange,Indsutry, Currency, ContractUnits, AssetClass
+from ..client import DatabaseClient, SecurityType, Exchange,Indsutry, Currency, ContractUnits, AssetClass
 
 DATABASE_KEY = config('MIDAS_API_KEY')
 DATABASE_URL = config('MIDAS_URL')

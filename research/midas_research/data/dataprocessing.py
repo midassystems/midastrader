@@ -3,7 +3,7 @@ from typing import List
 from decouple import config
 from datetime import datetime
 
-from midas_database import DatabaseClient
+from client import DatabaseClient
 
 class DataProcessing:
     def __init__(self,  database_client: DatabaseClient) -> None:

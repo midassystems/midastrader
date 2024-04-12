@@ -2,8 +2,8 @@ import pandas as pd
 from queue import Queue
 from datetime import datetime
 from typing import Dict, List
-from midas_database import DatabaseClient
 
+from client import DatabaseClient
 from midas.events import MarketEvent, BarData, EODEvent
 from midas.order_book import OrderBook
 

@@ -4,7 +4,7 @@ from ibapi.contract import Contract
 
 from midas.symbols.symbols import Symbol
 from midas.account_data import Position,ActiveOrder, AccountDetails
-from midas_database import DatabaseClient
+from client import DatabaseClient
 from midas.observer import Subject, EventType
 
 class PortfolioServer(Subject):

@@ -1,7 +1,7 @@
 import logging
 from typing import List, Dict
 from datetime import datetime, timezone
-from midas_database import DatabaseClient
+from client import DatabaseClient
 
 from midas.events import SignalEvent
 from .statistics import PerformanceStatistics

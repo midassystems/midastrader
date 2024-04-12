@@ -3,7 +3,7 @@ import requests
 import pandas as pd
 from enum import Enum
 from decouple import config
-from ..midas_database import DatabaseClient, SecurityType, Exchange,Indsutry, Currency, ContractUnits, AssetClass
+from ..client import DatabaseClient, SecurityType, Exchange,Indsutry, Currency, ContractUnits, AssetClass
 
 
 

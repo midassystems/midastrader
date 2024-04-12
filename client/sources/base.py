@@ -1,5 +1,5 @@
 from decouple import config
-from ..midas_database import DatabaseClient, Currency, AssetClass
+from ..client import DatabaseClient, Currency, AssetClass
 
 DATABASE_KEY = config('MIDAS_API_KEY')
 DATABASE_URL = config('MIDAS_URL')
