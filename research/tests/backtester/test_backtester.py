@@ -4,8 +4,8 @@ import pandas as pd
 from unittest.mock import MagicMock, patch
 from pandas.testing import assert_frame_equal
 
-from midas.strategies import BaseStrategy
-from midas_research.backtester.backtester import VectorizedBacktest
+from research.strategy import BaseStrategy
+from research.backtester.backtester import VectorizedBacktest
 
 # TODO : edge cases /integration
 

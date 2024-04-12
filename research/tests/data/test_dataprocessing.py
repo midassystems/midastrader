@@ -5,7 +5,7 @@ from datetime import datetime
 from unittest.mock import Mock
 from pandas.testing import assert_frame_equal
 
-from midas_research.data import DataProcessing
+from research.data import DataProcessing
 
 def valid_process_data(db_response: List[Dict]):
     df = pd.DataFrame(db_response)

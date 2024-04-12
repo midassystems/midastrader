@@ -4,7 +4,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from unittest.mock import patch, mock_open, Mock
 
-from midas_research.report import HTMLReportGenerator
+from research.report import HTMLReportGenerator
 
 def simple_plot():
     plt.plot([1, 2, 3], [4, 5, 6])

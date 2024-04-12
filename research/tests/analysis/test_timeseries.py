@@ -6,7 +6,7 @@ from scipy import stats
 from statsmodels.tsa.stattools import adfuller
 from sklearn.linear_model import LinearRegression
 
-from midas_research.analysis import TimeseriesTests
+from research.analysis import TimeseriesTests
 
 
 def generate_residuals(autocorr_type='none', size=100):
