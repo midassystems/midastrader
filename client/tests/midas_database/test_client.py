@@ -1,7 +1,7 @@
 import unittest
 from decouple import config
 
-from midas_database.client import DatabaseClient
+from client.client import DatabaseClient
 
 DATABASE_KEY = config('LOCAL_API_KEY')
 DATABASE_URL = config('LOCAL_URL')

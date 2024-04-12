@@ -1,5 +1,5 @@
 from enum import Enum, auto
-from midas_database import DatabaseClient
+from client import DatabaseClient
 from midas.observer import Observer, EventType
 
 

@@ -3,7 +3,8 @@ import logging
 from enum import Enum
 from typing import Union
 from decouple import config
-from midas_database import DatabaseClient
+
+from client import DatabaseClient
 
 from .parameters import Parameters
 from midas.order_book import OrderBook

@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from decimal import Decimal
 from typing import List, Dict
-from midas_database import DatabaseClient
+from client import DatabaseClient
 
 from ..base_manager import BasePerformanceManager
 
