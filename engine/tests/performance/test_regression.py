@@ -4,7 +4,7 @@ import pandas as pd
 from decimal import Decimal
 from contextlib import ExitStack
 from unittest.mock import MagicMock, patch
-from midas.performance.regression import RegressionAnalysis
+from engine.performance.regression import RegressionAnalysis
 
 class RegressionAnalysisTests(unittest.TestCase):
     def setUp(self):

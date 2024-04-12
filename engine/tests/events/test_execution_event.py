@@ -4,8 +4,8 @@ from ibapi.order import Order
 from datetime import datetime
 from ibapi.contract import Contract
 
-from midas.events import TradeInstruction, Action
-from midas.events import ExecutionEvent,ExecutionDetails
+from engine.events import TradeInstruction, Action
+from engine.events import ExecutionEvent,ExecutionDetails
 
 # TOOO : edge cases
 class TestExecutionEvent(unittest.TestCase):

@@ -1,7 +1,8 @@
 import random
 import unittest
 
-from midas.events import EODEvent
+from engine.events import EODEvent
+
 # TOOO : edge cases
 class TestExecutionEvent(unittest.TestCase):
     def setUp(self) -> None:

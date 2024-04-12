@@ -3,7 +3,7 @@ from unittest.mock import patch, Mock
 import random
 
 from ibapi.contract import Contract
-from midas.symbols.symbols import Currency, SecType, Exchange, Right, Symbol, Equity, Future, Option
+from engine.symbols.symbols import Currency, SecType, Exchange, Right, Symbol, Equity, Future, Option
 
 
 #TODO: Edge case testing

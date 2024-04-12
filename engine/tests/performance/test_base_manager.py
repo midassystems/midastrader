@@ -7,13 +7,13 @@ from unittest.mock import Mock, patch
 from datetime import datetime, timezone
 from pandas.testing import assert_frame_equal
 
-from midas.account_data import AccountDetails
-from midas.command.parameters import Parameters
-from midas.account_data import EquityDetails, Trade
-from midas.performance import BasePerformanceManager
-from midas.events import SignalEvent, Action, ExecutionDetails
-from midas.events import MarketEvent, OrderEvent, SignalEvent, ExecutionEvent
-from midas.events import MarketData, BarData, QuoteData, OrderType, Action, TradeInstruction, MarketDataType
+from engine.account_data import AccountDetails
+from engine.command.parameters import Parameters
+from engine.account_data import EquityDetails, Trade
+from engine.performance import BasePerformanceManager
+from engine.events import SignalEvent, Action, ExecutionDetails
+from engine.events import MarketEvent, OrderEvent, SignalEvent, ExecutionEvent
+from engine.events import MarketData, BarData, QuoteData, OrderType, Action, TradeInstruction, MarketDataType
 
 #TODO: edge cases
 class TestBasePerformanceManager(unittest.TestCase):    

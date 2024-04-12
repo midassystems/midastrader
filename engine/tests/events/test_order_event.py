@@ -3,7 +3,7 @@ from datetime import datetime
 from ibapi.order import Order
 from ibapi.contract import Contract
 
-from midas.events import Action, OrderType, BaseOrder, MarketOrder, LimitOrder, StopLoss, OrderEvent
+from engine.events import Action, OrderType, BaseOrder, MarketOrder, LimitOrder, StopLoss, OrderEvent
 
 #TODO:  edge cases
 

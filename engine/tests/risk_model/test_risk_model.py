@@ -1,5 +1,5 @@
 import unittest
-from midas.risk_model import BaseRiskModel
+from engine.risk_model import BaseRiskModel
 
 
 class TestBaseRiskModel(unittest.TestCase):

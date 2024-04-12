@@ -4,10 +4,10 @@ from contextlib import ExitStack
 from ibapi.contract import Contract
 from unittest.mock import Mock, patch
 
-from midas.gateways.backtest import BrokerClient
-from midas.account_data import AccountDetails, EquityDetails
-from midas.events import OrderEvent, ExecutionEvent, Action, MarketOrder
-from midas.gateways.backtest.dummy_broker import PositionDetails, ExecutionDetails
+from engine.gateways.backtest import BrokerClient
+from engine.account_data import AccountDetails, EquityDetails
+from engine.events import OrderEvent, ExecutionEvent, Action, MarketOrder
+from engine.gateways.backtest.dummy_broker import PositionDetails, ExecutionDetails
 
 # TODO: # Type/edge/integration
 

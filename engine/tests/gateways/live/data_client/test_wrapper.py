@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import Mock, patch
 
-from midas.events import BarData, MarketEvent
-from midas.gateways.live.data_client.wrapper import DataApp
+from engine.events import BarData, MarketEvent
+from engine.gateways.live.data_client.wrapper import DataApp
 
 # TODO: edge cases
 class TestDataApp(unittest.TestCase):

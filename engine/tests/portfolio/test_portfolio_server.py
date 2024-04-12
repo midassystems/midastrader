@@ -3,11 +3,11 @@ from ibapi.order import Order
 from ibapi.contract import Contract
 from unittest.mock import patch, Mock
 
-from midas.events import Action
-from midas.observer import Observer, EventType, Subject
-from midas.portfolio import PortfolioServer
-from midas.account_data import Position, AccountDetails, ActiveOrder
-from midas.symbols.symbols import Future, Equity, Currency, Exchange
+from engine.events import Action
+from engine.observer import Observer, EventType, Subject
+from engine.portfolio import PortfolioServer
+from engine.account_data import Position, AccountDetails, ActiveOrder
+from engine.symbols.symbols import Future, Equity, Currency, Exchange
 
 #TODO: edge cases, integration
 

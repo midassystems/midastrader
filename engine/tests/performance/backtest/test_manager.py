@@ -7,13 +7,13 @@ from pandas.testing import assert_frame_equal
 import pandas as pd
 import numpy as np
 
-from midas.performance.backtest.manager import Backtest, BacktestPerformanceManager
-from midas.performance.regression import RegressionAnalysis
-from midas.account_data import EquityDetails, Trade
-from midas.events import SignalEvent, Action, ExecutionDetails
-from midas.command.parameters import Parameters
-from midas.events import MarketEvent, OrderEvent, SignalEvent, ExecutionEvent
-from midas.events import MarketData, BarData, QuoteData, OrderType, Action, TradeInstruction, MarketDataType
+from engine.performance.backtest.manager import Backtest, BacktestPerformanceManager
+from engine.performance.regression import RegressionAnalysis
+from engine.account_data import EquityDetails, Trade
+from engine.events import SignalEvent, Action, ExecutionDetails
+from engine.command.parameters import Parameters
+from engine.events import MarketEvent, OrderEvent, SignalEvent, ExecutionEvent
+from engine.events import MarketData, BarData, QuoteData, OrderType, Action, TradeInstruction, MarketDataType
 
 #TODO: edge cases
 class TestBacktest(unittest.TestCase):    

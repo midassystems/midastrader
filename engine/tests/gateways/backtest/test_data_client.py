@@ -5,8 +5,8 @@ from datetime import datetime
 from unittest.mock import Mock
 from pandas.testing import assert_frame_equal
 
-from midas.events import MarketEvent, BarData
-from midas.gateways.backtest import DataClient
+from engine.events import MarketEvent, BarData
+from engine.gateways.backtest import DataClient
 
 #TODO: edge cases
 

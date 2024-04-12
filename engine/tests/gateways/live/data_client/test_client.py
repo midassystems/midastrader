@@ -4,8 +4,8 @@ from ibapi.order import Order
 from ibapi.contract import Contract
 from unittest.mock import Mock, patch
 
-from midas.gateways.live import DataClient
-from midas.events import OrderEvent, ExecutionEvent, Action, MarketDataType
+from engine.gateways.live import DataClient
+from engine.events import OrderEvent, ExecutionEvent, Action, MarketDataType
 
 #TODO: edge cases
 

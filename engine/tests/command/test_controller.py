@@ -8,10 +8,10 @@ from ibapi.order import Order
 from ibapi.contract import Contract
 from unittest.mock import Mock, patch
 
-from midas.account_data import Trade
-from midas.command import EventController, Mode
-from midas.events import MarketEvent, OrderEvent, SignalEvent, ExecutionEvent, MarketOrder
-from midas.events import MarketData, BarData, QuoteData, OrderType, Action, TradeInstruction, ExecutionDetails, EODEvent
+from engine.account_data import Trade
+from engine.command import EventController, Mode
+from engine.events import MarketEvent, OrderEvent, SignalEvent, ExecutionEvent, MarketOrder
+from engine.events import MarketData, BarData, QuoteData, OrderType, Action, TradeInstruction, ExecutionDetails, EODEvent
 
 #TODO: run live tests/ edge case
 

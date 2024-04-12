@@ -1,9 +1,9 @@
 import unittest
 from unittest.mock import Mock
 
-from midas.order_book import OrderBook
-from midas.observer import EventType, Observer, Subject
-from midas.events import BarData, QuoteData, MarketDataType, MarketEvent, MarketData
+from engine.order_book import OrderBook
+from engine.observer import EventType, Observer, Subject
+from engine.events import BarData, QuoteData, MarketDataType, MarketEvent, MarketData
 
 # self.mock_event_queue.put.assert_called_once_with(MarketEvent(timestamp=time, data={'AAPL':valid_bar}))
 #TODO: edge cases / orderbook depth 

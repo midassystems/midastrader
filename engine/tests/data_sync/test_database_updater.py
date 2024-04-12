@@ -1,9 +1,9 @@
 import unittest
 from unittest.mock import Mock
 
-from midas.account_data import Position, ActiveOrder, AccountDetails
-from midas.data_sync import DatabaseUpdater
-from midas.observer import Subject,EventType
+from engine.account_data import Position, ActiveOrder, AccountDetails
+from engine.data_sync import DatabaseUpdater
+from engine.observer import Subject,EventType
 
 class ChildSubject(Subject):
     def __init__(self):
