@@ -1,0 +1,31 @@
+https://github.com/fabiospampinato/vscode-todo-plus/blob/master/resources/readme.todo 
+
+Cmd+Enter =  add a new todo
+Opt+S = started
+Opt+D = done/undone
+Opt+C = cancelled/uncancelled
+@tag = @critical @high @low @today
+
+
+Midas:
+  You can write plain text notes/descriptions wherever you want
+  Todos:
+    ☐ Add sentivity analysis to research backtest
+    ☐ Run a simulated backtest with the new cointegration strategy
+    
+  Additions:
+    *Features to be added in the future
+    ☐ Add strategy correlation to market(benchmark)
+    ☐ Add Kelly Criteria for postion sizing optimization
+    ☐ Add the Kalman filter for dynamic updating of the hedge ratios/cointegration vector
+
+MidasBackend:
+  You can write plain text notes/descriptions wherever you want
+  Todos:
+    ✔ Deploy to heroku @done(24-01-27 09:56)
+  Additions:
+    *Features to be added in the future
+    ☐ Add a benchmark table. (BMs will exists in a seperate table from the assets, they will need historical price data)
+
+
+  
