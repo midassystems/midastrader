@@ -60,6 +60,8 @@ class TestBrokerClient(unittest.TestCase):
         contract = Contract()
         contract.symbol = ticker
         multiplier = 1
+        price_multiplier=0.01
+        quantity_multiplier=4000
         action = Action.SHORT
         quantity = -100
         price = 90
@@ -67,8 +69,9 @@ class TestBrokerClient(unittest.TestCase):
         valid_position = PositionDetails(
                 action='SELL',
                 quantity= quantity,
-                avg_cost=round(price * multiplier,4),
-                multiplier= multiplier,      
+                avg_cost=round((price * price_multiplier) * (quantity * quantity_multiplier), 2),
+                quantity_multiplier= quantity_multiplier,   
+                price_multiplier= price_multiplier,      
                 initial_margin = 1000,
                 unrealizedPnL=0
         )

@@ -82,7 +82,8 @@ class BrokerClient:
                 action=position_data['action'],
                 avg_cost=position_data['avg_cost'],
                 quantity=position_data['quantity'],
-                multiplier=position_data['multiplier'],
+                price_multiplier=position_data['price_multiplier'],
+                quantity_multiplier=position_data['quantity_multiplier'],
                 initial_margin=position_data['initial_margin'],
                 total_cost=position_data.get('total_cost', 0),
                 market_value=position_data.get('market_value', 0),   # Provide a default value if not present

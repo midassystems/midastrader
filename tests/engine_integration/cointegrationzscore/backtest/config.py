@@ -20,8 +20,8 @@ class CointegrationzscoreConfig(Config):
             capital=100000,
             data_type = MarketDataType.BAR,
             symbols = [
-                Future(ticker="HE.n.0",data_ticker= "HE.n.0", currency=Currency.USD,exchange=Exchange.CME,fees=0.85, lastTradeDateOrContractMonth="202404", multiplier=40000,tickSize=0.00025, initialMargin=4564.17),
-                Future(ticker="ZC.n.0",data_ticker= "ZC.n.0", currency=Currency.USD,exchange=Exchange.CBOT,fees=0.85,lastTradeDateOrContractMonth="202403", multiplier=5000,tickSize=0.0025, initialMargin=2056.75),
+                Future(ticker="HE.n.0",data_ticker= "HE.n.0", currency=Currency.USD,exchange=Exchange.CME,fees=0.85, lastTradeDateOrContractMonth="202404", quantity_multiplier=40000,price_multiplier=0.01,tickSize=0.00025, initialMargin=4564.17),
+                Future(ticker="ZC.n.0",data_ticker= "ZC.n.0", currency=Currency.USD,exchange=Exchange.CBOT,fees=0.85,lastTradeDateOrContractMonth="202403", quantity_multiplier=5000,price_multiplier=0.01,tickSize=0.0025, initialMargin=2056.75),
                 # Future(ticker="ZS",data_ticker= "ZC.n.0", currency=Currency.USD,exchange=Exchange.CBOT,fees=0.85,lastTradeDateOrContractMonth="202403", multiplier=5000,tickSize=0.0025, initialMargin=2056.75),
             ], 
             benchmark=["^GSPC"]

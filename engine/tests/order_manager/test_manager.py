@@ -22,7 +22,8 @@ class TestOrderManager(unittest.TestCase):
                                                   exchange=Exchange.CME,
                                                   fees=0.1,
                                                   lastTradeDateOrContractMonth='202412',
-                                                  multiplier=400,
+                                                  quantity_multiplier=4000,
+                                                  price_multiplier=0.001,
                                                   tickSize=0.0025,
                                                   initialMargin=4000),
                                     'AAPL' : Equity(ticker="APPL", 
@@ -99,26 +100,29 @@ class TestOrderManager(unittest.TestCase):
     def test_order_quantity_valid(self):
         order_allocation=10000
         current_price=50
-        multiplier=100
+        quantity_multiplier=100
+        price_multiplier=0.01
 
         # Test Long Quantity
         quantity = self.order_manager._order_quantity(action=Action.LONG, 
                                                       ticker='AAPL', 
                                                       order_allocation=order_allocation, 
                                                       current_price=current_price, 
-                                                      multiplier=multiplier)
+                                                      quantity_multiplier=quantity_multiplier,
+                                                      price_multiplier=price_multiplier)
         
         # Validation
-        self.assertEqual(abs(quantity),order_allocation / (current_price * multiplier))
+        self.assertEqual(abs(quantity), order_allocation / (current_price * price_multiplier * quantity_multiplier))
 
         # Test Short Quantity
         quantity = self.order_manager._order_quantity(action=Action.SHORT,
                                                       ticker='AAPL', 
                                                       order_allocation=order_allocation, 
                                                       current_price=current_price, 
-                                                      multiplier=multiplier)
+                                                      quantity_multiplier=quantity_multiplier,
+                                                      price_multiplier=price_multiplier)
         
-        self.assertEqual(abs(quantity),order_allocation / (current_price * multiplier))
+        self.assertEqual(abs(quantity),order_allocation / (current_price * price_multiplier * quantity_multiplier))
 
         # Test Sell Quantity
         self.mock_portfolio_server.positions = {'AAPL': Mock(quantity=10)}
@@ -126,17 +130,19 @@ class TestOrderManager(unittest.TestCase):
                                                       ticker='AAPL', 
                                                       order_allocation=order_allocation, 
                                                       current_price=current_price, 
-                                                      multiplier=multiplier)
+                                                      quantity_multiplier=quantity_multiplier,
+                                                      price_multiplier=price_multiplier)
         # Validation
         self.assertEqual(abs(quantity),10)
 
         # Test Cover Quantity
         self.mock_portfolio_server.positions = {'AAPL': Mock(quantity=-10)}
         quantity = self.order_manager._order_quantity(action=Action.COVER,
-                                          ticker='AAPL', 
-                                          order_allocation=order_allocation, 
-                                          current_price=current_price, 
-                                          multiplier=multiplier)
+                                            ticker='AAPL', 
+                                            order_allocation=order_allocation, 
+                                            current_price=current_price, 
+                                            quantity_multiplier=quantity_multiplier,
+                                            price_multiplier=price_multiplier)
         # Validation
         self.assertEqual(abs(quantity),10)
 
@@ -151,7 +157,7 @@ class TestOrderManager(unittest.TestCase):
                                                             weight = weight)
 
         self.mock_order_book.current_price.return_value = 150.0
-        expected_quantity = (weight * position_allocation)/ (150.0*self.valid_symbols_map['HEJ4'].multiplier)
+        expected_quantity = (weight * position_allocation)/ (150.0*self.valid_symbols_map['HEJ4'].price_multiplier *self.valid_symbols_map['HEJ4'].quantity_multiplier )
         
         # Test
         order = self.order_manager._order_details(self.valid_future_instructions, position_allocation)
