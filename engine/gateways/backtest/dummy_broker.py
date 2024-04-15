@@ -14,7 +14,8 @@ class PositionDetails(TypedDict):
     action: str
     avg_cost: float
     quantity: int
-    multiplier: Optional[int]
+    price_multiplier: Optional[int]
+    quantity_multiplier: Optional[int]
     initial_margin: Optional[float]
     unrealizedPnL :Optional[float]
     total_cost: Optional[float]
@@ -104,7 +105,7 @@ class DummyBroker:
         """
         quantity *= -1
         entry_value = position['avg_cost'] * quantity
-        current_value = current_price * position['multiplier'] * quantity
+        current_value = (current_price * position["price_multiplier"]) * (position['quantity_multiplier'] * quantity)
         pnl = current_value - entry_value
         return pnl
              
@@ -151,7 +152,8 @@ class DummyBroker:
     
     def _update_positions(self, contract: Contract, action: Action, quantity: float, fill_price: float):
         ticker = contract.symbol
-        multiplier = self.symbols_map[ticker].multiplier
+        price_multiplier = self.symbols_map[ticker].price_multiplier
+        quantity_multiplier = self.symbols_map[ticker].quantity_multiplier
         action = action.to_broker_standard() # converts to BUY or SELL
 
         # If no position then postions is equal to new order attributes
@@ -159,8 +161,9 @@ class DummyBroker:
             self.positions[contract] = PositionDetails(
                 action= action,
                 quantity= quantity,
-                avg_cost=round((fill_price * multiplier),4),#TODO: valid this is how IB does it
-                multiplier= multiplier,      
+                avg_cost=round(((fill_price * price_multiplier) * quantity_multiplier),4),#TODO: valid this is how IB does it
+                price_multiplier= price_multiplier,
+                quantity_multiplier= quantity_multiplier,      
                 initial_margin = self.symbols_map[ticker].initialMargin,
                 unrealizedPnL=0
                 # 'total_cost': round(quantity * avg_cost * -1,4) # Cost (-) if a buy, (+) if a sell    
@@ -168,7 +171,7 @@ class DummyBroker:
         else:
             current_position = self.positions[contract]
             existing_value = current_position['avg_cost'] * current_position['quantity']
-            added_value = (fill_price * multiplier) * quantity
+            added_value = (fill_price * price_multiplier) * (quantity_multiplier * quantity)
             net_quantity = current_position['quantity'] + quantity
 
             # If nets the old position ot 0 the position no longer exists
@@ -221,14 +224,17 @@ class DummyBroker:
     
     def _future_position_value(self, position:PositionDetails, current_price:float):
         entry_cost = position['avg_cost'] * position['quantity'] 
-        current_cost = (current_price * position['multiplier']) * position['quantity'] 
+        current_cost = (current_price * position['price_multiplier']) * (position['quantity_multiplier'] * position['quantity'])
         pnl = current_cost - entry_cost
         return pnl
     
     def _equity_position_value(self, position:PositionDetails, current_price:float):
-        return (current_price * position['multiplier']) * position['quantity'] 
+        return (current_price * position['price_multiplier']) * (position['quantity_multiplier'] * position['quantity'])
     
     def _update_trades(self, timestamp: Union[int,float], trade_id:int, leg_id:int, contract:Contract, quantity: float, action: Action, fill_price:float, fees:float):
+        quantity_multiplier = self.symbols_map[contract.symbol].quantity_multiplier
+        price_multiplier = self.symbols_map[contract.symbol].price_multiplier
+
         trade = ExecutionDetails(
             timestamp = timestamp,
             trade_id = trade_id,
@@ -236,7 +242,7 @@ class DummyBroker:
             symbol = contract.symbol,
             quantity = round(quantity,4),
             price = fill_price,
-            cost = round(fill_price * quantity * self.symbols_map[contract.symbol].multiplier , 2),
+            cost = round((fill_price * price_multiplier) * (quantity * quantity_multiplier), 2),
             action = action.value,
             fees = round(fees,4)
         )
@@ -291,6 +297,8 @@ class DummyBroker:
             fill_price = self._fill_price(contract,action)
             quantity = position['quantity'] * -1
             timestamp = self.order_book.book[contract.symbol].timestamp
+            quantity_multiplier = self.symbols_map[contract.symbol].quantity_multiplier
+            price_multiplier = self.symbols_map[contract.symbol].price_multiplier
 
             trade = ExecutionDetails(
                 timestamp= timestamp,
@@ -299,7 +307,7 @@ class DummyBroker:
                 symbol= contract.symbol,
                 quantity= round(quantity,4),
                 price= fill_price,
-                cost= round(fill_price * quantity * self.symbols_map[contract.symbol].multiplier, 2),
+                cost = round((fill_price * price_multiplier) * (quantity * quantity_multiplier), 2),
                 action= action.value,
                 fees= 0.0 # because not actually a trade
             )

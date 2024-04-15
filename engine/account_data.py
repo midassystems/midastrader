@@ -50,7 +50,8 @@ class Position:
     quantity: int
     total_cost: Optional[float] 
     market_value: Optional[float]
-    multiplier: int = None
+    quantity_multiplier: int = None
+    price_multiplier: int = None
     initial_margin: Optional[float] = None
 
     def __post_init__(self):
@@ -61,7 +62,9 @@ class Position:
             raise TypeError(f"avg_cost must be of type int or float")
         if not isinstance(self.quantity, (int,float)):
             raise TypeError(f"quantity must be of type int or float")
-        if not isinstance(self.multiplier, int):
+        if not isinstance(self.price_multiplier, (float, int)):
+            raise TypeError(f"multiplier must be of type float or int")
+        if not isinstance(self.quantity_multiplier, int):
             raise TypeError(f"multiplier must be of type int")
         if not isinstance(self.initial_margin, (int,float)):
             raise TypeError(f"initial_margin must be of type int or float") 
@@ -74,7 +77,9 @@ class Position:
         # Constraint Validation
         if self.action not in ['BUY', 'SELL']:
             raise ValueError(f"action must be either 'BUY' or 'SELL'")
-        if self.multiplier <= 0:
+        if self.price_multiplier <= 0:
+            raise ValueError(f"multiplier must be greater than zero")
+        if self.quantity_multiplier <= 0:
             raise ValueError(f"multiplier must be greater than zero")
         if self.initial_margin < 0:
             raise ValueError(f"initial_margin must be non-negative.")
@@ -85,7 +90,8 @@ class Position:
         return (self.action == other.action and
                 self.avg_cost == other.avg_cost and
                 self.quantity == other.quantity and
-                self.multiplier == other.multiplier and
+                self.price_multiplier == other.price_multiplier and
+                self.quantity_multiplier == other.quantity_multiplier and
                 self.initial_margin == other.initial_margin and
                 self.total_cost == other.total_cost)
     
@@ -96,7 +102,8 @@ class Position:
             'quantity': self.quantity,
             'total_cost': self.total_cost,
             'market_value': self.market_value,
-            'multiplier': self.multiplier,
+            'price_multiplier': self.price_multiplier,
+            'quantity_multiplier': self.quantity_multiplier,
             'initial_margin': self.initial_margin
         }
     

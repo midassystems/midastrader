@@ -10,7 +10,8 @@ class TestPosition(unittest.TestCase):
         self.valid_action =  random.choice(['BUY', 'SELL'])
         self.valid_avg_cost = 10.90
         self.valid_quantity = 100
-        self.valid_multiplier = 10
+        self.quantity_multiplier = 10
+        self.price_multiplier = 0.01
         self.valid_initial_margin = 100.90
         self.valid_total_cost = 9000.90
         self.valid_market_value = 1000000.9
@@ -20,7 +21,8 @@ class TestPosition(unittest.TestCase):
         position = Position(action=self.valid_action,
                             avg_cost=self.valid_avg_cost,
                             quantity=self.valid_quantity,
-                            multiplier=self.valid_multiplier,
+                            quantity_multiplier=self.quantity_multiplier,
+                            price_multiplier=self.price_multiplier,
                             initial_margin=self.valid_initial_margin,
                             total_cost=self.valid_total_cost,
                             market_value=self.valid_market_value)
@@ -31,7 +33,8 @@ class TestPosition(unittest.TestCase):
         base_position = Position(action='BUY',
                     avg_cost=self.valid_avg_cost,
                     quantity=self.valid_quantity,
-                    multiplier=self.valid_multiplier,
+                    quantity_multiplier=self.quantity_multiplier,
+                    price_multiplier=self.price_multiplier,
                     initial_margin=self.valid_initial_margin,
                     total_cost=self.valid_total_cost,
                     market_value=self.valid_market_value)
@@ -39,7 +42,8 @@ class TestPosition(unittest.TestCase):
         new_position = Position(action="BUY", 
                     avg_cost=self.valid_avg_cost,
                     quantity=self.valid_quantity,
-                    multiplier=self.valid_multiplier,
+                    quantity_multiplier=self.quantity_multiplier,
+                    price_multiplier=self.price_multiplier,
                     initial_margin=self.valid_initial_margin,
                     total_cost=self.valid_total_cost,
                     market_value=self.valid_market_value)
@@ -50,7 +54,8 @@ class TestPosition(unittest.TestCase):
         base_position = Position(action='BUY',
                     avg_cost=self.valid_avg_cost,
                     quantity=self.valid_quantity,
-                    multiplier=self.valid_multiplier,
+                    quantity_multiplier=self.quantity_multiplier,
+                    price_multiplier=self.price_multiplier,
                     initial_margin=self.valid_initial_margin,
                     total_cost=self.valid_total_cost,
                     market_value=self.valid_market_value)
@@ -58,7 +63,8 @@ class TestPosition(unittest.TestCase):
         new_position = Position(action="SELL", 
                     avg_cost=self.valid_avg_cost,
                     quantity=self.valid_quantity,
-                    multiplier=self.valid_multiplier,
+                    quantity_multiplier=self.quantity_multiplier,
+                    price_multiplier=self.price_multiplier,
                     initial_margin=self.valid_initial_margin,
                     total_cost=self.valid_total_cost,
                     market_value=self.valid_market_value)
@@ -69,7 +75,8 @@ class TestPosition(unittest.TestCase):
         base_position = Position(action='BUY',
                     avg_cost=10,
                     quantity=self.valid_quantity,
-                    multiplier=self.valid_multiplier,
+                    quantity_multiplier=self.quantity_multiplier,
+                    price_multiplier=self.price_multiplier,
                     initial_margin=self.valid_initial_margin,
                     total_cost=self.valid_total_cost,
                     market_value=self.valid_market_value)
@@ -77,7 +84,8 @@ class TestPosition(unittest.TestCase):
         new_position = Position(action="BUY", 
                     avg_cost=20,
                     quantity=self.valid_quantity,
-                    multiplier=self.valid_multiplier,
+                    quantity_multiplier=self.quantity_multiplier,
+                    price_multiplier=self.price_multiplier,
                     initial_margin=self.valid_initial_margin,
                     total_cost=self.valid_total_cost,
                     market_value=self.valid_market_value)
@@ -88,7 +96,8 @@ class TestPosition(unittest.TestCase):
         base_position = Position(action='BUY',
                     avg_cost=self.valid_avg_cost,
                     quantity=9,
-                    multiplier=self.valid_multiplier,
+                    quantity_multiplier=self.quantity_multiplier,
+                    price_multiplier=self.price_multiplier,
                     initial_margin=self.valid_initial_margin,
                     total_cost=self.valid_total_cost,
                     market_value=self.valid_market_value)
@@ -96,7 +105,8 @@ class TestPosition(unittest.TestCase):
         new_position = Position(action="BUY", 
                     avg_cost=self.valid_avg_cost,
                     quantity=10,
-                    multiplier=self.valid_multiplier,
+                    quantity_multiplier=self.quantity_multiplier,
+                    price_multiplier=self.price_multiplier,
                     initial_margin=self.valid_initial_margin,
                     total_cost=self.valid_total_cost,
                     market_value=self.valid_market_value)
@@ -107,7 +117,8 @@ class TestPosition(unittest.TestCase):
         base_position = Position(action='BUY',
                     avg_cost=self.valid_avg_cost,
                     quantity=self.valid_quantity,
-                    multiplier=60,
+                    quantity_multiplier=60,
+                    price_multiplier=self.price_multiplier,
                     initial_margin=self.valid_initial_margin,
                     total_cost=self.valid_total_cost,
                     market_value=self.valid_market_value)
@@ -115,8 +126,9 @@ class TestPosition(unittest.TestCase):
         new_position = Position(action="BUY", 
                     avg_cost=self.valid_avg_cost,
                     quantity=self.valid_quantity,
-                    multiplier=90,
+                    quantity_multiplier=90,
                     initial_margin=self.valid_initial_margin,
+                    price_multiplier=self.price_multiplier,
                     total_cost=self.valid_total_cost,
                     market_value=self.valid_market_value)
 
@@ -126,7 +138,8 @@ class TestPosition(unittest.TestCase):
         base_position = Position(action='BUY',
                     avg_cost=self.valid_avg_cost,
                     quantity=self.valid_quantity,
-                    multiplier=self.valid_multiplier,
+                    quantity_multiplier=self.quantity_multiplier,
+                    price_multiplier=self.price_multiplier,
                     initial_margin=9000,
                     total_cost=self.valid_total_cost,
                     market_value=self.valid_market_value)
@@ -134,7 +147,8 @@ class TestPosition(unittest.TestCase):
         new_position = Position(action="BUY", 
                     avg_cost=self.valid_avg_cost,
                     quantity=self.valid_quantity,
-                    multiplier=self.valid_multiplier,
+                    quantity_multiplier=self.quantity_multiplier,
+                    price_multiplier=self.price_multiplier,
                     initial_margin=8657,
                     total_cost=self.valid_total_cost,
                     market_value=self.valid_market_value)
@@ -145,7 +159,8 @@ class TestPosition(unittest.TestCase):
         base_position = Position(action='BUY',
                     avg_cost=self.valid_avg_cost,
                     quantity=self.valid_quantity,
-                    multiplier=self.valid_multiplier,
+                    quantity_multiplier=self.quantity_multiplier,
+                    price_multiplier=self.price_multiplier,
                     initial_margin=self.valid_initial_margin,
                     total_cost=-9000,
                     market_value=self.valid_market_value)
@@ -153,7 +168,8 @@ class TestPosition(unittest.TestCase):
         new_position = Position(action="BUY", 
                     avg_cost=self.valid_avg_cost,
                     quantity=self.valid_quantity,
-                    multiplier=self.valid_multiplier,
+                    quantity_multiplier=self.quantity_multiplier,
+                    price_multiplier=self.price_multiplier,
                     initial_margin=self.valid_initial_margin,
                     total_cost=9000,
                     market_value=self.valid_market_value)
@@ -166,7 +182,8 @@ class TestPosition(unittest.TestCase):
             Position(action=1234,
                         avg_cost=self.valid_avg_cost,
                         quantity=self.valid_quantity,
-                        multiplier=self.valid_multiplier,
+                        quantity_multiplier=self.quantity_multiplier,
+                        price_multiplier=self.price_multiplier,
                         initial_margin=self.valid_initial_margin,
                         total_cost=self.valid_total_cost,
                         market_value=self.valid_market_value)
@@ -176,7 +193,8 @@ class TestPosition(unittest.TestCase):
             Position(action=self.valid_action,
                         avg_cost="self.valid_avg_cost",
                         quantity=self.valid_quantity,
-                        multiplier=self.valid_multiplier,
+                        quantity_multiplier=self.quantity_multiplier,
+                        price_multiplier=self.price_multiplier,
                         initial_margin=self.valid_initial_margin,
                         total_cost=self.valid_total_cost,
                         market_value=self.valid_market_value)
@@ -186,7 +204,8 @@ class TestPosition(unittest.TestCase):
             Position(action=self.valid_action,
                         avg_cost=self.valid_avg_cost,
                         quantity="self.valid_quantity",
-                        multiplier=self.valid_multiplier,
+                        quantity_multiplier=self.quantity_multiplier,
+                        price_multiplier=self.price_multiplier,
                         initial_margin=self.valid_initial_margin,
                         total_cost=self.valid_total_cost,
                         market_value=self.valid_market_value)
@@ -196,7 +215,8 @@ class TestPosition(unittest.TestCase):
             Position(action=self.valid_action,
                         avg_cost=self.valid_avg_cost,
                         quantity=self.valid_quantity,
-                        multiplier="self.valid_multiplier",
+                        quantity_multiplier="self.quantity_multiplier",
+                        price_multiplier=self.price_multiplier,
                         initial_margin=self.valid_initial_margin,
                         total_cost=self.valid_total_cost,
                         market_value=self.valid_market_value)
@@ -206,7 +226,8 @@ class TestPosition(unittest.TestCase):
             Position(action=self.valid_action,
                         avg_cost=self.valid_avg_cost,
                         quantity=self.valid_quantity,
-                        multiplier=self.valid_multiplier,
+                        quantity_multiplier=self.quantity_multiplier,
+                        price_multiplier=self.price_multiplier,
                         initial_margin="self.valid_initial_margin",
                         total_cost=self.valid_total_cost,
                         market_value=self.valid_market_value)
@@ -216,7 +237,8 @@ class TestPosition(unittest.TestCase):
             Position(action=self.valid_action,
                         avg_cost=self.valid_avg_cost,
                         quantity=self.valid_quantity,
-                        multiplier=self.valid_multiplier,
+                        quantity_multiplier=self.quantity_multiplier,
+                        price_multiplier=self.price_multiplier,
                         initial_margin=self.valid_initial_margin,
                         total_cost="self.valid_total_cost,",
                         market_value=self.valid_market_value)
@@ -226,7 +248,8 @@ class TestPosition(unittest.TestCase):
             Position(action=self.valid_action,
                         avg_cost=self.valid_avg_cost,
                         quantity=self.valid_quantity,
-                        multiplier=self.valid_multiplier,
+                        quantity_multiplier=self.quantity_multiplier,
+                        price_multiplier=self.price_multiplier,
                         initial_margin=self.valid_initial_margin,
                         total_cost=self.valid_total_cost,
                         market_value="self.valid_market_value)")
@@ -236,7 +259,8 @@ class TestPosition(unittest.TestCase):
             Position(action="Cover",
                         avg_cost=self.valid_avg_cost,
                         quantity=self.valid_quantity,
-                        multiplier=self.valid_multiplier,
+                        quantity_multiplier=self.quantity_multiplier,
+                        price_multiplier=self.price_multiplier,
                         initial_margin=self.valid_initial_margin,
                         total_cost=self.valid_total_cost,
                         market_value=self.valid_market_value)
@@ -246,7 +270,8 @@ class TestPosition(unittest.TestCase):
             Position(action=self.valid_action,
                 avg_cost=self.valid_avg_cost,
                 quantity=self.valid_quantity,
-                multiplier=-1,
+                quantity_multiplier=-1,
+                price_multiplier=self.price_multiplier,
                 initial_margin=self.valid_initial_margin,
                 total_cost=self.valid_total_cost,
                 market_value=self.valid_market_value)
@@ -256,7 +281,8 @@ class TestPosition(unittest.TestCase):
             Position(action=self.valid_action,
                 avg_cost=self.valid_avg_cost,
                 quantity=self.valid_quantity,
-                multiplier=0,
+                quantity_multiplier=0,
+                price_multiplier=self.price_multiplier,
                 initial_margin=self.valid_initial_margin,
                 total_cost=self.valid_total_cost,
                 market_value=self.valid_market_value)
@@ -266,7 +292,8 @@ class TestPosition(unittest.TestCase):
             Position(action=self.valid_action,
                 avg_cost=self.valid_avg_cost,
                 quantity=self.valid_quantity,
-                multiplier=self.valid_multiplier,
+                quantity_multiplier=self.quantity_multiplier,
+                price_multiplier=self.price_multiplier,
                 initial_margin=-1.1,
                 total_cost=self.valid_total_cost,
                 market_value=self.valid_market_value)
@@ -275,7 +302,8 @@ class TestPosition(unittest.TestCase):
         base_position = Position(action=self.valid_action,
                     avg_cost=self.valid_avg_cost,
                     quantity=self.valid_quantity,
-                    multiplier=self.valid_multiplier,
+                    quantity_multiplier=self.quantity_multiplier,
+                    price_multiplier=self.price_multiplier,
                     initial_margin=self.valid_initial_margin,
                     total_cost=self.valid_total_cost,
                     market_value=self.valid_market_value)

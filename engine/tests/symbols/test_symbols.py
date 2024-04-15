@@ -16,6 +16,7 @@ class TestSymbol(unittest.TestCase):
         self.valid_currency = Currency.USD  
         self.valid_exchange = Exchange.NASDAQ  
         self.valid_fees = 0.1
+        self.initial_margin = 0
 
     # Basic Validation
     def test_construction(self):
@@ -26,6 +27,7 @@ class TestSymbol(unittest.TestCase):
                         secType=self.valid_secType, 
                         currency=self.valid_currency, 
                         exchange=self.valid_exchange, 
+                        initialMargin= self.initial_margin,
                         fees=self.valid_fees)
         
         self.assertEqual(symbol.ticker, self.valid_ticker)
@@ -43,6 +45,7 @@ class TestSymbol(unittest.TestCase):
                         secType=self.valid_secType, 
                         currency=self.valid_currency, 
                         exchange=self.valid_exchange, 
+                        initialMargin= self.initial_margin,
                         fees=self.valid_fees)
         
         self.assertEqual(symbol.ticker, self.valid_ticker)
@@ -56,7 +59,8 @@ class TestSymbol(unittest.TestCase):
         symbol = Symbol(ticker=self.valid_ticker, 
                         secType=self.valid_secType, 
                         currency=self.valid_currency, 
-                        exchange=self.valid_exchange, 
+                        exchange=self.valid_exchange,
+                        initialMargin= self.initial_margin, 
                         fees=self.valid_fees)
     
         self.assertEqual(symbol.ticker, self.valid_ticker)
@@ -74,6 +78,7 @@ class TestSymbol(unittest.TestCase):
                         secType=self.valid_secType, 
                         currency=self.valid_currency, 
                         exchange=self.valid_exchange, 
+                        initialMargin= self.initial_margin,
                         fees=self.valid_fees)
         
         contract_data = symbol.to_contract_data()
@@ -89,6 +94,7 @@ class TestSymbol(unittest.TestCase):
                         secType=self.valid_secType, 
                         currency=self.valid_currency, 
                         exchange=self.valid_exchange, 
+                        initialMargin= self.initial_margin,
                         fees=self.valid_fees)
         
         contract = symbol.to_contract()
@@ -107,6 +113,7 @@ class TestSymbol(unittest.TestCase):
                     secType=self.valid_secType, 
                     currency=self.valid_currency, 
                     exchange=self.valid_exchange, 
+                    initialMargin= self.initial_margin,
                     fees=self.valid_fees)
             
     def test_data_ticker_type_validation(self):
@@ -116,6 +123,7 @@ class TestSymbol(unittest.TestCase):
                     secType=self.valid_secType, 
                     currency=self.valid_currency, 
                     exchange=self.valid_exchange, 
+                    initialMargin= self.initial_margin,
                     fees=self.valid_fees)
             
     def test_secType_type_validation(self):
@@ -124,7 +132,8 @@ class TestSymbol(unittest.TestCase):
                     data_ticker=self.valid_data_ticker,
                     secType="self.valid_secType", 
                     currency=self.valid_currency, 
-                    exchange=self.valid_exchange, 
+                    exchange=self.valid_exchange,
+                    initialMargin= self.initial_margin, 
                     fees=self.valid_fees)
             
     def test_currency_type_validation(self):
@@ -134,6 +143,7 @@ class TestSymbol(unittest.TestCase):
                     secType=self.valid_secType, 
                     currency="self.valid_currency", 
                     exchange=self.valid_exchange, 
+                    initialMargin= self.initial_margin,
                     fees=self.valid_fees)
     
     def test_exchange_type_validation(self):
@@ -143,6 +153,17 @@ class TestSymbol(unittest.TestCase):
                     secType=self.valid_secType, 
                     currency=self.valid_currency, 
                     exchange="self.valid_exchange", 
+                    initialMargin= self.initial_margin,
+                    fees=self.valid_fees)
+            
+    def test_initial_margin_type_validation(self):
+        with self.assertRaisesRegex(TypeError, "initialMargin must be an int or float"):
+            Symbol(ticker=self.valid_ticker, 
+                    data_ticker=self.valid_data_ticker,
+                    secType=self.valid_secType, 
+                    currency=self.valid_currency, 
+                    exchange=self.valid_exchange, 
+                    initialMargin= "self.initial_margin",
                     fees=self.valid_fees)
             
     def test_fees_type_validation(self):
@@ -152,6 +173,7 @@ class TestSymbol(unittest.TestCase):
                     secType=self.valid_secType, 
                     currency=self.valid_currency, 
                     exchange=self.valid_exchange, 
+                    initialMargin= self.initial_margin,
                     fees="self.valid_fees")
         
     def test_fees_negative_constraints(self): 
@@ -161,6 +183,7 @@ class TestSymbol(unittest.TestCase):
                     secType=self.valid_secType, 
                     currency=self.valid_currency, 
                     exchange=self.valid_exchange, 
+                    initialMargin= self.initial_margin,
                     fees=-0.01)
         
     # # Edge Case Validation
@@ -194,6 +217,7 @@ class TestEquity(unittest.TestCase):
         self.valid_currency = Currency.CAD  
         self.valid_exchange = Exchange.NYSE  
         self.valid_fees = 0.10
+        self.initialMargin= 0
 
     # Basic Validation
     def test_construction(self):
@@ -210,7 +234,8 @@ class TestEquity(unittest.TestCase):
         self.assertEqual(equity.secType, self.valid_secType)
         self.assertEqual(equity.currency, self.valid_currency)
         self.assertEqual(equity.fees, self.valid_fees)
-        self.assertEqual(equity.multiplier, 1)
+        self.assertEqual(equity.price_multiplier, 1)
+        self.assertEqual(equity.quantity_multiplier, 1)
         self.assertEqual(equity.initialMargin, 0)
         self.assertEqual(type(equity.contract),Contract,"contract shoudl be an instance of Contract")
 
@@ -228,7 +253,8 @@ class TestEquity(unittest.TestCase):
         self.assertEqual(equity.secType, self.valid_secType)
         self.assertEqual(equity.currency, self.valid_currency)
         self.assertEqual(equity.fees, self.valid_fees)
-        self.assertEqual(equity.multiplier, 1)
+        self.assertEqual(equity.price_multiplier, 1)
+        self.assertEqual(equity.quantity_multiplier, 1)
         self.assertEqual(equity.initialMargin, 0)
         self.assertEqual(type(equity.contract),Contract,"contract shoudl be an instance of Contract")
 
@@ -243,7 +269,8 @@ class TestEquity(unittest.TestCase):
         self.assertEqual(equity.secType, self.valid_secType)
         self.assertEqual(equity.currency, self.valid_currency)
         self.assertEqual(equity.fees, self.valid_fees)
-        self.assertEqual(equity.multiplier, 1)
+        self.assertEqual(equity.price_multiplier, 1)
+        self.assertEqual(equity.quantity_multiplier, 1)
         self.assertEqual(equity.initialMargin, 0)
         self.assertEqual(type(equity.contract),Contract,"contract shoudl be an instance of Contract")
 
@@ -348,7 +375,8 @@ class TestFuture(unittest.TestCase):
         self.valid_exchange = Exchange.CME  
         self.valid_fees = 0.10
         self.valid_lastTradeDateOrContractMonth="202404"
-        self.valid_multiplier=40000
+        self.quantity_multiplier=40000
+        self.price_multiplier=100
         self.valid_tickSize=0.00025
         self.valid_initialMargin=4564.17
 
@@ -362,7 +390,8 @@ class TestFuture(unittest.TestCase):
                         exchange=self.valid_exchange, 
                         fees=self.valid_fees, 
                         lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                        multiplier=self.valid_multiplier, 
+                        quantity_multiplier=self.quantity_multiplier, 
+                        price_multiplier=self.price_multiplier, 
                         tickSize=self.valid_tickSize,
                         initialMargin=self.valid_initialMargin)
         
@@ -372,7 +401,8 @@ class TestFuture(unittest.TestCase):
         self.assertEqual(future.currency, self.valid_currency)
         self.assertEqual(future.fees, self.valid_fees)
         self.assertEqual(future.lastTradeDateOrContractMonth, self.valid_lastTradeDateOrContractMonth)
-        self.assertEqual(future.multiplier, self.valid_multiplier)
+        self.assertEqual(future.price_multiplier, self.price_multiplier)
+        self.assertEqual(future.quantity_multiplier, self.quantity_multiplier)
         self.assertEqual(future.tickSize, self.valid_tickSize)
         self.assertEqual(future.initialMargin, self.valid_initialMargin)
         self.assertEqual(type(future.contract),Contract,"contract shoudl be an instance of Contract")
@@ -386,7 +416,8 @@ class TestFuture(unittest.TestCase):
                         exchange=self.valid_exchange, 
                         fees=self.valid_fees,
                         lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                        multiplier=self.valid_multiplier, 
+                        quantity_multiplier=self.quantity_multiplier, 
+                        price_multiplier=self.price_multiplier, 
                         tickSize=self.valid_tickSize,
                         initialMargin=self.valid_initialMargin)
         
@@ -396,7 +427,8 @@ class TestFuture(unittest.TestCase):
         self.assertEqual(future.currency, self.valid_currency)
         self.assertEqual(future.fees, self.valid_fees)
         self.assertEqual(future.lastTradeDateOrContractMonth, self.valid_lastTradeDateOrContractMonth)
-        self.assertEqual(future.multiplier, self.valid_multiplier)
+        self.assertEqual(future.price_multiplier, self.price_multiplier)
+        self.assertEqual(future.quantity_multiplier, self.quantity_multiplier)
         self.assertEqual(future.tickSize, self.valid_tickSize)
         self.assertEqual(future.initialMargin, self.valid_initialMargin)
         self.assertEqual(type(future.contract),Contract,"contract shoudl be an instance of Contract")
@@ -407,7 +439,8 @@ class TestFuture(unittest.TestCase):
                         exchange=self.valid_exchange, 
                         fees=self.valid_fees, 
                         lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                        multiplier=self.valid_multiplier, 
+                        quantity_multiplier=self.quantity_multiplier, 
+                        price_multiplier=self.price_multiplier, 
                         tickSize=self.valid_tickSize,
                         initialMargin=self.valid_initialMargin)
     
@@ -417,7 +450,8 @@ class TestFuture(unittest.TestCase):
         self.assertEqual(future.currency, self.valid_currency)
         self.assertEqual(future.fees, self.valid_fees)
         self.assertEqual(future.lastTradeDateOrContractMonth, self.valid_lastTradeDateOrContractMonth)
-        self.assertEqual(future.multiplier, self.valid_multiplier)
+        self.assertEqual(future.price_multiplier, self.price_multiplier)
+        self.assertEqual(future.quantity_multiplier, self.quantity_multiplier)
         self.assertEqual(future.tickSize, self.valid_tickSize)
         self.assertEqual(future.initialMargin, self.valid_initialMargin)
         self.assertEqual(type(future.contract),Contract,"contract shoudl be an instance of Contract")
@@ -431,7 +465,8 @@ class TestFuture(unittest.TestCase):
                         exchange=self.valid_exchange, 
                         fees=self.valid_fees,
                         lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                        multiplier=self.valid_multiplier, 
+                        quantity_multiplier=self.quantity_multiplier, 
+                        price_multiplier=self.price_multiplier,  
                         tickSize=self.valid_tickSize,
                         initialMargin=self.valid_initialMargin)
                         
@@ -443,7 +478,7 @@ class TestFuture(unittest.TestCase):
         self.assertEqual(contract_data['currency'], self.valid_currency.value)
         self.assertEqual(contract_data['exchange'], self.valid_exchange.value)
         self.assertEqual(contract_data["lastTradeDateOrContractMonth"], self.valid_lastTradeDateOrContractMonth)
-        self.assertEqual(contract_data['multiplier'], self.valid_multiplier)
+        self.assertEqual(contract_data['multiplier'], self.quantity_multiplier)
 
     def test_to_contract(self):
         future = Future(ticker=self.valid_ticker, 
@@ -452,7 +487,8 @@ class TestFuture(unittest.TestCase):
                         exchange=self.valid_exchange, 
                         fees=self.valid_fees, 
                         lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                        multiplier=self.valid_multiplier, 
+                        quantity_multiplier=self.quantity_multiplier, 
+                        price_multiplier=self.price_multiplier, 
                         tickSize=self.valid_tickSize,
                         initialMargin=self.valid_initialMargin)
                         
@@ -465,7 +501,7 @@ class TestFuture(unittest.TestCase):
         self.assertEqual(contract.exchange, self.valid_exchange.value)
         self.assertEqual(contract.currency, self.valid_currency.value)
         self.assertEqual(contract.lastTradeDateOrContractMonth, self.valid_lastTradeDateOrContractMonth)
-        self.assertEqual(contract.multiplier, self.valid_multiplier)
+        self.assertEqual(contract.multiplier, self.quantity_multiplier)
 
     # Type/Constraint Validation
     def test_ticker_type_validation(self):
@@ -476,7 +512,8 @@ class TestFuture(unittest.TestCase):
                     exchange=self.valid_exchange, 
                     fees=self.valid_fees,
                     lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                    multiplier=self.valid_multiplier, 
+                    quantity_multiplier=self.quantity_multiplier, 
+                    price_multiplier=self.price_multiplier, 
                     tickSize=self.valid_tickSize,
                     initialMargin=self.valid_initialMargin)
             
@@ -488,7 +525,8 @@ class TestFuture(unittest.TestCase):
                     exchange=self.valid_exchange, 
                     fees=self.valid_fees, 
                     lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                    multiplier=self.valid_multiplier, 
+                    quantity_multiplier=self.quantity_multiplier, 
+                    price_multiplier=self.price_multiplier, 
                     tickSize=self.valid_tickSize,
                     initialMargin=self.valid_initialMargin)
 
@@ -500,7 +538,8 @@ class TestFuture(unittest.TestCase):
                     exchange=self.valid_exchange, 
                     fees=self.valid_fees,                         
                     lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                    multiplier=self.valid_multiplier, 
+                    quantity_multiplier=self.quantity_multiplier, 
+                    price_multiplier=self.price_multiplier, 
                     tickSize=self.valid_tickSize,
                     initialMargin=self.valid_initialMargin)
     
@@ -512,7 +551,8 @@ class TestFuture(unittest.TestCase):
                     exchange="self.valid_exchange", 
                     fees=self.valid_fees,
                     lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                    multiplier=self.valid_multiplier, 
+                    quantity_multiplier=self.quantity_multiplier, 
+                    price_multiplier=self.price_multiplier, 
                     tickSize=self.valid_tickSize,
                     initialMargin=self.valid_initialMargin)
                 
@@ -524,7 +564,8 @@ class TestFuture(unittest.TestCase):
                     exchange=self.valid_exchange, 
                     fees="self.valid_fees", 
                     lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                    multiplier=self.valid_multiplier, 
+                    quantity_multiplier=self.quantity_multiplier, 
+                    price_multiplier=self.price_multiplier, 
                     tickSize=self.valid_tickSize,
                     initialMargin=self.valid_initialMargin)
         
@@ -536,7 +577,8 @@ class TestFuture(unittest.TestCase):
                     exchange=self.valid_exchange, 
                     fees=self.valid_fees, 
                     lastTradeDateOrContractMonth=202412,
-                    multiplier=self.valid_multiplier, 
+                    quantity_multiplier=self.quantity_multiplier, 
+                    price_multiplier=self.price_multiplier, 
                     tickSize=self.valid_tickSize,
                     initialMargin=self.valid_initialMargin)
         
@@ -548,7 +590,8 @@ class TestFuture(unittest.TestCase):
                     exchange=self.valid_exchange, 
                     fees=self.valid_fees, 
                     lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                    multiplier="self.valid_multiplier", 
+                    quantity_multiplier="self.valid_multiplier", 
+                    price_multiplier=self.price_multiplier, 
                     tickSize=self.valid_tickSize,
                     initialMargin=self.valid_initialMargin)
             
@@ -560,7 +603,8 @@ class TestFuture(unittest.TestCase):
                     exchange=self.valid_exchange, 
                     fees=self.valid_fees, 
                     lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                    multiplier=self.valid_multiplier, 
+                    quantity_multiplier=self.quantity_multiplier, 
+                    price_multiplier=self.price_multiplier, 
                     tickSize="self.valid_tickSize",
                     initialMargin=self.valid_initialMargin)
             
@@ -572,19 +616,21 @@ class TestFuture(unittest.TestCase):
                     exchange=self.valid_exchange, 
                     fees=self.valid_fees, 
                     lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                    multiplier=self.valid_multiplier, 
+                    quantity_multiplier=self.quantity_multiplier, 
+                    price_multiplier=self.price_multiplier, 
                     tickSize=self.valid_tickSize,
                     initialMargin="self.valid_initialMargin")
     
-    def test_multiplier_negative_constraint(self):
-        with self.assertRaisesRegex(ValueError,"multiplier must be greater than 0"):
+    def test_quantity_multiplier_constraint(self):
+        with self.assertRaisesRegex(ValueError,"quantity_multiplier must be greater than 0"):
             Future(ticker=self.valid_ticker, 
                     data_ticker=self.valid_data_ticker,
                     currency=self.valid_currency, 
                     exchange=self.valid_exchange, 
                     fees=self.valid_fees, 
                     lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                    multiplier=-1, 
+                    quantity_multiplier=0, 
+                    price_multiplier=self.price_multiplier, 
                     tickSize=self.valid_tickSize,
                     initialMargin=self.valid_initialMargin)
             
@@ -596,31 +642,34 @@ class TestFuture(unittest.TestCase):
                     exchange=self.valid_exchange, 
                     fees=self.valid_fees, 
                     lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                    multiplier=self.valid_multiplier, 
+                    quantity_multiplier=self.quantity_multiplier, 
+                    price_multiplier=self.price_multiplier, 
                     tickSize=-0.01, 
                     initialMargin=self.valid_initialMargin)
 
     def test_initialMargin_negative_constraint(self):
-        with self.assertRaisesRegex(ValueError,"initialMargin must be greater than 0"):
+        with self.assertRaisesRegex(ValueError,"initialMargin must be non-negative"):
             Future(ticker=self.valid_ticker, 
                     data_ticker=self.valid_data_ticker,
                     currency=self.valid_currency, 
                     exchange=self.valid_exchange, 
                     fees=self.valid_fees, 
                     lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                    multiplier=self.valid_multiplier, 
+                    quantity_multiplier=self.quantity_multiplier, 
+                    price_multiplier=self.price_multiplier, 
                     tickSize=self.valid_tickSize,
                     initialMargin=-0.9)
             
-    def test_multiplier_zero_constraint(self):
-        with self.assertRaisesRegex(ValueError, "multiplier must be greater than 0"):
+    def test_price_multiplier_constraint(self):
+        with self.assertRaisesRegex(ValueError, "price_multiplier must be greater than 0"):
             Future(ticker=self.valid_ticker, 
                     data_ticker=self.valid_data_ticker,
                     currency=self.valid_currency, 
                     exchange=self.valid_exchange, 
                     fees=self.valid_fees, 
                     lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                    multiplier=0, 
+                    price_multiplier=0, 
+                    quantity_multiplier=1, 
                     tickSize=self.valid_tickSize,
                     initialMargin=self.valid_initialMargin)
             
@@ -632,21 +681,10 @@ class TestFuture(unittest.TestCase):
                     exchange=self.valid_exchange, 
                     fees=self.valid_fees, 
                     lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                    multiplier=self.valid_multiplier, 
+                    quantity_multiplier=self.quantity_multiplier, 
+                    price_multiplier=self.price_multiplier, 
                     tickSize=0,
                     initialMargin=self.valid_initialMargin)
-
-    def test_initialMargin_zero_constraint(self):
-        with self.assertRaisesRegex(ValueError,"initialMargin must be greater than 0"):
-            Future(ticker=self.valid_ticker, 
-                    data_ticker=self.valid_data_ticker,
-                    currency=self.valid_currency, 
-                    exchange=self.valid_exchange, 
-                    fees=self.valid_fees, 
-                    lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                    multiplier=self.valid_multiplier, 
-                    tickSize=self.valid_tickSize,
-                    initialMargin=0)
 
     def test_fees_negative_constraints(self): 
         with self.assertRaisesRegex(ValueError,"fees cannot be negative"):
@@ -656,7 +694,8 @@ class TestFuture(unittest.TestCase):
                     exchange=self.valid_exchange, 
                     fees=-0.01, 
                     lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                    multiplier=self.valid_multiplier, 
+                    quantity_multiplier=self.quantity_multiplier, 
+                    price_multiplier=self.price_multiplier,  
                     tickSize=self.valid_tickSize,
                     initialMargin=self.valid_initialMargin)
             
@@ -670,7 +709,8 @@ class TestFuture(unittest.TestCase):
                     exchange=self.valid_exchange, 
                     fees=self.valid_fees, 
                     lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                    multiplier=self.valid_multiplier, 
+                    quantity_multiplier=self.quantity_multiplier, 
+                    price_multiplier=self.price_multiplier, 
                     tickSize=self.valid_tickSize,
                     initialMargin=self.valid_initialMargin)
             
@@ -683,9 +723,11 @@ class TestOption(unittest.TestCase):
         self.valid_exchange = Exchange.NASDAQ 
         self.valid_fees = 0.10
         self.valid_lastTradeDateOrContractMonth="20240412" #'YYYYMMDD'
-        self.valid_multiplier=100
+        self.quantity_multiplier=100
+        self.price_multiplier=1
         self.valid_right = random.choice([Right.CALL,Right.PUT])
         self.valid_strike = 105.0
+        self.initialMargin = 0
 
     # Basic Validation
     def test_construction(self):
@@ -695,9 +737,11 @@ class TestOption(unittest.TestCase):
                         exchange=self.valid_exchange, 
                         fees=self.valid_fees, 
                         lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                        multiplier=self.valid_multiplier, 
+                        quantity_multiplier=self.quantity_multiplier, 
+                        price_multiplier=self.price_multiplier, 
                         right= self.valid_right, 
-                        strike=self.valid_strike
+                        strike=self.valid_strike,
+                        initialMargin=self.initialMargin
                         )
         
         self.assertEqual(option.ticker, self.valid_ticker)
@@ -706,7 +750,8 @@ class TestOption(unittest.TestCase):
         self.assertEqual(option.currency, self.valid_currency)
         self.assertEqual(option.fees, self.valid_fees)
         self.assertEqual(option.lastTradeDateOrContractMonth, self.valid_lastTradeDateOrContractMonth)
-        self.assertEqual(option.multiplier, self.valid_multiplier)
+        self.assertEqual(option.quantity_multiplier, self.quantity_multiplier)
+        self.assertEqual(option.price_multiplier, self.price_multiplier)
         self.assertEqual(option.right, self.valid_right)
         self.assertEqual(option.strike, self.valid_strike)
         self.assertEqual(type(option.contract),Contract,"contract shoudl be an instance of Contract")
@@ -720,8 +765,10 @@ class TestOption(unittest.TestCase):
                         exchange=self.valid_exchange, 
                         fees=self.valid_fees,                     
                         lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                        multiplier=self.valid_multiplier, 
+                        quantity_multiplier=self.quantity_multiplier, 
+                        price_multiplier=self.price_multiplier, 
                         right= self.valid_right, 
+                        initialMargin=self.initialMargin,
                         strike=self.valid_strike)
         
         self.assertEqual(option.ticker, self.valid_ticker)
@@ -729,6 +776,8 @@ class TestOption(unittest.TestCase):
         self.assertEqual(option.secType, self.valid_secType)
         self.assertEqual(option.currency, self.valid_currency)
         self.assertEqual(option.fees, self.valid_fees)
+        self.assertEqual(option.quantity_multiplier, self.quantity_multiplier)
+        self.assertEqual(option.price_multiplier, self.price_multiplier)
         self.assertEqual(type(option.contract),Contract,"contract shoudl be an instance of Contract")
 
         # Constructing the option instance
@@ -737,8 +786,10 @@ class TestOption(unittest.TestCase):
                         exchange=self.valid_exchange, 
                         fees=self.valid_fees,
                         lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                        multiplier=self.valid_multiplier, 
+                        quantity_multiplier=self.quantity_multiplier, 
+                        price_multiplier=self.price_multiplier, 
                         right= self.valid_right, 
+                        initialMargin=self.initialMargin,
                         strike=self.valid_strike)
     
         self.assertEqual(option.ticker, self.valid_ticker)
@@ -746,6 +797,8 @@ class TestOption(unittest.TestCase):
         self.assertEqual(option.secType, self.valid_secType)
         self.assertEqual(option.currency, self.valid_currency)
         self.assertEqual(option.fees, self.valid_fees)
+        self.assertEqual(option.quantity_multiplier, self.quantity_multiplier)
+        self.assertEqual(option.price_multiplier, self.price_multiplier)
         self.assertEqual(type(option.contract),Contract,"contract shoudl be an instance of Contract")
 
     def test_to_contract_data(self):
@@ -757,9 +810,11 @@ class TestOption(unittest.TestCase):
                         exchange=self.valid_exchange, 
                         fees=self.valid_fees,                       
                         lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                        multiplier=self.valid_multiplier, 
+                        quantity_multiplier=self.quantity_multiplier, 
+                        price_multiplier=self.price_multiplier, 
                         right= self.valid_right, 
-                        strike=self.valid_strike
+                        strike=self.valid_strike,
+                        initialMargin=self.initialMargin
                         )
         
         contract_data = option.to_contract_data()
@@ -769,7 +824,7 @@ class TestOption(unittest.TestCase):
         self.assertEqual(contract_data['currency'], self.valid_currency.value)
         self.assertEqual(contract_data['exchange'], self.valid_exchange.value)
         self.assertEqual(contract_data["lastTradeDateOrContractMonth"], self.valid_lastTradeDateOrContractMonth)
-        self.assertEqual(contract_data['multiplier'], self.valid_multiplier)
+        self.assertEqual(contract_data['multiplier'], self.quantity_multiplier)
         self.assertEqual(contract_data["right"], self.valid_right.value) # Assuming Right is an Enum
         self.assertEqual(contract_data["strike"], self.valid_strike)
 
@@ -780,9 +835,11 @@ class TestOption(unittest.TestCase):
                         exchange=self.valid_exchange, 
                         fees=self.valid_fees, 
                         lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                        multiplier=self.valid_multiplier, 
+                        quantity_multiplier=self.quantity_multiplier, 
+                        price_multiplier=self.price_multiplier, 
                         right= self.valid_right, 
-                        strike=self.valid_strike
+                        strike=self.valid_strike,
+                        initialMargin=self.initialMargin
                         )
         
         contract = option.to_contract()
@@ -805,8 +862,10 @@ class TestOption(unittest.TestCase):
                     exchange=self.valid_exchange, 
                     fees=self.valid_fees,
                     lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                    multiplier=self.valid_multiplier, 
+                    quantity_multiplier=self.quantity_multiplier, 
+                    price_multiplier=self.price_multiplier, 
                     right= self.valid_right, 
+                    initialMargin=self.initialMargin,
                     strike=self.valid_strike)
             
     def test_data_ticker_type_validation(self):
@@ -817,8 +876,10 @@ class TestOption(unittest.TestCase):
                     exchange=self.valid_exchange, 
                     fees=self.valid_fees, 
                     lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                    multiplier=self.valid_multiplier, 
+                    quantity_multiplier=self.quantity_multiplier, 
+                    price_multiplier=self.price_multiplier, 
                     right= self.valid_right, 
+                    initialMargin=self.initialMargin,
                     strike=self.valid_strike)
 
     def test_currency_type_validation(self):
@@ -829,8 +890,10 @@ class TestOption(unittest.TestCase):
                     exchange=self.valid_exchange, 
                     fees=self.valid_fees,                         
                     lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                    multiplier=self.valid_multiplier, 
+                    quantity_multiplier=self.quantity_multiplier, 
+                    price_multiplier=self.price_multiplier, 
                     right= self.valid_right, 
+                    initialMargin=self.initialMargin,
                     strike=self.valid_strike)
     
     def test_exchange_type_validation(self):
@@ -841,8 +904,10 @@ class TestOption(unittest.TestCase):
                     exchange="self.valid_exchange", 
                     fees=self.valid_fees,
                     lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                    multiplier=self.valid_multiplier, 
+                    quantity_multiplier=self.quantity_multiplier, 
+                    price_multiplier=self.price_multiplier, 
                     right= self.valid_right, 
+                    initialMargin=self.initialMargin,
                     strike=self.valid_strike)
                 
     def test_fees_type_validation(self):
@@ -853,8 +918,10 @@ class TestOption(unittest.TestCase):
                     exchange=self.valid_exchange, 
                     fees="self.valid_fees", 
                     lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                    multiplier=self.valid_multiplier, 
+                    quantity_multiplier=self.quantity_multiplier, 
+                    price_multiplier=self.price_multiplier, 
                     right= self.valid_right, 
+                    initialMargin=self.initialMargin,
                     strike=self.valid_strike)
         
     def test_lastTradeDateOrContractMonth_type_validation(self):
@@ -865,20 +932,24 @@ class TestOption(unittest.TestCase):
                     exchange=self.valid_exchange, 
                     fees=self.valid_fees, 
                     lastTradeDateOrContractMonth=20241215,
-                    multiplier=self.valid_multiplier, 
+                    quantity_multiplier=self.quantity_multiplier, 
+                    price_multiplier=self.price_multiplier,  
                     right= self.valid_right, 
+                    initialMargin=self.initialMargin,
                     strike=self.valid_strike)
         
     def test_multiplier_type_validation(self):
-        with self.assertRaisesRegex(TypeError,"multiplier must be a int"):
+        with self.assertRaisesRegex(TypeError,"quantity_multiplier must be a int"):
             Option(ticker=self.valid_ticker, 
                     data_ticker=self.valid_data_ticker,
                     currency=self.valid_currency, 
                     exchange=self.valid_exchange, 
                     fees=self.valid_fees, 
                     lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                    multiplier="self.valid_multiplier", 
+                    quantity_multiplier="self.valid_multiplier", 
+                    price_multiplier=self.price_multiplier,  
                     right= self.valid_right, 
+                    initialMargin=self.initialMargin,
                     strike=self.valid_strike)
             
     def test_right_type_validation(self):
@@ -889,8 +960,10 @@ class TestOption(unittest.TestCase):
                     exchange=self.valid_exchange, 
                     fees=self.valid_fees, 
                     lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                    multiplier=self.valid_multiplier, 
+                    quantity_multiplier=self.quantity_multiplier, 
+                    price_multiplier=self.price_multiplier, 
                     right="self.valid_right",
+                    initialMargin=self.initialMargin,
                     strike=self.valid_strike)
             
     def test_strike_type_validation(self):
@@ -901,8 +974,10 @@ class TestOption(unittest.TestCase):
                     exchange=self.valid_exchange, 
                     fees=self.valid_fees, 
                     lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                    multiplier=self.valid_multiplier, 
+                    quantity_multiplier=self.quantity_multiplier, 
+                    price_multiplier=self.price_multiplier,  
                     right=self.valid_right,
+                    initialMargin=self.initialMargin,
                     strike="self.valid_strike")
     
     def test_multiplier_negative_constraint(self):
@@ -913,8 +988,10 @@ class TestOption(unittest.TestCase):
                     exchange=self.valid_exchange, 
                     fees=self.valid_fees, 
                     lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                    multiplier=-1, 
+                    quantity_multiplier=-1, 
+                    price_multiplier=1, 
                     right=self.valid_right,
+                    initialMargin=self.initialMargin,
                     strike=self.valid_strike)
             
     def test_strike_negative_constraint(self):
@@ -925,20 +1002,24 @@ class TestOption(unittest.TestCase):
                     exchange=self.valid_exchange, 
                     fees=self.valid_fees, 
                     lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                    multiplier=self.valid_multiplier, 
+                    quantity_multiplier=self.quantity_multiplier, 
+                    price_multiplier=self.price_multiplier, 
                     right=self.valid_right,
+                    initialMargin=self.initialMargin,
                     strike=-0.01)
             
     def test_multiplier_zero_constraint(self):
-        with self.assertRaisesRegex(ValueError, "multiplier must be greater than 0"):
+        with self.assertRaisesRegex(ValueError, "quantity_multiplier must be greater than 0"):
             Option(ticker=self.valid_ticker, 
                     data_ticker=self.valid_data_ticker,
                     currency=self.valid_currency, 
                     exchange=self.valid_exchange, 
                     fees=self.valid_fees, 
                     lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                    multiplier=0, 
+                    quantity_multiplier=0,
+                    price_multiplier=1, 
                     right=self.valid_right,
+                    initialMargin=self.initialMargin,
                     strike=self.valid_strike)
             
     def test_strike_zero_constraint(self):
@@ -949,8 +1030,10 @@ class TestOption(unittest.TestCase):
                     exchange=self.valid_exchange, 
                     fees=self.valid_fees, 
                     lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                    multiplier=self.valid_multiplier, 
+                    quantity_multiplier=self.quantity_multiplier, 
+                    price_multiplier=self.price_multiplier, 
                     right=self.valid_right,
+                    initialMargin=self.initialMargin,
                     strike=0)
 
     def test_fees_negative_constraints(self): 
@@ -961,8 +1044,10 @@ class TestOption(unittest.TestCase):
                     exchange=self.valid_exchange, 
                     fees=-0.01, 
                     lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                    multiplier=self.valid_multiplier, 
+                    quantity_multiplier=self.quantity_multiplier, 
+                    price_multiplier=self.price_multiplier,  
                     right=self.valid_right,
+                    initialMargin=self.initialMargin,
                     strike=self.valid_strike)
             
     # Edge Cases
@@ -975,7 +1060,8 @@ class TestOption(unittest.TestCase):
                     exchange=self.valid_exchange, 
                     fees=self.valid_fees, 
                     lastTradeDateOrContractMonth=self.valid_lastTradeDateOrContractMonth,
-                    multiplier=self.valid_multiplier, 
+                    quantity_multiplier=self.quantity_multiplier, 
+                    price_multiplier=self.price_multiplier, 
                     right=self.valid_right,
                     strike=self.valid_strike)
 

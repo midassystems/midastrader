@@ -107,21 +107,27 @@ class OrderManager:
         action = trade_instruction.action
         weight = trade_instruction.weight
         current_price = self.order_book.current_price(ticker=ticker)
-        multiplier = self.symbols_map[trade_instruction.ticker].multiplier
+        
+        # Retrieve multipliers
+        price_multiplier = self.symbols_map[ticker].price_multiplier
+        quantity_multiplier = self.symbols_map[ticker].quantity_multiplier
 
         # Order Capital
         order_allocation = position_allocation * abs(weight) 
         self.logger.info(f"\nOrder Allocation: {order_allocation}")
 
         # Order Quantity
-        quantity = self._order_quantity(action,ticker,order_allocation,current_price,multiplier)
+        quantity = self._order_quantity(action,ticker,order_allocation,current_price,price_multiplier, quantity_multiplier)
 
         return self._create_order(trade_instruction.order_type,action,quantity)
     
-    def _order_quantity(self, action:Action,ticker:str, order_allocation:float, current_price:float, multiplier:int=1):
+    def _order_quantity(self, action:Action,ticker:str, order_allocation:float, current_price:float, price_multiplier: float , quantity_multiplier: int):
+        # Adjust current price based on the price multiplier
+        adjusted_price = current_price * price_multiplier
+
         # Adjust quantity based on the trade allocation
         if action in [Action.LONG, Action.SHORT]:  # Entry signal
-            quantity = order_allocation / (current_price * multiplier) 
+            quantity = order_allocation / (adjusted_price * quantity_multiplier) 
             # quantity *= 1 if action == Action.LONG else -1
         elif action in [Action.SELL, Action.COVER]:  # Exit signal
             quantity = self.portfolio_server.positions[ticker].quantity

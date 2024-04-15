@@ -25,7 +25,8 @@ class TestDummyClient(unittest.TestCase):
                                                   exchange=Exchange.CME,
                                                   fees=0.1,
                                                   lastTradeDateOrContractMonth='202412',
-                                                  multiplier=400,
+                                                  quantity_multiplier=4000,
+                                                  price_multiplier=0.01,
                                                   tickSize=0.0025,
                                                   initialMargin=4000),
                                     'AAPL' : Equity(ticker="APPL", 
@@ -101,13 +102,19 @@ class TestDummyClient(unittest.TestCase):
     def test_calculate_trade_pnl_SHORT(self):
         contract = Contract()
         contract.symbol = 'HEJ4'
-        multiplier = self.valid_symbols_map[contract.symbol].multiplier
+        ticker = contract.symbol
+        quantity_multiplier= self.valid_symbols_map[ticker].quantity_multiplier
+        price_multiplier= self.valid_symbols_map[ticker].price_multiplier
 
         # Entry Values
         entry_action = Action.SHORT
         entry_quantity = -100
         entry_price = 50
-        self.dummy_broker.positions[contract] = PositionDetails(avg_cost=entry_price*multiplier, quantity=entry_quantity, multiplier=multiplier)
+        self.dummy_broker.positions[contract] = PositionDetails(
+                                                    avg_cost=entry_price*price_multiplier*quantity_multiplier, 
+                                                    quantity=entry_quantity, 
+                                                    price_multiplier=price_multiplier,
+                                                    quantity_multiplier=quantity_multiplier)
 
         # Exit Values
         exit_action = Action.COVER
@@ -115,21 +122,27 @@ class TestDummyClient(unittest.TestCase):
         exit_price = 45
         trade_pnl = self.dummy_broker._calculate_trade_pnl(self.dummy_broker.positions[contract], exit_price, exit_quantity)
 
-        expected_pnl =  (exit_price - entry_price) * multiplier * exit_quantity * -1
+        expected_pnl =  (exit_price - entry_price) * price_multiplier * exit_quantity * quantity_multiplier * -1
 
         self.assertEqual(trade_pnl, expected_pnl)
-        self.assertEqual(trade_pnl,200000)
+        self.assertEqual(trade_pnl,20000)
 
     def test_calculate_trade_pnl_LONG(self):
         contract = Contract()
         contract.symbol = 'HEJ4'
-        multiplier = self.valid_symbols_map[contract.symbol].multiplier
+        ticker = contract.symbol
+        quantity_multiplier= self.valid_symbols_map[ticker].quantity_multiplier
+        price_multiplier= self.valid_symbols_map[ticker].price_multiplier
 
         # Entry Values
         entry_action = Action.LONG
         entry_quantity = 100
         entry_price = 50
-        self.dummy_broker.positions[contract] = PositionDetails(avg_cost=entry_price*multiplier, quantity=entry_quantity, multiplier=multiplier)
+        self.dummy_broker.positions[contract] = PositionDetails(
+                                            avg_cost=entry_price*price_multiplier*quantity_multiplier, 
+                                            quantity=entry_quantity, 
+                                            price_multiplier=price_multiplier,
+                                            quantity_multiplier=quantity_multiplier)
 
         # Exit Values
         exit_action = Action.SELL
@@ -137,21 +150,28 @@ class TestDummyClient(unittest.TestCase):
         exit_price = 45
         trade_pnl = self.dummy_broker._calculate_trade_pnl(self.dummy_broker.positions[contract], exit_price, exit_quantity)
 
-        expected_pnl =  (exit_price - entry_price) * multiplier * exit_quantity * -1
+        expected_pnl =  (exit_price - entry_price) * price_multiplier * exit_quantity * quantity_multiplier * -1
 
         self.assertEqual(trade_pnl, expected_pnl)
-        self.assertEqual(trade_pnl,-200000)
+        self.assertEqual(trade_pnl,-20000)
 
     def test_calculate_trade_pnl_partial_exit(self):
         contract = Contract()
         contract.symbol = 'HEJ4'
-        multiplier = self.valid_symbols_map[contract.symbol].multiplier
+        ticker = contract.symbol
+        quantity_multiplier= self.valid_symbols_map[ticker].quantity_multiplier
+        price_multiplier= self.valid_symbols_map[ticker].price_multiplier
 
         # Entry Values
         entry_action = Action.LONG
         entry_quantity = 100
         entry_price = 50
-        self.dummy_broker.positions[contract] = PositionDetails(avg_cost=entry_price*multiplier, quantity=entry_quantity, multiplier=multiplier)
+        self.dummy_broker.positions[contract] = PositionDetails(
+                                                    avg_cost=entry_price*price_multiplier*quantity_multiplier, 
+                                                    quantity=entry_quantity, 
+                                                    price_multiplier=price_multiplier,
+                                                    quantity_multiplier=quantity_multiplier)
+
 
         # Exit Values
         exit_action = Action.SELL
@@ -159,23 +179,31 @@ class TestDummyClient(unittest.TestCase):
         exit_price = 45
         trade_pnl = self.dummy_broker._calculate_trade_pnl(self.dummy_broker.positions[contract],exit_price, exit_quantity)
 
-        expected_pnl =  (exit_price - entry_price) * multiplier * exit_quantity * -1
+        expected_pnl =  (exit_price - entry_price) * price_multiplier * exit_quantity * quantity_multiplier * -1
 
         self.assertEqual(trade_pnl, expected_pnl)
-        self.assertEqual(trade_pnl,-100000)
+        self.assertEqual(trade_pnl,-10000)
 
     def test_update_account_futures_new_position(self):
         # Variables
         contract = Contract()
         contract.symbol = 'HEJ4'
-        multiplier = self.valid_symbols_map[contract.symbol].multiplier
+        ticker = contract.symbol
+        quantity_multiplier= self.valid_symbols_map[ticker].quantity_multiplier
+        price_multiplier= self.valid_symbols_map[ticker].price_multiplier
         entry_action = Action.SHORT
         entry_quantity = -100
         entry_price=50
         fees = 70
 
         capital = self.dummy_broker.account['FullAvailableFunds'] 
-        self.dummy_broker.positions[contract] = PositionDetails(avg_cost=entry_price*multiplier, quantity=entry_quantity, action=entry_action,multiplier=multiplier,  unrealizedPnl = 0 )
+        self.dummy_broker.positions[contract] = PositionDetails(
+                                                    avg_cost=entry_price*price_multiplier*quantity_multiplier,  
+                                                    quantity=entry_quantity, 
+                                                    action=entry_action,
+                                                    price_multiplier=price_multiplier,
+                                                    quantity_multiplier=quantity_multiplier,
+                                                    unrealizedPnl = 0 )
         
         # Test
         self.dummy_broker._update_account_futures(contract, entry_action, entry_quantity,entry_price, fees)
@@ -190,17 +218,20 @@ class TestDummyClient(unittest.TestCase):
         # Entry Variables 
         contract = Contract()
         contract.symbol = 'HEJ4'
-        multiplier = self.valid_symbols_map[contract.symbol].multiplier
+        ticker = contract.symbol
+        quantity_multiplier= self.valid_symbols_map[ticker].quantity_multiplier
+        price_multiplier= self.valid_symbols_map[ticker].price_multiplier
         entry_action = Action.SHORT
         entry_quantity = -100
         entry_price=50
         fees = 70
 
         capital = self.dummy_broker.account['FullAvailableFunds'] 
-        self.dummy_broker.positions[contract] = PositionDetails(avg_cost=entry_price*multiplier, 
+        self.dummy_broker.positions[contract] = PositionDetails(avg_cost=entry_price*price_multiplier*quantity_multiplier,  
                                                                 quantity=entry_quantity, 
                                                                 action=entry_action,
-                                                                multiplier=multiplier,  
+                                                                price_multiplier=price_multiplier,
+                                                                quantity_multiplier=quantity_multiplier,
                                                                 unrealizedPnl = 0)
         
         # Entry
@@ -227,7 +258,7 @@ class TestDummyClient(unittest.TestCase):
         self.dummy_broker._update_account_futures(contract, exit_action, exit_quantity, exit_price, fees)
 
         # Validation
-        expected_funds = (capital - fees) + ((exit_price - entry_price) * multiplier * exit_quantity * -1) - unrealized_pnl
+        expected_funds = (capital - fees) + ((exit_price - entry_price) * price_multiplier * exit_quantity * quantity_multiplier * -1) - unrealized_pnl
         self.assertEqual(self.dummy_broker.account['FullAvailableFunds'], expected_funds) # capital shoudl be adjusted for pnl and fees on exit
         self.assertEqual(self.dummy_broker.account['FullInitMarginReq'], 0) # Position exited margin should be fully removed
     
@@ -235,17 +266,20 @@ class TestDummyClient(unittest.TestCase):
         # First Entry Variables 
         contract = Contract()
         contract.symbol = 'HEJ4'
-        multiplier = self.valid_symbols_map[contract.symbol].multiplier
+        ticker = contract.symbol
+        quantity_multiplier= self.valid_symbols_map[ticker].quantity_multiplier
+        price_multiplier= self.valid_symbols_map[ticker].price_multiplier
         entry_action = Action.SHORT
         entry_quantity = -100
         entry_price=50
         fees = 70
         # entry_value = entry_price * quantity * multiplier
         capital = self.dummy_broker.account['FullAvailableFunds'] 
-        self.dummy_broker.positions[contract] = PositionDetails(avg_cost=entry_price*multiplier, 
+        self.dummy_broker.positions[contract] = PositionDetails(avg_cost=entry_price*price_multiplier*quantity_multiplier, 
                                                                 quantity=entry_quantity, 
                                                                 action=entry_action,
-                                                                multiplier=multiplier,  
+                                                                price_multiplier=price_multiplier,
+                                                                quantity_multiplier=quantity_multiplier,
                                                                 unrealizedPnl = 0)
         
         # Entry
@@ -280,17 +314,20 @@ class TestDummyClient(unittest.TestCase):
         # Entry Variables 
         contract = Contract()
         contract.symbol = 'HEJ4'
-        multiplier = self.valid_symbols_map[contract.symbol].multiplier
+        ticker = contract.symbol
+        quantity_multiplier= self.valid_symbols_map[ticker].quantity_multiplier
+        price_multiplier= self.valid_symbols_map[ticker].price_multiplier
         entry_action = Action.SHORT
         entry_quantity = -100
         entry_price=50
         fees = 70
 
         capital = self.dummy_broker.account['FullAvailableFunds'] 
-        self.dummy_broker.positions[contract] = PositionDetails(avg_cost=entry_price*multiplier, 
+        self.dummy_broker.positions[contract] = PositionDetails(avg_cost=entry_price*price_multiplier*quantity_multiplier, 
                                                                 quantity=entry_quantity, 
                                                                 action=entry_action,
-                                                                multiplier=multiplier,  
+                                                                price_multiplier=price_multiplier,
+                                                                quantity_multiplier=quantity_multiplier, 
                                                                 unrealizedPnl = 0)
         
         # Entry
@@ -319,7 +356,7 @@ class TestDummyClient(unittest.TestCase):
 
         # Validation
         accounted_for_pnl = (unrealized_pnl/abs(self.dummy_broker.positions[contract]['quantity'])) * exit_quantity
-        expected_funds = (capital - fees) + ((exit_price - entry_price) * multiplier * exit_quantity * -1) - accounted_for_pnl
+        expected_funds = (capital - fees) + ((exit_price - entry_price) * price_multiplier * exit_quantity * quantity_multiplier * -1) - accounted_for_pnl
         expected_margin = margin - (abs(exit_quantity) *  self.valid_symbols_map[contract.symbol].initialMargin) 
         expected_unrealized_pnl = unrealized_pnl - accounted_for_pnl
         self.assertEqual(self.dummy_broker.account['FullAvailableFunds'], expected_funds) # capital shoudl be adjusted for pnl and fees on exit
@@ -330,17 +367,20 @@ class TestDummyClient(unittest.TestCase):
         # Entry Variables 
         contract = Contract()
         contract.symbol = 'HEJ4'
-        multiplier = self.valid_symbols_map[contract.symbol].multiplier
+        ticker = contract.symbol
+        quantity_multiplier= self.valid_symbols_map[ticker].quantity_multiplier
+        price_multiplier= self.valid_symbols_map[ticker].price_multiplier
         entry_action = Action.SHORT
         entry_quantity = -100
         entry_price=50
         fees = 70
 
         capital = self.dummy_broker.account['FullAvailableFunds'] 
-        self.dummy_broker.positions[contract] = PositionDetails(avg_cost=entry_price*multiplier, 
+        self.dummy_broker.positions[contract] = PositionDetails(avg_cost=entry_price*price_multiplier*quantity_multiplier,
                                                                 quantity=entry_quantity, 
                                                                 action=entry_action,
-                                                                multiplier=multiplier,  
+                                                                price_multiplier=price_multiplier,
+                                                                quantity_multiplier=quantity_multiplier,   
                                                                 unrealizedPnl = 0)
         
         # Entry
@@ -369,11 +409,11 @@ class TestDummyClient(unittest.TestCase):
 
         # Validation
         accounted_for_pnl = (unrealized_pnl/abs(self.dummy_broker.positions[contract]['quantity'])) * exit_quantity
-        expected_funds = (capital - fees) + ((exit_price - entry_price) * multiplier * exit_quantity * -1) - accounted_for_pnl
+        expected_funds = (capital - fees) + ((exit_price - entry_price) * price_multiplier * exit_quantity *quantity_multiplier * -1) - accounted_for_pnl
         expected_margin = margin - (abs(exit_quantity) *  self.valid_symbols_map[contract.symbol].initialMargin) 
         expected_unrealized_pnl = unrealized_pnl - accounted_for_pnl
     
-        self.assertEqual(self.dummy_broker.account['FullAvailableFunds'], expected_funds) # capital shoudl be adjusted for pnl and fees on exit
+        self.assertAlmostEqual(self.dummy_broker.account['FullAvailableFunds'], expected_funds) # capital shoudl be adjusted for pnl and fees on exit
         self.assertEqual(self.dummy_broker.account['FullInitMarginReq'], expected_margin) # Position exited margin should be fully removed
         self.assertEqual(self.dummy_broker.positions[contract]['unrealizedPnL'], expected_unrealized_pnl)
 
@@ -381,17 +421,20 @@ class TestDummyClient(unittest.TestCase):
         # Entry Variables 
         contract = Contract()
         contract.symbol = 'HEJ4'
-        multiplier = self.valid_symbols_map[contract.symbol].multiplier
+        ticker = contract.symbol
+        quantity_multiplier= self.valid_symbols_map[ticker].quantity_multiplier
+        price_multiplier= self.valid_symbols_map[ticker].price_multiplier
         entry_action = Action.SHORT
         entry_quantity = -100
         entry_price=50
         fees = 70
 
         capital = self.dummy_broker.account['FullAvailableFunds'] 
-        self.dummy_broker.positions[contract] = PositionDetails(avg_cost=entry_price*multiplier, 
+        self.dummy_broker.positions[contract] = PositionDetails(avg_cost=entry_price*price_multiplier*quantity_multiplier, 
                                                                 quantity=entry_quantity, 
                                                                 action=entry_action,
-                                                                multiplier=multiplier,  
+                                                                price_multiplier=price_multiplier,
+                                                                quantity_multiplier=quantity_multiplier,   
                                                                 unrealizedPnl = 0)
         
         # Entry
@@ -419,12 +462,12 @@ class TestDummyClient(unittest.TestCase):
         self.dummy_broker._update_account_futures(contract, exit_action, exit_quantity, exit_price, fees)
 
         # Validation
-        expected_funds = (capital - fees) + ((exit_price - entry_price) * multiplier * exit_quantity * -1) - unrealized_pnl
+        expected_funds = (capital - fees) + ((exit_price - entry_price) * price_multiplier * exit_quantity *  quantity_multiplier * -1) - unrealized_pnl
         margin -= (abs(entry_quantity) *  self.valid_symbols_map[contract.symbol].initialMargin)
         margin += (abs(exit_quantity) - abs(entry_quantity) *  self.valid_symbols_map[contract.symbol].initialMargin)
         
     
-        self.assertEqual(self.dummy_broker.account['FullAvailableFunds'], expected_funds) # capital shoudl be adjusted for pnl and fees on exit
+        self.assertAlmostEqual(self.dummy_broker.account['FullAvailableFunds'], expected_funds) # capital shoudl be adjusted for pnl and fees on exit
         self.assertEqual(self.dummy_broker.account['FullInitMarginReq'], expected_margin) # Position exited margin should be fully removed
         self.assertEqual(self.dummy_broker.positions[contract]['unrealizedPnL'], 0)
 
@@ -499,7 +542,8 @@ class TestDummyClient(unittest.TestCase):
         ticker = 'HEJ4'
         contract = Contract()
         contract.symbol = ticker
-        multiplier = self.valid_symbols_map[ticker].multiplier
+        quantity_multiplier= self.valid_symbols_map[ticker].quantity_multiplier
+        price_multiplier= self.valid_symbols_map[ticker].price_multiplier
         action = Action.SHORT
         quantity = -100
         fill_price = 90
@@ -507,8 +551,9 @@ class TestDummyClient(unittest.TestCase):
         valid_position = PositionDetails(
                 action='SELL',
                 quantity= quantity,
-                avg_cost=round(fill_price * multiplier,4),
-                multiplier= self.valid_symbols_map[ticker].multiplier,      
+                avg_cost=round(fill_price * price_multiplier* quantity_multiplier,4),
+                quantity_multiplier= self.valid_symbols_map[ticker].quantity_multiplier,  
+                price_multiplier= self.valid_symbols_map[ticker].price_multiplier,      
                 initial_margin = self.valid_symbols_map[ticker].initialMargin, 
                 unrealizedPnL=0
         )
@@ -519,7 +564,8 @@ class TestDummyClient(unittest.TestCase):
     def test_update_positions_full_exit_OLD(self):
         ticker = 'HEJ4'
         contract = Contract()
-        multiplier = self.valid_symbols_map[ticker].multiplier
+        quantity_multiplier= self.valid_symbols_map[ticker].quantity_multiplier
+        price_multiplier= self.valid_symbols_map[ticker].price_multiplier
         contract.symbol = ticker
         
         entry_action = Action.SHORT
@@ -529,8 +575,9 @@ class TestDummyClient(unittest.TestCase):
         valid_position = PositionDetails(
                 action='SELL',
                 quantity= entry_quantity,
-                avg_cost=round(entry_price*multiplier,4),
-                multiplier= self.valid_symbols_map[ticker].multiplier,      
+                avg_cost=round(entry_price* price_multiplier * quantity_multiplier,4),
+                quantity_multiplier= self.valid_symbols_map[ticker].quantity_multiplier,  
+                price_multiplier= self.valid_symbols_map[ticker].price_multiplier,    
                 initial_margin = self.valid_symbols_map[ticker].initialMargin, 
                 unrealizedPnL=0
         )
@@ -549,7 +596,8 @@ class TestDummyClient(unittest.TestCase):
         ticker = 'HEJ4'
         contract = Contract()
         contract.symbol = ticker
-        multiplier = self.valid_symbols_map[ticker].multiplier
+        quantity_multiplier= self.valid_symbols_map[ticker].quantity_multiplier
+        price_multiplier= self.valid_symbols_map[ticker].price_multiplier
         
         old_action = Action.SHORT
         old_quantity = -100
@@ -558,8 +606,9 @@ class TestDummyClient(unittest.TestCase):
         valid_position = PositionDetails(
                 action='SELL',
                 quantity= old_quantity,
-                avg_cost=round(old_price * multiplier,4),
-                multiplier= multiplier,      
+                avg_cost=round(old_price * price_multiplier * quantity_multiplier,4),
+                quantity_multiplier= self.valid_symbols_map[ticker].quantity_multiplier,  
+                price_multiplier= self.valid_symbols_map[ticker].price_multiplier,  
                 initial_margin = self.valid_symbols_map[ticker].initialMargin,
                 unrealizedPnL=0
         )
@@ -575,8 +624,8 @@ class TestDummyClient(unittest.TestCase):
         self.assertEqual(self.dummy_broker.positions[contract]['action'], new_action.to_broker_standard())
         self.assertEqual(self.dummy_broker.positions[contract]['quantity'], new_quantity + old_quantity)
         
-        old_cost = old_quantity * old_price * multiplier
-        new_cost = new_quantity * new_price * multiplier
+        old_cost = old_quantity * old_price * price_multiplier * quantity_multiplier
+        new_cost = new_quantity * new_price * price_multiplier * quantity_multiplier
         self.assertEqual(self.dummy_broker.positions[contract]['avg_cost'], (new_cost + old_cost)/(new_quantity+old_quantity) )
 
     def test_update_positions_reverse_OLD(self):
@@ -584,7 +633,8 @@ class TestDummyClient(unittest.TestCase):
         ticker = 'HEJ4'
         contract = Contract()
         contract.symbol = ticker
-        multiplier = self.valid_symbols_map[ticker].multiplier
+        quantity_multiplier= self.valid_symbols_map[ticker].quantity_multiplier
+        price_multiplier= self.valid_symbols_map[ticker].price_multiplier
         
         old_action = Action.SHORT
         old_quantity = -100
@@ -593,8 +643,9 @@ class TestDummyClient(unittest.TestCase):
         valid_position = PositionDetails(
                 action='SELL',
                 quantity= old_quantity,
-                avg_cost=round(old_price * multiplier,4),
-                multiplier= multiplier,      
+                avg_cost=round(old_price * price_multiplier * quantity_multiplier,4),
+                quantity_multiplier= quantity_multiplier,  
+                price_multiplier= price_multiplier,      
                 initial_margin = self.valid_symbols_map[ticker].initialMargin,
                 unrealizedPnL=0
         )
@@ -616,7 +667,8 @@ class TestDummyClient(unittest.TestCase):
         ticker = 'HEJ4'
         contract = Contract()
         contract.symbol = ticker
-        multiplier = self.valid_symbols_map[ticker].multiplier
+        quantity_multiplier= self.valid_symbols_map[ticker].quantity_multiplier
+        price_multiplier= self.valid_symbols_map[ticker].price_multiplier
         
         action = Action.SHORT
         quantity = -10
@@ -625,8 +677,9 @@ class TestDummyClient(unittest.TestCase):
         valid_position = PositionDetails(
                 action='SELL',
                 quantity= quantity,
-                avg_cost=round(entry_price*multiplier,4),
-                multiplier= self.valid_symbols_map[ticker].multiplier,      
+                avg_cost=round(entry_price*price_multiplier*quantity_multiplier,4),
+                quantity_multiplier= self.valid_symbols_map[ticker].quantity_multiplier,  
+                price_multiplier= self.valid_symbols_map[ticker].price_multiplier,  
                 initial_margin = self.valid_symbols_map[ticker].initialMargin,
                 unrealizedPnL=0
         )
@@ -636,7 +689,7 @@ class TestDummyClient(unittest.TestCase):
 
         # Test
         position_value = self.dummy_broker._future_position_value(valid_position,current_price)
-        expected_value = (current_price - entry_price)  * multiplier * quantity
+        expected_value = (current_price - entry_price)  * price_multiplier * quantity * quantity_multiplier
         self.assertEqual(position_value, expected_value)
 
     def test_position_value_equities(self):
@@ -644,7 +697,8 @@ class TestDummyClient(unittest.TestCase):
         ticker = 'AAPL'
         contract = Contract()
         contract.symbol = ticker
-        multiplier = self.valid_symbols_map[ticker].multiplier
+        quantity_multiplier= self.valid_symbols_map[ticker].quantity_multiplier
+        price_multiplier= self.valid_symbols_map[ticker].price_multiplier
 
         action = Action.SHORT
         quantity = -10
@@ -653,8 +707,9 @@ class TestDummyClient(unittest.TestCase):
         valid_position = PositionDetails(
                 action='SELL',
                 quantity= quantity,
-                avg_cost=round(entry_price*multiplier,4),
-                multiplier= self.valid_symbols_map[ticker].multiplier,      
+                avg_cost=round(entry_price * price_multiplier * quantity_multiplier,4),
+                quantity_multiplier= self.valid_symbols_map[ticker].quantity_multiplier,  
+                price_multiplier= self.valid_symbols_map[ticker].price_multiplier,     
                 initial_margin = self.valid_symbols_map[ticker].initialMargin)
         self.dummy_broker.positions[contract] = valid_position
 
@@ -662,7 +717,7 @@ class TestDummyClient(unittest.TestCase):
         
         # Test
         position_value = self.dummy_broker._equity_position_value(valid_position,current_price)
-        expected_value = current_price * multiplier * quantity
+        expected_value = current_price * price_multiplier * quantity * quantity_multiplier
         self.assertEqual(position_value, expected_value)
 
     def test_portfolio_value(self):
@@ -674,12 +729,14 @@ class TestDummyClient(unittest.TestCase):
         action = Action.LONG
         quantity = 10
         entry_price = 50
-        multiplier = self.valid_symbols_map[ticker1].multiplier
+        quantity_multiplier= self.valid_symbols_map[ticker1].quantity_multiplier
+        price_multiplier= self.valid_symbols_map[ticker1].price_multiplier
         valid_position1 = PositionDetails(
                 action='SELL',
                 quantity= quantity,
-                avg_cost=round(entry_price*multiplier,4),
-                multiplier= self.valid_symbols_map[ticker1].multiplier,      
+                avg_cost=round(entry_price*price_multiplier * quantity_multiplier,4),
+                quantity_multiplier= self.valid_symbols_map[ticker1].quantity_multiplier,  
+                price_multiplier= self.valid_symbols_map[ticker1].price_multiplier,    
                 initial_margin = self.valid_symbols_map[ticker1].initialMargin)
         self.dummy_broker.positions[aapl_contract] = valid_position1
         
@@ -690,13 +747,15 @@ class TestDummyClient(unittest.TestCase):
         he_contract.secType = 'FUT'
         action = Action.SHORT
         quantity = -10
-        entry_price = 50
-        multiplier = self.valid_symbols_map[ticker2].multiplier
+        entry_price = 50        
+        quantity_multiplier2= self.valid_symbols_map[ticker2].quantity_multiplier
+        price_multiplier2= self.valid_symbols_map[ticker2].price_multiplier
         valid_position2 = PositionDetails(
                 action='SELL',
                 quantity= quantity,
-                avg_cost=round(entry_price*multiplier,4),
-                multiplier= self.valid_symbols_map[ticker2].multiplier,      
+                avg_cost=round(entry_price * price_multiplier2 * quantity_multiplier2,4),
+                quantity_multiplier= self.valid_symbols_map[ticker2].quantity_multiplier,  
+                price_multiplier= self.valid_symbols_map[ticker2].price_multiplier,        
                 initial_margin = self.valid_symbols_map[ticker2].initialMargin
         )
         self.dummy_broker.positions[he_contract] = valid_position2
@@ -739,10 +798,14 @@ class TestDummyClient(unittest.TestCase):
         leg_id = 2 
         contract = Contract()
         contract.symbol = 'AAPL'
+        ticker = contract.symbol
         quantity = -10
         action =  Action.LONG
         fill_price = 9.9 
         fees = 90.9
+        quantity_multiplier= self.valid_symbols_map[ticker].quantity_multiplier
+        price_multiplier= self.valid_symbols_map[ticker].price_multiplier
+
         valid_trade = ExecutionDetails(
             timestamp = timestamp,
             trade_id = trade_id,
@@ -750,7 +813,7 @@ class TestDummyClient(unittest.TestCase):
             symbol = contract.symbol,
             quantity = round(quantity,4),
             price = fill_price,
-            cost = round(fill_price * quantity, 2),
+            cost = round(fill_price*price_multiplier * quantity * quantity_multiplier, 2),
             action = action.value,
             fees = round(fees,4)
         )
@@ -792,13 +855,16 @@ class TestDummyClient(unittest.TestCase):
         action = Action.SHORT
         quantity = -10
         entry_price = 50
-        multiplier = self.valid_symbols_map[ticker].multiplier
+        quantity_multiplier= self.valid_symbols_map[ticker].quantity_multiplier
+        price_multiplier= self.valid_symbols_map[ticker].price_multiplier
         unrealizedpnl = 500
+
         valid_position = PositionDetails(
                 action='SELL',
                 quantity= quantity,
-                avg_cost=round(entry_price*multiplier,4),
-                multiplier= self.valid_symbols_map[ticker].multiplier,      
+                avg_cost=round(entry_price*price_multiplier * quantity_multiplier,4),
+                quantity_multiplier= self.valid_symbols_map[ticker].quantity_multiplier,
+                price_multiplier= self.valid_symbols_map[ticker].price_multiplier,      
                 initial_margin = self.valid_symbols_map[ticker].initialMargin,
                 unrealizedPnL=500
         )
@@ -833,12 +899,14 @@ class TestDummyClient(unittest.TestCase):
         aapl_action = Action.LONG
         aapl_quantity = 10
         aapl_entry_price = 50
-        aapl_multiplier = self.valid_symbols_map[ticker1].multiplier
+        aapl_quantity_multiplier= self.valid_symbols_map[ticker1].quantity_multiplier
+        aapl_price_multiplier= self.valid_symbols_map[ticker1].price_multiplier
         valid_position1 = PositionDetails(
                 action='BUY',
                 quantity= aapl_quantity,
-                avg_cost=round(aapl_entry_price * aapl_multiplier,4),
-                multiplier= self.valid_symbols_map[ticker1].multiplier,      
+                avg_cost=round(aapl_entry_price * aapl_price_multiplier * aapl_quantity_multiplier,4),
+                quantity_multiplier=self.valid_symbols_map[ticker1].quantity_multiplier,
+                price_multiplier= self.valid_symbols_map[ticker1].price_multiplier,
                 initial_margin = self.valid_symbols_map[ticker1].initialMargin)
         self.dummy_broker.positions[aapl_contract] = valid_position1
         
@@ -849,7 +917,7 @@ class TestDummyClient(unittest.TestCase):
                 symbol= aapl_contract.symbol,
                 quantity= round(aapl_quantity,4),
                 price= aapl_entry_price,
-                cost= round(aapl_entry_price * aapl_quantity, 2),
+                cost= round(aapl_entry_price *aapl_price_multiplier * aapl_quantity * aapl_quantity_multiplier, 2),
                 action= aapl_action.value,
                 fees= 70 # because not actually a trade
             )
@@ -863,12 +931,14 @@ class TestDummyClient(unittest.TestCase):
         he_action = Action.SHORT
         he_quantity = -10
         he_entry_price = 50
-        he_multiplier = self.valid_symbols_map[ticker2].multiplier
+        he_quantity_multiplier= self.valid_symbols_map[ticker2].quantity_multiplier
+        he_price_multiplier= self.valid_symbols_map[ticker2].price_multiplier
         valid_position2 = PositionDetails(
                 action='SELL',
                 quantity= he_quantity,
-                avg_cost=round(he_entry_price * he_multiplier,4),
-                multiplier= self.valid_symbols_map[ticker2].multiplier,      
+                avg_cost=round(he_entry_price * he_price_multiplier* he_quantity_multiplier,4),
+                quantity_multiplier= self.valid_symbols_map[ticker2].quantity_multiplier,
+                price_multiplier= self.valid_symbols_map[ticker2].price_multiplier,  
                 initial_margin = self.valid_symbols_map[ticker2].initialMargin
         )
         self.dummy_broker.positions[he_contract] = valid_position2
@@ -880,7 +950,7 @@ class TestDummyClient(unittest.TestCase):
                 symbol= he_contract.symbol,
                 quantity= round(he_quantity,4),
                 price= he_entry_price,
-                cost= round(he_entry_price * he_quantity, 2),
+                cost= round(he_entry_price * he_price_multiplier * he_quantity * he_quantity_multiplier, 2),
                 action= he_action.value,
                 fees= 70 # because not actually a trade
         )
@@ -898,7 +968,7 @@ class TestDummyClient(unittest.TestCase):
                                                                             symbol= aapl_contract.symbol,
                                                                             quantity= round(aapl_quantity * -1,4),
                                                                             price= mock_fill_price.return_value,
-                                                                            cost= round(mock_fill_price.return_value * aapl_quantity * -1 * aapl_multiplier , 2),
+                                                                            cost= round(mock_fill_price.return_value * aapl_quantity * -1 * aapl_price_multiplier  * aapl_quantity_multiplier, 2),
                                                                             action=Action.SELL.value,
                                                                             fees= 0.0 # because not actually a trade
                                                                         ) )
@@ -910,7 +980,7 @@ class TestDummyClient(unittest.TestCase):
                                                                 symbol= he_contract.symbol,
                                                                 quantity= round(he_quantity * -1,4),
                                                                 price= mock_fill_price.return_value,
-                                                                cost= round(mock_fill_price.return_value * he_quantity * -1 * he_multiplier , 2),
+                                                                cost= round(mock_fill_price.return_value * he_quantity * -1 * he_price_multiplier * he_quantity_multiplier , 2),
                                                                 action=Action.COVER.value,
                                                                 fees= 0.0 # because not actually a trade
                                                             ) )
@@ -919,7 +989,6 @@ class TestDummyClient(unittest.TestCase):
         # Variables
         contract = Contract()
         contract.symbol = 'HEJ4'
-        multiplier = self.valid_symbols_map[contract.symbol].multiplier
         entry_action = Action.SHORT
         entry_quantity = -100
         entry_price=50
