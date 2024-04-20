@@ -1,4 +1,5 @@
 import unittest
+import pandas as pd
 from unittest.mock import Mock, patch
 from contextlib import ExitStack
 from decimal import Decimal
@@ -658,12 +659,12 @@ class TestIndex(unittest.TestCase):
 class TestBarData(unittest.TestCase):
     def setUp(self) -> None:
         self.ticker="AAPL"   
-        self.timestamp="2024-01-01"
+        self.timestamp=np.uint64(1707221160000000000)
         self.open=Decimal(100.990808)
         self.high=Decimal(1111.9998)
         self.low=Decimal(99.990898)
         self.close=Decimal(105.9089787)
-        self.volume=100000909
+        self.volume=np.uint64(100000909)
     
     # Basic Validation
     def test_construction(self):
@@ -718,9 +719,9 @@ class TestBarData(unittest.TestCase):
                       close=self.close,
                       volume=self.volume)
             
-        with self.assertRaisesRegex(TypeError,"timestamp must be of type str" ):
+        with self.assertRaisesRegex(TypeError,"timestamp must be of type np.uint64." ):
             BarData(ticker=self.ticker,
-                      timestamp=123456,
+                      timestamp="123456",
                       open=self.open,
                       high=self.high,
                       low=self.low,
@@ -763,7 +764,7 @@ class TestBarData(unittest.TestCase):
                       close=12345,
                       volume=self.volume)
             
-        with self.assertRaisesRegex(TypeError,"volume must be of type int."):
+        with self.assertRaisesRegex(TypeError,"volume must be of type np.uint64."):
             BarData(ticker=self.ticker,
                       timestamp=self.timestamp,
                       open=self.open,
@@ -771,7 +772,45 @@ class TestBarData(unittest.TestCase):
                       low=self.low,
                       close=self.close,
                       volume="123456")
-              
+
+class TestDataframeToBardata(unittest.TestCase):
+    def setUp(self) -> None:
+        self.data = {
+            'rtype': [33, 33, 33, 33, 33],
+            'publisher_id': [1, 1, 1, 1, 1],
+            'instrument_id': [243778, 243778, 243778, 243778, 243778],
+            'open': [443.50, 443.50, 443.50, 443.50, 443.50],
+            'high': [443.75, 443.50, 443.50, 443.75, 443.50],
+            'low': [443.50, 443.50, 443.50, 443.50, 443.50],
+            'close': [443.75, 443.50, 443.50, 443.75, 443.50],
+            'volume': [20, 11, 100, 27, 10],
+            'symbol': ['ZC.n.0', 'ZC.n.0', 'ZC.n.0', 'ZC.n.0', 'ZC.n.0']
+        }
+
+        # Create the DataFrame
+        self.df = pd.DataFrame(self.data)
+
+        # Set the index to be a datetime type
+        self.df.index = pd.to_datetime([
+            '2024-02-06 12:00:00+00:00',
+            '2024-02-06 12:01:00+00:00',
+            '2024-02-06 12:02:00+00:00',
+            '2024-02-06 12:03:00+00:00',
+            '2024-02-06 12:06:00+00:00'
+        ]).astype(np.int64).astype(np.uint64)
+
+
+        # If you want the index to have a name 'ts_event'
+        self.df.index.name = 'ts_event'
+
+    def test_valid(self):
+        # test
+        data_list=dataframe_to_bardata(self.df)
+
+        # validate
+        self.assertEqual(len(data_list), 5)
+
+
 class TestQuoteData(unittest.TestCase):
     def setUp(self) -> None:
         self.ticker="AAPL"   
