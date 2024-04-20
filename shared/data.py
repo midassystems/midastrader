@@ -1,4 +1,5 @@
 from enum import Enum
+import numpy as np
 from dataclasses import dataclass, field
 from decimal import Decimal
 
@@ -240,19 +241,19 @@ class Index(Symbol):
 @dataclass
 class BarData:
     ticker: str
-    timestamp: str
+    timestamp: np.uint64
     open: Decimal
     close: Decimal
     high: Decimal
     low: Decimal
-    volume: int
+    volume: np.uint64
 
     def __post_init__(self):
         # Type checks
         if not isinstance(self.ticker, str):
-            raise TypeError("ticker must be of type str")        
-        if not isinstance(self.timestamp, str):
-            raise TypeError("timestamp must be of type str")
+            raise TypeError("ticker must be of type str.")        
+        if not isinstance(self.timestamp, np.uint64):
+            raise TypeError("timestamp must be of type np.uint64.")
         if not isinstance(self.open, Decimal):
             raise TypeError("open must be of type Decimal.")
         if not isinstance(self.high, Decimal):
@@ -261,8 +262,8 @@ class BarData:
             raise TypeError("low must be of type Decimal.")
         if not isinstance(self.close, Decimal):
             raise TypeError("close must be of type Decimal.")
-        if not isinstance(self.volume, int):
-            raise TypeError("volume must be of type int.")
+        if not isinstance(self.volume, np.uint64):
+            raise TypeError("volume must be of type np.uint64.")
     
     def to_dict(self):
         return {
@@ -274,6 +275,21 @@ class BarData:
             "low": str(self.low),
             "volume": self.volume
         }
+    
+def dataframe_to_bardata(df):
+    # Convert the DataFrame to a list of BarData objects
+    bardata_list = [
+        BarData(
+            ticker=row['symbol'],
+            timestamp=np.uint64(row.name),  # Assuming row.name is the index and corresponds to 'ts_event'
+            open=Decimal(row['open']),
+            close=Decimal(row['close']),
+            high=Decimal(row['high']),
+            low=Decimal(row['low']),
+            volume=np.uint64(row['volume'])
+        ) for index, row in df.iterrows()
+    ]
+    return bardata_list
 
 @dataclass
 class QuoteData:
