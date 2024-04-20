@@ -1,1 +1,1 @@
-from .client import DatabaseClient, SecurityType, Exchange,Indsutry, Currency, ContractUnits, AssetClass
+from .client import DatabaseClient, SecurityType, Venue, Industry, Currency, ContractUnits, AssetClass, Backtest

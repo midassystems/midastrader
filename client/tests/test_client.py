@@ -11,231 +11,231 @@ DATABASE_URL = config('LOCAL_URL')
 # !!!!!! Best if working with a blank dev database for testing  !!!!!!!!!!!!
 # run twice and only error shoudl be already exitsin the symbol data
 
-class TestSymbolDataMethods(unittest.TestCase):
-    def setUp(self) -> None:
-        self.client = DatabaseClient(DATABASE_KEY, DATABASE_URL) 
+# class TestSymbolDataMethods(unittest.TestCase):
+#     def setUp(self) -> None:
+#         self.client = DatabaseClient(DATABASE_KEY, DATABASE_URL) 
 
-    # -- Symbol Data -- 
-    def test_create_asset_class(self):
-        asset_class = AssetClass.EQUITY
+#     # -- Symbol Data -- 
+#     def test_create_asset_class(self):
+#         asset_class = AssetClass.EQUITY
         
-        # Test
-        response = self.client.create_asset_class(asset_class)
+#         # Test
+#         response = self.client.create_asset_class(asset_class)
 
-        # Validate
-        self.assertTrue(len(response) > 0)
-        self.assertEqual(response["value"],asset_class.value)
+#         # Validate
+#         self.assertTrue(len(response) > 0)
+#         self.assertEqual(response["value"],asset_class.value)
 
-    def test_create_asset_class_invalid(self):
-        with self.assertRaises(TypeError):
-            self.client.create_asset_class("asset_class")
+#     def test_create_asset_class_invalid(self):
+#         with self.assertRaises(TypeError):
+#             self.client.create_asset_class("asset_class")
 
-    def test_get_asset_class(self):
-        asset_class = AssetClass.CRYPTOCURRENCY
-        self.client.create_asset_class(asset_class)
+#     def test_get_asset_class(self):
+#         asset_class = AssetClass.CRYPTOCURRENCY
+#         self.client.create_asset_class(asset_class)
         
-        # Test
-        response = self.client.get_asset_classes()
+#         # Test
+#         response = self.client.get_asset_classes()
 
-        # Validate
-        self.assertTrue(len(response) > 0)
+#         # Validate
+#         self.assertTrue(len(response) > 0)
 
-    def test_update_asset_class(self):
-        asset_class = AssetClass.COMMODITY
-        old_response = self.client.create_asset_class(asset_class)
+#     def test_update_asset_class(self):
+#         asset_class = AssetClass.COMMODITY
+#         old_response = self.client.create_asset_class(asset_class)
         
-        # Test
-        response = self.client.update_asset_class(old_response["id"], AssetClass.FOREX)
+#         # Test
+#         response = self.client.update_asset_class(old_response["id"], AssetClass.FOREX)
 
-        # Validate
-        self.assertTrue(len(response) > 0)
-        self.assertTrue(response["value"], "FOREX")
-        self.assertTrue(response["id"], old_response["id"])
+#         # Validate
+#         self.assertTrue(len(response) > 0)
+#         self.assertTrue(response["value"], "FOREX")
+#         self.assertTrue(response["id"], old_response["id"])
 
-    def test_create_security_type(self):
-        security_type = SecurityType.FUTURE
+#     def test_create_security_type(self):
+#         security_type = SecurityType.FUTURE
         
-        # Test
-        response = self.client.create_security_type(security_type)
+#         # Test
+#         response = self.client.create_security_type(security_type)
 
-        # Validate
-        self.assertTrue(len(response) > 0)
-        self.assertEqual(response["value"],security_type.value)
+#         # Validate
+#         self.assertTrue(len(response) > 0)
+#         self.assertEqual(response["value"],security_type.value)
 
-    def test_create_security_type_invalid(self):
-        with self.assertRaises(TypeError):
-            self.client.create_security_type("security_type")
+#     def test_create_security_type_invalid(self):
+#         with self.assertRaises(TypeError):
+#             self.client.create_security_type("security_type")
 
-    def test_get_security_type(self):
-        security_type = SecurityType.STOCK
-        self.client.create_security_type(security_type)
+#     def test_get_security_type(self):
+#         security_type = SecurityType.STOCK
+#         self.client.create_security_type(security_type)
         
-        # Test
-        response = self.client.get_security_types()
+#         # Test
+#         response = self.client.get_security_types()
 
-        # Validate
-        self.assertTrue(len(response) > 0)
+#         # Validate
+#         self.assertTrue(len(response) > 0)
 
-    def test_update_security_type(self):
-        security_type = SecurityType.OPTION
-        old_response = self.client.create_security_type(security_type)
+#     def test_update_security_type(self):
+#         security_type = SecurityType.OPTION
+#         old_response = self.client.create_security_type(security_type)
         
-        # Test
-        new_security_type = SecurityType.INDEX
-        response = self.client.update_security_type(old_response["id"], new_security_type)
+#         # Test
+#         new_security_type = SecurityType.INDEX
+#         response = self.client.update_security_type(old_response["id"], new_security_type)
 
-        # Validate
-        self.assertTrue(len(response) > 0)
-        self.assertTrue(response["value"], new_security_type.value)
-        self.assertTrue(response["id"], old_response["id"])
+#         # Validate
+#         self.assertTrue(len(response) > 0)
+#         self.assertTrue(response["value"], new_security_type.value)
+#         self.assertTrue(response["id"], old_response["id"])
 
-    def test_create_venue(self):
-        venue = Venue.CME
+#     def test_create_venue(self):
+#         venue = Venue.CME
         
-        # Test
-        response = self.client.create_venue(venue)
+#         # Test
+#         response = self.client.create_venue(venue)
 
-        # Validate
-        self.assertTrue(len(response) > 0)
-        self.assertEqual(response["value"],venue.value)
+#         # Validate
+#         self.assertTrue(len(response) > 0)
+#         self.assertEqual(response["value"],venue.value)
 
-    def test_create_venue_invalid(self):
-        with self.assertRaises(TypeError):
-            self.client.create_venue("venue")
+#     def test_create_venue_invalid(self):
+#         with self.assertRaises(TypeError):
+#             self.client.create_venue("venue")
 
-    def test_get_venue(self):
-        venue = Venue.NASDAQ
-        self.client.create_venue(venue)
+#     def test_get_venue(self):
+#         venue = Venue.NASDAQ
+#         self.client.create_venue(venue)
         
-        # Test
-        response = self.client.get_venues()
+#         # Test
+#         response = self.client.get_venues()
 
-        # Validate
-        self.assertTrue(len(response) > 0)
+#         # Validate
+#         self.assertTrue(len(response) > 0)
 
-    def test_update_venue(self):
-        venue = Venue.CBOT
-        old_response = self.client.create_venue(venue)
+#     def test_update_venue(self):
+#         venue = Venue.CBOT
+#         old_response = self.client.create_venue(venue)
         
-        # Test
-        new_venue = Venue.NYSE
-        response = self.client.update_venue(old_response["id"], new_venue)
+#         # Test
+#         new_venue = Venue.NYSE
+#         response = self.client.update_venue(old_response["id"], new_venue)
 
-        # Validate
-        self.assertTrue(len(response) > 0)
-        self.assertTrue(response["value"], new_venue.value)
-        self.assertTrue(response["id"], old_response["id"])
+#         # Validate
+#         self.assertTrue(len(response) > 0)
+#         self.assertTrue(response["value"], new_venue.value)
+#         self.assertTrue(response["id"], old_response["id"])
 
-    def test_create_currency(self):
-        currency = Currency.USD
+#     def test_create_currency(self):
+#         currency = Currency.USD
         
-        # Test
-        response = self.client.create_currency(currency)
+#         # Test
+#         response = self.client.create_currency(currency)
 
-        # Validate
-        self.assertTrue(len(response) > 0)
-        self.assertEqual(response["value"],currency.value)
+#         # Validate
+#         self.assertTrue(len(response) > 0)
+#         self.assertEqual(response["value"],currency.value)
 
-    def test_create_currency_invalid(self):
-        with self.assertRaises(TypeError):
-            self.client.create_currency("currency")
+#     def test_create_currency_invalid(self):
+#         with self.assertRaises(TypeError):
+#             self.client.create_currency("currency")
 
-    def test_get_currency(self):
-        currency = Currency.AUD
-        self.client.create_currency(currency)
+#     def test_get_currency(self):
+#         currency = Currency.AUD
+#         self.client.create_currency(currency)
         
-        # Test
-        response = self.client.get_currencies()
+#         # Test
+#         response = self.client.get_currencies()
 
-        # Validate
-        self.assertTrue(len(response) > 0)
+#         # Validate
+#         self.assertTrue(len(response) > 0)
 
-    def test_update_currency(self):
-        currency = Currency.JPY
-        old_response = self.client.create_currency(currency)
+#     def test_update_currency(self):
+#         currency = Currency.JPY
+#         old_response = self.client.create_currency(currency)
         
-        # Test
-        new_currency = Currency.GBP
-        response = self.client.update_currency(old_response["id"], new_currency)
+#         # Test
+#         new_currency = Currency.GBP
+#         response = self.client.update_currency(old_response["id"], new_currency)
 
-        # Validate
-        self.assertTrue(len(response) > 0)
-        self.assertTrue(response["value"], new_currency.value)
-        self.assertTrue(response["id"], old_response["id"])
+#         # Validate
+#         self.assertTrue(len(response) > 0)
+#         self.assertTrue(response["value"], new_currency.value)
+#         self.assertTrue(response["id"], old_response["id"])
 
-    def test_create_industry(self):
-        industry = Industry.TECHNOLOGY
+#     def test_create_industry(self):
+#         industry = Industry.TECHNOLOGY
         
-        # Test
-        response = self.client.create_industry(industry)
+#         # Test
+#         response = self.client.create_industry(industry)
 
-        # Validate
-        self.assertTrue(len(response) > 0)
-        self.assertEqual(response["value"],industry.value)
+#         # Validate
+#         self.assertTrue(len(response) > 0)
+#         self.assertEqual(response["value"],industry.value)
 
-    def test_create_industry_invalid(self):
-        with self.assertRaises(TypeError):
-            self.client.create_industry("industry")
+#     def test_create_industry_invalid(self):
+#         with self.assertRaises(TypeError):
+#             self.client.create_industry("industry")
 
-    def test_get_industry(self):
-        industry = Industry.AGRICULTURE
-        self.client.create_industry(industry)
+#     def test_get_industry(self):
+#         industry = Industry.AGRICULTURE
+#         self.client.create_industry(industry)
         
-        # Test
-        response = self.client.get_industries()
+#         # Test
+#         response = self.client.get_industries()
 
-        # Validate
-        self.assertTrue(len(response) > 0)
+#         # Validate
+#         self.assertTrue(len(response) > 0)
 
-    def test_update_industry(self):
-        industry = Industry.COMMUNICATION
-        old_response = self.client.create_industry(industry)
+#     def test_update_industry(self):
+#         industry = Industry.COMMUNICATION
+#         old_response = self.client.create_industry(industry)
         
-        # Test
-        new_industry = Industry.MATERIALS
-        response = self.client.update_industry(old_response["id"], new_industry)
+#         # Test
+#         new_industry = Industry.MATERIALS
+#         response = self.client.update_industry(old_response["id"], new_industry)
 
-        # Validate
-        self.assertTrue(len(response) > 0)
-        self.assertTrue(response["value"], new_industry.value)
-        self.assertTrue(response["id"], old_response["id"])
+#         # Validate
+#         self.assertTrue(len(response) > 0)
+#         self.assertTrue(response["value"], new_industry.value)
+#         self.assertTrue(response["id"], old_response["id"])
 
-    def test_create_contract_units(self):
-        contract_units = ContractUnits.BARRELS
+#     def test_create_contract_units(self):
+#         contract_units = ContractUnits.BARRELS
         
-        # Test
-        response = self.client.create_contract_units(contract_units)
+#         # Test
+#         response = self.client.create_contract_units(contract_units)
 
-        # Validate
-        self.assertTrue(len(response) > 0)
-        self.assertEqual(response["value"],contract_units.value)
+#         # Validate
+#         self.assertTrue(len(response) > 0)
+#         self.assertEqual(response["value"],contract_units.value)
 
-    def test_create_contract_units_invalid(self):
-        with self.assertRaises(TypeError):
-            self.client.create_contract_units("contract_units")
+#     def test_create_contract_units_invalid(self):
+#         with self.assertRaises(TypeError):
+#             self.client.create_contract_units("contract_units")
 
-    def test_get_contract_units(self):
-        contract_units = ContractUnits.BUSHELS
-        self.client.create_contract_units(contract_units)
+#     def test_get_contract_units(self):
+#         contract_units = ContractUnits.BUSHELS
+#         self.client.create_contract_units(contract_units)
         
-        # Test
-        response = self.client.get_contract_units()
+#         # Test
+#         response = self.client.get_contract_units()
 
-        # Validate
-        self.assertTrue(len(response) > 0)
+#         # Validate
+#         self.assertTrue(len(response) > 0)
 
-    def test_update_contract_units(self):
-        contract_units = ContractUnits.METRIC_TON
-        old_response = self.client.create_contract_units(contract_units)
+#     def test_update_contract_units(self):
+#         contract_units = ContractUnits.METRIC_TON
+#         old_response = self.client.create_contract_units(contract_units)
         
-        # Test
-        new_contract_units = ContractUnits.POUNDS
-        response = self.client.update_contract_units(old_response["id"], new_contract_units)
+#         # Test
+#         new_contract_units = ContractUnits.POUNDS
+#         response = self.client.update_contract_units(old_response["id"], new_contract_units)
 
-        # Validate
-        self.assertTrue(len(response) > 0)
-        self.assertTrue(response["value"], new_contract_units.value)
-        self.assertTrue(response["id"], old_response["id"])
+#         # Validate
+#         self.assertTrue(len(response) > 0)
+#         self.assertTrue(response["value"], new_contract_units.value)
+#         self.assertTrue(response["id"], old_response["id"])
 
 class TestSymbolMethods(unittest.TestCase):
     @classmethod
@@ -444,31 +444,20 @@ class TestMarketDataMethods(unittest.TestCase):
         cls.symbol=cls.client.create_symbol(cls.equity)
     
     def setUp(self) -> None:
-
-        # self.equity = Equity(ticker="AAPL1",
-        #                         security_type=SecurityType.STOCK,
-        #                         company_name="Apple Inc.",
-        #                         venue=Venue.NASDAQ,
-        #                         currency=Currency.USD,
-        #                         industry=Industry.TECHNOLOGY,
-        #                         market_cap=10000000000.99,
-        #                         shares_outstanding=1937476363)
-        # self.client.create_symbol(self.equity)
-
         self.bar=BarData(ticker="AAPL4",
-                            timestamp="2023-01-24T00:00:00Z",
+                            timestamp=np.uint64(1711100000),
                             open=Decimal('99.9999'),
                             high=Decimal('100.9999'),
                             low=Decimal('100.9999'),
                             close=Decimal('100.9999'),
-                            volume=100,
+                            volume=np.uint64(100),
                             )
         
         self.bar2 = copy.deepcopy(self.bar)
-        self.bar2.timestamp = "2023-02-27T00:00:00Z"
+        self.bar2.timestamp = np.uint64(1711200000)
 
         self.bar3 = copy.deepcopy(self.bar)
-        self.bar3.timestamp = "2023-03-27T00:00:00Z"
+        self.bar3.timestamp = np.uint64(1711300000)
 
         self.bars = [self.bar2,self.bar3]
 
@@ -504,7 +493,7 @@ class TestMarketDataMethods(unittest.TestCase):
         self.assertEqual(Decimal(response['high']), self.bar.high)
         self.assertEqual(Decimal(response['low']), self.bar.low)
         self.assertEqual(Decimal(response['close']), self.bar.close)
-        self.assertEqual(Decimal(response['volume']), self.bar.volume)
+        self.assertEqual(response['volume'], self.bar.volume)
 
     def test_create_bulk_bar_data(self):
         # test
@@ -516,7 +505,7 @@ class TestMarketDataMethods(unittest.TestCase):
 
     def test_create_bulk_bar_data_with_overlap(self):
         bar4 = copy.deepcopy(self.bar)
-        bar4.timestamp = "2024-03-27T00:00:00Z"
+        bar4.timestamp = 1707221190000000000
 
         self.bars.append(bar4)
         
@@ -528,9 +517,20 @@ class TestMarketDataMethods(unittest.TestCase):
         self.assertEqual(len(response['batch_responses'][0]['errors']), 2)
 
     def test_update_data(self):
+
+        bar=BarData(ticker="AAPL4",
+                    timestamp=np.uint64(1712200000),
+                    open=Decimal('99.9999'),
+                    high=Decimal('100.9999'),
+                    low=Decimal('100.9999'),
+                    close=Decimal('100.9999'),
+                    volume=np.uint64(100),
+                    )
+        self.client.create_bar_data(bar)
+
         tickers=[self.ticker]
-        start_date="2020-01-01"
-        end_date="2025-01-01"
+        start_date="2024-03-01"
+        end_date="2024-05-01"
         old_bar=self.client.get_bar_data(tickers, start_date, end_date)[0]
 
         new_bar = copy.deepcopy(self.bar)

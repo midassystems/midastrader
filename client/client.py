@@ -6,6 +6,7 @@ from queue import Queue
 from typing import List, Dict
 from datetime import datetime, timedelta
 from shared.data import * 
+from shared.utils import iso_to_unix, unix_to_iso
 
 class DatabaseClient:
     def __init__(self, api_key:str, api_url:str ='http://127.0.0.1:8000'):
@@ -550,25 +551,30 @@ class DatabaseClient:
     
     def get_bar_data(self, tickers: List[str], start_date: str, end_date: str):
         batch_size = 50
-        start = datetime.strptime(start_date, '%Y-%m-%d')
-        end = datetime.strptime(end_date, '%Y-%m-%d')
 
-        current_start = start
+        # Convert ISO formatted start and end dates to Unix timestamps
+        start_unix = iso_to_unix(start_date)
+        end_unix = iso_to_unix(end_date)
+
+        current_start_unix = start_unix
         all_data = []
-        # print(all_data)
 
-        while current_start < end:
-            current_end = min(current_start + timedelta(days=batch_size), end)
-            # Adjust the end date to avoid including it in the next batch
-            adjusted_end_date = (current_end - timedelta(days=1)).strftime('%Y-%m-%d') if current_end != end else current_end.strftime('%Y-%m-%d')
+        # Compute batch_size in seconds (batch_size days * 24 hours * 3600 seconds)
+        batch_size_seconds = batch_size * 24 * 3600
 
-            batch_data = self._fetch_batch_data(tickers, current_start.strftime('%Y-%m-%d'), adjusted_end_date)
+        while current_start_unix < end_unix:
+            current_end_unix = min(current_start_unix + batch_size_seconds, end_unix)
+
+            # Fetch batch data using Unix timestamps. Ensure API or data source can handle Unix timestamps
+            batch_data = self._fetch_batch_data(tickers, current_start_unix, current_end_unix)
             all_data.extend(batch_data)
-            # Set the start of the next batch to the day after the current batch's end
-            current_start = current_end
-        return all_data 
 
-    def _fetch_batch_data(self, tickers, start_date, end_date):
+            # Set the start of the next batch to the end of the current batch
+            current_start_unix = current_end_unix
+
+        return all_data
+
+    def _fetch_batch_data(self, tickers: List[str], start_date:int, end_date:int):
         url = f"{self.api_url}/api/bardata/"
         params = {
             'tickers': ','.join(tickers),
