@@ -268,12 +268,12 @@ class BarData:
     def to_dict(self):
         return {
             "symbol": self.ticker,
-            "timestamp": self.timestamp,
+            "timestamp": int(self.timestamp),
             "open": str(self.open),
             "close": str(self.close),
             "high": str(self.high),
             "low": str(self.low),
-            "volume": self.volume
+            "volume": int(self.volume)
         }
     
 def dataframe_to_bardata(df):
