@@ -3,15 +3,11 @@ from enum import Enum
 import databento as db
 from decouple import config
 from datetime import datetime, timedelta
-from ..client import DatabaseClient, SecurityType, Exchange,Indsutry, Currency, ContractUnits
 
 pd.set_option('display.max_colwidth', None)
 pd.set_option('display.max_columns', 100)
 pd.set_option('display.width', 1000) # Adjust the width of the display in characters
 pd.set_option('display.max_rows', None)
-
-DATABASE_KEY = config('MIDAS_API_KEY')
-DATABASE_URL = config('MIDAS_URL')
 
 class Schemas(Enum):
     MBO='mbo'               # Market by order, full order book, tick data
@@ -40,286 +36,167 @@ class Datasets(Enum):
     DATABENTOEQUITIES='DBEQ.BASIC'   # A consolidation of US equities prop feeds that’s free to license for all use cases. 
     
 class DatabentoClient:
-    def __init__(self, symbols:list, schema:Schemas,dataset:Datasets,stype:Symbology, start_date=None, end_date=None):
-        self.symbols=symbols
-        self.schema=schema.value
-        self.dataset=dataset.value
-        self.stype = stype.value
-        self.start_date=start_date
-        self.end_date=end_date
-        self.hist_client=None
-        self.live_client=None
+    def __init__(self, api_key:str):
+        self.hist_client = db.Historical(api_key)
+        self.live_client = db.Live(api_key)
 
-    def _set_historical_client(self):
-        self.hist_client = db.Historical(config('DATABENTO_API_KEY'))
+    def get_size(self, dataset: Datasets, symbols:list, schema:Schemas, stype:Symbology, start_date:str, end_date:str) -> float:
+        """ Returns data size in GBs."""
+        try:
+            size = self.hist_client.metadata.get_billable_size(
+                dataset=dataset.value,
+                symbols=symbols,
+                schema=schema.value,
+                start=start_date,
+                end=end_date,
+                stype_in=stype.value,
+            )
+            # logger.info(f"\n Bytes: {size} | KB:{size/10**3} | MB: {size/10**6} | GB: {size/10**9}\n")
+            return size/10**9
+        except Exception as e:
+            raise Exception(f"Error retrieving request cost: {e}")
 
-    def get_data(self):
-        # Initialize historical client if not already done
-        if not self.hist_client:
-            self._set_historical_client()
+    def get_cost(self, dataset: Datasets, symbols:list, schema:Schemas, stype:Symbology, start_date:str, end_date:str) -> float:
+        """ Cost returned in USD."""
 
+        try:
+            cost = self.hist_client.metadata.get_cost(
+                dataset=dataset.value,
+                symbols=symbols,
+                schema=schema.value,
+                start=start_date,
+                end=end_date,
+                stype_in=stype.value,
+            )
+
+            return cost
+        except Exception as e:
+            raise Exception(f"Error retrieving request cost: {e}")
+
+    def _cost_check(self, dataset: Datasets, symbols:list, schema:Schemas, stype:Symbology, start_date:str, end_date:str) -> float:
         # Get the cost of data pull
-        cost = self.get_cost()
+        cost = self.get_cost(dataset, symbols, schema, stype, start_date, end_date)
 
         # Confirm cost with the user, with a maximum of 3 attempts to avoid infinite loop
         max_attempts = 3
         for attempt in range(max_attempts):
             answer = input(f"\nThe cost of this data pull will be ${cost}. Would you like to proceed? (Y/n): ")
-            if answer.lower() == 'n':
+            if answer in ['n', 'N']:
                 print("Data pull cancelled by user.")
-                return
-            elif answer.lower() == 'y':
-                break
+                return False
+            elif answer in ['y', 'Y']:
+                return True
             else:
                 print("Invalid input. Please enter 'Y' to proceed or 'n' to cancel.")
                 if attempt == max_attempts - 1:
                     print("Maximum attempts reached. Data pull cancelled.")
-                    return
+                    return False
+                
+        # def _size_check(self):
+            # Check the size of the data
+            # If less than 5 GB, proceed with historical data retrieval
+            # if self.get_size() < 5:
+            #     if self.schema == Schemas.Trades.value:
+            #         return self.get_historical_trades()
+            #     else:
+            #         return self.get_historical_bar()
+            # else:
+            #     # Suggest batch load for large data sizes
+            #     print("\nData size greater than 5 GB: Batch Load Recommended.")
+            #     # Here you can add logic for batch loading if applicable
 
-        # Check the size of the data
-        # If less than 5 GB, proceed with historical data retrieval
-        if self.get_size() < 5:
-            if self.schema == Schemas.Trades.value:
-                return self.get_historical_trades()
-            else:
-                return self.get_historical_bar()
-        else:
-            # Suggest batch load for large data sizes
-            print("\nData size greater than 5 GB: Batch Load Recommended.")
-            # Here you can add logic for batch loading if applicable
+    def resample_trades_to_ohlcv(self, data: db.DBNStore):
 
-    def get_historical_bar(self):
-        """ Used to return smaller batches of data under """
-        try:                
-            data = self.hist_client.timeseries.get_range(
-                dataset=self.dataset,
-                symbols=self.symbols,
-                schema=self.schema,
-                stype_in=self.stype,
-                start=self.start_date,
-                end=self.end_date
+        if data.schema != "trades":
+            raise ValueError(f"data must be DBNStore object with schema=trades")
 
+        try:
+            trades_data = data.to_df()
+
+            ohlcv_data = (
+                trades_data
+                .groupby(["symbol"])
+                .resample("1min")["price"].ohlc()
             )
 
-            print(data)
-
-            # Convert to DataFrame
-            df = data.to_df()
-            print(df)
-            df.reset_index(inplace=True) 
-            df.rename(columns={"ts_event": "timestamp"}, inplace=True) 
-
-            
-
-            # Drop the unnecessary columns
-            columns_to_drop = ['publisher_id', 'rtype', 'instrument_id']
-            df.drop(columns=columns_to_drop, errors='ignore', inplace=True)
-            # print(df)        
-            # Convert the DataFrame to JSON, with dates in ISO format
-            df['timestamp'] = df['timestamp'].apply(lambda x: x.isoformat() if pd.notnull(x) else None)
-            # print(df)
-            data_list = df.to_dict(orient='records')
-            
-            return data_list
-        
+            return ohlcv_data
         except Exception as e:
-            print(f"An error occurred: {e}")
-            raise
-    
-    def get_historical_trades(self):
-        """ Used to return smaller batches of data under """
-        try:                
-            data = self.hist_client.timeseries.get_range(
-                dataset=self.dataset,
-                symbols=self.symbols,
-                schema=self.schema,
-                stype_in=self.stype,
-                start=self.start_date,
-                end=self.end_date
-            )
-
-            # Convert to DataFrame
-            df = data.to_df()
-            df.reset_index(inplace=True) 
-            df.rename(columns={"ts_event": "timestamp"}, inplace=True) 
-
-            # Drop the unnecessary columns
-            columns_to_drop = ['publisher_id', 'rtype', 'instrument_id', 'action', 'flags', 'ts_in_delta', 'sequence', 'ts_recv', 'depth']
-            df.drop(columns=columns_to_drop, errors='ignore', inplace=True)
-                    
-            # Convert the DataFrame to JSON, with dates in ISO format
-            df['timestamp'] = df['timestamp'].apply(lambda x: x.isoformat() if pd.notnull(x) else None)
-            print(df)
-            data_list = df.to_dict(orient='records')
-            
-            return data_list
+            raise Exception(f"Error converting trades to bar data {e}")
         
+    def get_historical_bar(self, dataset: Datasets, symbols:list, schema:Schemas, stype:Symbology, start_date:str, end_date:str) -> db.DBNStore:
+        """ Used to return smaller batches of data under """              
+        
+        # if schema not in [Schemas.OHLCV_1s, Schemas.OHLCV_1m, Schemas.OHLCV_1h, Schemas.OHLCV_1d]:
+        #     raise TypeError(f"schema but be of type OHLCV_xx")
+        try:
+            check=self._cost_check(dataset, symbols, schema, stype, start_date, end_date)
+
+            if check:
+                data = self.hist_client.timeseries.get_range(
+                    dataset=dataset.value,
+                    symbols=symbols,
+                    schema=schema.value,
+                    stype_in=stype.value,
+                    start=start_date,
+                    end=end_date
+                )
+
+                return data
         except Exception as e:
-            print(f"An error occurred: {e}")
-            raise
+            raise Exception(f"Error retrieving historical data: {e}")
     
-    def get_batch(self):
-        data = self.hist_client.batch.submit_job(
-            dataset=self.datasets,
-            symbols=self.symbols,
-            schema=self.schemas,
-            encoding="dbn",
-            start=self.start_date,
-            end=self.end_date,
-        )
-
-    def get_size(self):
-        """ Returns data size in GBs."""
-        size = self.hist_client.metadata.get_billable_size(
-            dataset=self.dataset,
-            symbols=self.symbols,
-            schema=self.schema,
-            start=self.start_date,
-            end=self.end_date,
-            stype_in = self.stype,
-        )
-
-        # logger.info(f"\n Bytes: {size} | KB:{size/10**3} | MB: {size/10**6} | GB: {size/10**9}\n")
+    def get_historical_tbbo(self, dataset: Datasets, symbols:list,stype:Symbology, start_date:str, end_date:str) -> db.DBNStore:
         
-        return size/10**9
+        schema=Schemas.Trades
+        self._cost_check(dataset, symbols, schema, stype, start_date, end_date)
+
+        data = self.hist_client.timeseries.get_range(
+            dataset=dataset.value,
+            symbols=symbols,
+            schema=schema.value,
+            stype_in=stype.value,
+            start=start_date,
+            end=end_date
+
+        )
+        return data
     
-    def get_cost(self):
-        """ Cost returned in USD."""
-        cost = self.hist_client.metadata.get_cost(
-            dataset=self.dataset,
-            symbols=self.symbols,
-            schema=self.schema,
-            start=self.start_date,
-            end=self.end_date,
-            stype_in=self.stype
-        )
-
-        return cost
-
-    def get_live(self):
-        """TODO : Add live feed later. """
-        self.live_client = db.Live(config('DATABENTO_API_KEY'))
-
-if __name__ == "__main__":
-    # Initialize the database client
-    database = DatabaseClient(DATABASE_KEY,DATABASE_URL)  # Adjust URL if not running locally
-    start_date_str = "2024-02-06"
-    # start_date_str = "2024-02-01"
-    end_date_str="2024-02-07"
-
-    # Convert to datetime objects and add time
-    start_datetime = datetime.strptime(start_date_str, "%Y-%m-%d")
-    end_datetime = datetime.strptime(end_date_str, "%Y-%m-%d") + timedelta(days=1, seconds=-1)
-
-    # Format back to strings if necessary, including time up to seconds
-    start_date_with_time = start_datetime.strftime("%Y-%m-%d %H:%M:%S")
-    end_date_with_time = end_datetime.strftime("%Y-%m-%d %H:%M:%S")
-
-    # -- Get Databento Continuous Future Data by Open Interest --
-    symbols = ['HE.n.0', 'ZC.n.0', 'ZM.n.0'] # 'n' Will rank the expirations by the open interest at the previous day's close
-    schema = Schemas.OHLCV_1h
-    dataset = Datasets.CME
-    stype = Symbology.CONTINUOSCONTRACT
-
-    # Check and create assets if they don't exist
-    for symbol in symbols:
-        if not database.get_symbol_by_ticker(symbol):
-            raise Exception(f"{symbol} not present in database.")
-        
-
-    # Databento client
-    client = DatabentoClient(symbols, schema, dataset, stype, start_datetime, end_datetime)
-    data = client.get_data()
-
-    # Database client
-    # response = database.create_bulk_price_data(data)
-    # print(response)
+    # def get_batch(self):
+    #     data = self.hist_client.batch.submit_job(
+    #         dataset=self.datasets,
+    #         symbols=self.symbols,
+    #         schema=self.schemas,
+    #         encoding="dbn",
+    #         start=self.start_date,
+    #         end=self.end_date,
+    #     )
 
 
 
-    # # -- Get Databento Equtiy Data --
-    # symbols = ['AAPL', 'MSFT']
-    # schema = Schemas.OHLCV_1h
-    # dataset = Datasets.NASDAQ
-    # stype = Symbology.RAWSYMBOL
+# OHLCV
+#                            rtype  publisher_id  instrument_id    open    high     low   close  volume  symbol
+# ts_event                                                                                                     
+# 2024-02-06 12:00:00+00:00     33             1         243778  443.50  443.75  443.50  443.75      20  ZC.n.0
+# 2024-02-06 12:01:00+00:00     33             1         243778  443.50  443.50  443.50  443.50      11  ZC.n.0
+# 2024-02-06 12:02:00+00:00     33             1         243778  443.50  443.50  443.50  443.50     100  ZC.n.0
+# 2024-02-06 12:03:00+00:00     33             1         243778  443.50  443.75  443.50  443.75      27  ZC.n.0
+# 2024-02-06 12:06:00+00:00     33             1         243778  443.50  443.50  443.50  443.50      10  ZC.n.0
 
-    # -- Get Databento Future Data by Contract Symbol --
-    # schema = Schemas.OHLCV_1d
-    # dataset = Datasets.CME
-    # stype = Symbology.RAWSYMBOL
-    # symbols = ["ZCH4"] 
-
-
-    # -- Create Equity --
-    # AAPL = {
-    #     'symbol':'AAPL',
-    #     'security_type':SecurityType.EQUITY,
-    #     'company_name':'Apple Inc.',
-    #     'exchange':Exchange.NASDAQ,
-    #     'currency':Currency.USD,
-    #     'industry':Indsutry.TECHNOLOGY,
-    #     'market_cap':100000,
-    #     'shares_outstanding':10000000
-    #     }
-
-    # database.create_equity(**AAPL)
-
-    # MSFT = {
-    #     'symbol':'MSFT',
-    #     'security_type':SecurityType.EQUITY,
-    #     'company_name':'Microsoft Inc.',
-    #     'exchange':Exchange.NASDAQ,
-    #     'currency':Currency.USD,
-    #     'industry':Indsutry.TECHNOLOGY,
-    #     'market_cap':1,
-    #     'shares_outstanding':1
-    #     }
+# Trades
+#                                                                ts_event  rtype  publisher_id  instrument_id action side  depth   price  size  flags  ts_in_delta  sequence  symbol
+# ts_recv                                                                                                                                                                           
+# 2024-02-06 12:00:29.132952677+00:00 2024-02-06 12:00:29.132637997+00:00      0             1         243778      T    B      0  443.50     2      0        15709  16910303  ZC.n.0
+# 2024-02-06 12:00:29.133817907+00:00 2024-02-06 12:00:29.132917611+00:00      0             1         243778      T    B      0  443.50     3      0        14144  16910347  ZC.n.0
+# 2024-02-06 12:00:29.133848318+00:00 2024-02-06 12:00:29.132954839+00:00      0             1         243778      T    B      0  443.50     5      0        14138  16910349  ZC.n.0
+# 2024-02-06 12:00:29.133968123+00:00 2024-02-06 12:00:29.132967857+00:00      0             1         243778      T    B      0  443.50     5      0        13082  16910355  ZC.n.0
 
 
-    # -- Create Future -- 
-    # HE_n_0 = {
-    #     'ticker':'HE.n.0',
-    #     'security_type':SecurityType.FUTURE,
-    #     'product_code':'HE',
-    #     'product_name':'Lean Hogs',
-    #     'exchange':Exchange.CME,
-    #     'currency':Currency.USD,
-    #     'contract_size':40000,
-    #     'contract_units':ContractUnits.POUNDS,
-    #     'tick_size':0.00025,
-    #     'min_price_fluctuation':10.00,
-    #     'continuous':True
-    #     }
-    # database.create_future(**HE_n_0)
-
-
-    # ZC_n_0 = {
-    #     'ticker':'ZC.n.0',
-    #     'security_type':SecurityType.FUTURE,
-    #     'product_code':'ZC',
-    #     'product_name':'Corn',
-    #     'exchange':Exchange.CME,
-    #     'currency':Currency.USD,
-    #     'contract_size':5000,
-    #     'contract_units':ContractUnits.BUSHELS,
-    #     'tick_size':0.0025,
-    #     'min_price_fluctuation':12.50,
-    #     'continuous':True
-    #     }
-    # database.create_future(**ZC_n_0)
-
-
-    # ZM_n_0 = {
-    #     'ticker':'ZM.n.0',
-    #     'security_type':SecurityType.FUTURE,
-    #     'product_code':'ZM',
-    #     'product_name':'Soybean Meal',
-    #     'exchange':Exchange.CME,
-    #     'currency':Currency.USD,
-    #     'contract_size':100,
-    #     'contract_units':ContractUnits.SHORT_TON,
-    #     'tick_size':0.10,
-    #     'min_price_fluctuation':10.00,
-    #     'continuous':True
-    #     }
-    # database.create_future(**ZM_n_0)
+# TBBO
+#                                                                ts_event  rtype  publisher_id  instrument_id action side  depth   price  size  flags  ts_in_delta  sequence  bid_px_00  ask_px_00  bid_sz_00  ask_sz_00  bid_ct_00  ask_ct_00  symbol
+# ts_recv                                                                                                                                                                                                                                             
+# 2024-02-06 12:00:29.132952677+00:00 2024-02-06 12:00:29.132637997+00:00      1             1         243778      T    B      0  443.50     2      0        15709  16910303     443.25     443.50        155         15         27          3  ZC.n.0
+# 2024-02-06 12:00:29.133817907+00:00 2024-02-06 12:00:29.132917611+00:00      1             1         243778      T    B      0  443.50     3      0        14144  16910347     443.25     443.50        155         13         27          2  ZC.n.0
+# 2024-02-06 12:00:29.133848318+00:00 2024-02-06 12:00:29.132954839+00:00      1             1         243778      T    B      0  443.50     5      0        14138  16910349     443.25     443.50        155         10         27          2  ZC.n.0
+# 2024-02-06 12:00:29.133968123+00:00 2024-02-06 12:00:29.132967857+00:00      1             1         243778      T    B      0  443.50     5      0        13082  16910355     443.25     443.50        155          5         27          2  ZC.n.0
+# 2024-02-06 12:00:29.137096115+00:00 2024-02-06 12:00:29.135514715+00:00      1             1         243778      T    A      0  443.50     3      0        13716  16910542     443.50     443.75          3        171          1         26  ZC.n.0
+# 2024-02-06 12:00:29.139255243+00:00 2024-02-06 12:00:29.138307997+00:00      1             1         243778      T    A      0  443.50     1      0        17272  16910664     443.50     443.75          1        169          1         25  ZC.n.0
