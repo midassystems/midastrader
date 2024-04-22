@@ -2,8 +2,9 @@ import pandas as pd
 from decouple import config
 
 from client.client import DatabaseClient
+from shared.market_data import BarData, dataframe_to_bardata
 from client.sources.databento import DatabentoClient, Schemas, Datasets, Symbology
-from shared.data import SecurityType, Venue, Industry ,Currency, ContractUnits, Equity, BarData, dataframe_to_bardata
+from shared.symbol import SecurityType, Venue, Industry ,Currency, ContractUnits, Equity
 
 pd.set_option('display.max_colwidth', None)
 pd.set_option('display.max_columns', 100)
@@ -20,12 +21,12 @@ if __name__ == "__main__":
     database=DatabaseClient(DATABASE_KEY,DATABASE_URL)  # Adjust URL if not running locally
 
     # Parameters
-    symbols=['ZC.n.0'] # 'n' Will rank the expirations by the open interest at the previous day's close
-    schema=Schemas.OHLCV_1m
+    symbols=['HE.n.0', 'ZC.n.0'] # 'n' Will rank the expirations by the open interest at the previous day's close
+    schema=Schemas.OHLCV_1h
     dataset=Datasets.CME
     stype=Symbology.CONTINUOSCONTRACT
-    start_date="2023-02-07T12:00:00"
-    end_date="2023-02-07T12:10:00"
+    start_date="2024-01-07T12:00:00"
+    end_date="2024-02-07T12:10:00"
 
     # Check and create assets if they don't exist
     for symbol in symbols:

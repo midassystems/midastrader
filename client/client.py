@@ -5,7 +5,10 @@ from enum import Enum
 from queue import Queue
 from typing import List, Dict
 from datetime import datetime, timedelta
-from shared.data import * 
+from shared.symbol import *
+from shared.market_data import *
+from shared.backtest import Backtest
+from shared.live_session import LiveTradingSession
 from shared.utils import iso_to_unix, unix_to_iso
 
 class DatabaseClient:
@@ -73,6 +76,25 @@ class DatabaseClient:
             raise ValueError(f"Asset class update failed: {response.text}")
         return response.json()
 
+    def delete_asset_class(self, asset_class_id: int):
+        """
+        Delete asset_class with passed id.
+
+        Parameters:
+        asset_class_id (int): The ID of the asset class to update.
+        """
+        url = f"{self.api_url}/api/asset_class/{asset_class_id}/"
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Authorization": f"Token {self.api_key}"
+        }
+        response = requests.delete(url, headers=headers)
+
+        if response.status_code != 204:
+            raise ValueError(f"Asset class delete failed: {response.text}")
+        return response.json()
+    
     def create_security_type(self, sec_type: SecurityType):
         """
         Creates a new security type.
@@ -132,6 +154,25 @@ class DatabaseClient:
             raise ValueError(f"Security type update failed: {response.text}")
         return response.json()
 
+    def delete_security_type(self, sec_type_id: int):
+        """
+        Delete security type with passed id.
+
+        Parameters:
+        sec_type_id: (int): The ID of the security type to delete.
+        """
+        url = f"{self.api_url}/api/security_type/{sec_type_id}/"
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Authorization": f"Token {self.api_key}"
+        }
+        response = requests.delete(url, headers=headers)
+
+        if response.status_code != 204:
+            raise ValueError(f"Security type delete failed: {response.text}")
+        return response.json()
+    
     def create_venue(self, venue: Venue):
         """
         Creates a new venue.
@@ -191,6 +232,25 @@ class DatabaseClient:
             raise ValueError(f"Venue update failed: {response.text}")
         return response.json()
 
+    def delete_venue(self, venue_id: int):
+        """
+        Delete venue with passed id.
+
+        Parameters:
+        venue_id : (int): The ID of the venue to delete.
+        """
+        url = f"{self.api_url}/api/venue/{venue_id}/"
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Authorization": f"Token {self.api_key}"
+        }
+        response = requests.delete(url, headers=headers)
+
+        if response.status_code != 204:
+            raise ValueError(f"Venue delete failed: {response.text}")
+        return response.json()
+    
     def create_currency(self, currency: Currency):
         """
         Creates a new currency.
@@ -248,6 +308,25 @@ class DatabaseClient:
         response = requests.patch(url, json=data, headers=headers)
         if response.status_code != 200:
             raise ValueError(f"Currency update failed: {response.text}")
+        return response.json()
+    
+    def delete_currency(self, currency_id: int):
+        """
+        Delete currency with passed id.
+
+        Parameters:
+        currency_id : (int): The ID of the currency to delete.
+        """
+        url = f"{self.api_url}/api/currency/{currency_id}/"
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Authorization": f"Token {self.api_key}"
+        }
+        response = requests.delete(url, headers=headers)
+
+        if response.status_code != 204:
+            raise ValueError(f"Currency delete failed: {response.text}")
         return response.json()
     
     def create_industry(self, industry: Industry):
@@ -309,6 +388,25 @@ class DatabaseClient:
             raise ValueError(f"Industry update failed: {response.text}")
         return response.json()
 
+    def delete_industry(self, industry_id: int):
+        """
+        Delete industry with passed id.
+
+        Parameters:
+        industry_id : (int): The ID of the industry_id: to delete.
+        """
+        url = f"{self.api_url}/api/industry/{industry_id}/"
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Authorization": f"Token {self.api_key}"
+        }
+        response = requests.delete(url, headers=headers)
+
+        if response.status_code != 204:
+            raise ValueError(f"Industry delete failed: {response.text}")
+        return response.json()
+    
     def create_contract_units(self, contract_units: ContractUnits):
         """
         Creates a new contract_units.
@@ -368,6 +466,25 @@ class DatabaseClient:
             raise ValueError(f"Contract units update failed: {response.text}")
         return response.json()
 
+    def delete_contract_units(self, contract_units_id: int):
+        """
+        Delete contract_units with passed id.
+
+        Parameters:
+        contract_units_id : (int): The ID of the contract_units to delete.
+        """
+        url = f"{self.api_url}/api/contract_units/{contract_units_id}/"
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Authorization": f"Token {self.api_key}"
+        }
+        response = requests.delete(url, headers=headers)
+
+        if response.status_code != 204:
+            raise ValueError(f"Contract units delete failed: {response.text}")
+        return response.json()
+    
     # -- Symbols -- 
     def create_symbol(self, symbol: Symbol):
         if not isinstance(symbol, Symbol):
@@ -560,10 +677,10 @@ class DatabaseClient:
         all_data = []
 
         # Compute batch_size in seconds (batch_size days * 24 hours * 3600 seconds)
-        batch_size_seconds = batch_size * 24 * 3600
+        batch_size_nanoseconds = batch_size * 24 * 3600 * int(1e9)
 
         while current_start_unix < end_unix:
-            current_end_unix = min(current_start_unix + batch_size_seconds, end_unix)
+            current_end_unix = min(current_start_unix + batch_size_nanoseconds, end_unix)
 
             # Fetch batch data using Unix timestamps. Ensure API or data source can handle Unix timestamps
             batch_data = self._fetch_batch_data(tickers, current_start_unix, current_end_unix)

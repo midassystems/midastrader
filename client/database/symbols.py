@@ -2,7 +2,7 @@ import pandas as pd
 from decouple import config
 from datetime import datetime, timedelta
 from ..client import DatabaseClient
-from shared.data import SecurityType, Venue, Industry ,Currency, ContractUnits,AssetClass,  Equity, Future, Option, Index
+from shared.symbol import SecurityType, Venue, Industry ,Currency, ContractUnits,AssetClass,  Equity, Future, Option, Index
 
 pd.set_option('display.max_colwidth', None)
 pd.set_option('display.max_columns', 100)
@@ -17,21 +17,14 @@ if __name__ == "__main__":
     database = DatabaseClient(DATABASE_KEY,DATABASE_URL) 
     
     try:
-        future=Future(
-            ticker = "ZC.n.0",
-            security_type = SecurityType.FUTURE,
-            product_code="ZC",
-            product_name="Corn",
-            venue=Venue.CME,
-            currency=Currency.USD,
-            industry=Industry.AGRICULTURE,
-            contract_size=5000,
-            contract_units=ContractUnits.BUSHELS,
-            tick_size=0.0025,
-            min_price_fluctuation=12.50,
-            continuous=True
-        )
-        database.create_symbol(future)
+        index=Index(ticker="^GSPC",
+                    security_type=SecurityType.INDEX,
+                    name="S&P 500",
+                    currency=Currency.USD,
+                    asset_class=AssetClass.EQUITY,
+                    venue= Venue.NASDAQ)
+
+        database.create_symbol(index)
         
         print("Successfully created symbol.")
     except Exception as e:
@@ -67,6 +60,22 @@ if __name__ == "__main__":
 # )
 # database.create_symbol(future)
 
+# future=Future(
+#     ticker = "ZC.n.0",
+#     security_type = SecurityType.FUTURE,
+#     product_code="ZC",
+#     product_name="Corn",
+#     venue=Venue.CME,
+#     currency=Currency.USD,
+#     industry=Industry.AGRICULTURE,
+#     contract_size=5000,
+#     contract_units=ContractUnits.BUSHELS,
+#     tick_size=0.0025,
+#     min_price_fluctuation=12.50,
+#     continuous=True
+# )
+# database.create_symbol(future)
+
 # option=Option(
 #     ticker = "AAPLPRT",
 #     security_type = SecurityType.OPTION, 
@@ -80,7 +89,7 @@ if __name__ == "__main__":
 # )
 # database.create_symbol(option)
 
-# index=Index(ticker="GSPCxyz",
+# index=Index(ticker="^GSPC",
 #                     security_type=SecurityType.INDEX,
 #                     name="S&P 500",
 #                     currency=Currency.USD,
@@ -90,53 +99,17 @@ if __name__ == "__main__":
 # database.create_symbol(index)
 
 
-
-
-
-    # -- Create Future -- 
-    # HE_n_0 = {
-    #     'ticker':'HE.n.0',
-    #     'security_type':SecurityType.FUTURE,
-    #     'product_code':'HE',
-    #     'product_name':'Lean Hogs',
-    #     'exchange':Exchange.CME,
-    #     'currency':Currency.USD,
-    #     'contract_size':40000,
-    #     'contract_units':ContractUnits.POUNDS,
-    #     'tick_size':0.00025,
-    #     'min_price_fluctuation':10.00,
-    #     'continuous':True
-    #     }
-    # database.create_future(**HE_n_0)
-
-
-    # ZC_n_0 = {
-    #     'ticker':'ZC.n.0',
-    #     'security_type':SecurityType.FUTURE,
-    #     'product_code':'ZC',
-    #     'product_name':'Corn',
-    #     'exchange':Exchange.CME,
-    #     'currency':Currency.USD,
-    #     'contract_size':5000,
-    #     'contract_units':ContractUnits.BUSHELS,
-    #     'tick_size':0.0025,
-    #     'min_price_fluctuation':12.50,
-    #     'continuous':True
-    #     }
-    # database.create_future(**ZC_n_0)
-
-
-    # ZM_n_0 = {
-    #     'ticker':'ZM.n.0',
-    #     'security_type':SecurityType.FUTURE,
-    #     'product_code':'ZM',
-    #     'product_name':'Soybean Meal',
-    #     'exchange':Exchange.CME,
-    #     'currency':Currency.USD,
-    #     'contract_size':100,
-    #     'contract_units':ContractUnits.SHORT_TON,
-    #     'tick_size':0.10,
-    #     'min_price_fluctuation':10.00,
-    #     'continuous':True
-    #     }
-    # database.create_future(**ZM_n_0)
+# ZM_n_0 = {
+#     'ticker':'ZM.n.0',
+#     'security_type':SecurityType.FUTURE,
+#     'product_code':'ZM',
+#     'product_name':'Soybean Meal',
+#     'exchange':Exchange.CME,
+#     'currency':Currency.USD,
+#     'contract_size':100,
+#     'contract_units':ContractUnits.SHORT_TON,
+#     'tick_size':0.10,
+#     'min_price_fluctuation':10.00,
+#     'continuous':True
+#     }
+# database.create_future(**ZM_n_0)
