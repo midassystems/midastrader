@@ -1,6 +1,6 @@
 from decouple import config
 from ..client import DatabaseClient 
-from ...shared.data import Currency, AssetClass, SecurityType, Industry, Venue, ContractUnits
+from shared.symbol import Currency, AssetClass, SecurityType, Industry, Venue, ContractUnits
 
 DATABASE_KEY = config('LOCAL_API_KEY')
 DATABASE_URL = config('LOCAL_URL')

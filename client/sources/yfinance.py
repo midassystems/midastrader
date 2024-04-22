@@ -1,13 +1,13 @@
-import json
-import requests
-import pandas as pd
-from enum import Enum
+import numpy as np
 import yfinance as yf
+from decimal import Decimal
 from decouple import config
-from ..client import DatabaseClient, SecurityType, Exchange,Indsutry, Currency, ContractUnits, AssetClass
+from shared.market_data import BarData
+from client import DatabaseClient
+from shared.utils import iso_to_unix
 
-DATABASE_KEY = config('MIDAS_API_KEY')
-DATABASE_URL = config('MIDAS_URL')
+DATABASE_KEY = config('LOCAL_API_KEY')
+DATABASE_URL = config('LOCAL_URL')
 
     
 class YFinanceClient:
@@ -40,31 +40,34 @@ class YFinanceClient:
             symbol_df = df[symbol] if len(symbols) > 1 else df
             
             for index, row in symbol_df.iterrows():
-                date_str = index.strftime("%Y-%m-%dT%H:%M:%SZ")
-                entry = {
-                    "symbol": symbol,
-                    "timestamp": date_str,
-                    "open": row['Open'],
-                    "high": row['High'],
-                    "low": row['Low'],
-                    "close": row['Close'],
-                    "volume": row['Volume']
-                }
-                data.append(entry)
+                iso_date = index.isoformat()
+                timestamp_unix=iso_to_unix(iso_date)
+                
+                bar = BarData(
+                    ticker=symbol,
+                    timestamp=np.uint64(timestamp_unix),
+                    open=Decimal(row['Open']),
+                    high=Decimal(row['High']),
+                    low=Decimal(row['Low']),
+                    close=Decimal(row['Close']),
+                    volume=np.uint64(row['Volume'])
+                )
+                data.append(bar)
 
         return data
 
 if __name__ == "__main__":
+
     # Initialize the database client
     database = DatabaseClient(DATABASE_KEY,DATABASE_URL)
     
-    # Initialize FMP client
+    # Initialize YF client
     client = YFinanceClient()
     
     # Variables
-    start_date = "2018-05-01"
+    start_date = "2024-01-01"
     end_date ="2024-02-07"
-    symbols = ['^GSPC']
+    symbols = ["^GSPC"]
 
     # Check if symbols exist
     for symbol in symbols:
@@ -76,14 +79,3 @@ if __name__ == "__main__":
     # Database client
     response = database.create_bulk_price_data(data)
     print(response)
-
-
-    # -- Create Index --
-    # GSPC = {
-    #     'ticker':'^GSPC',
-    #     'name':'S&P 500',
-    #     'currency':Currency.USD,
-    #     'security_type':SecurityType.INDEX,
-    #     'asset_class': AssetClass.EQUITY
-    #     }
-    # database.create_index(**GSPC)
