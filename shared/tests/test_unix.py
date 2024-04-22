@@ -1,8 +1,5 @@
 import unittest
-import pandas as pd
-from unittest.mock import Mock, patch
-from contextlib import ExitStack
-from decimal import Decimal
+
 from shared.utils.unix import iso_to_unix, unix_to_iso
 
 class TestConvertToUnix(unittest.TestCase):
@@ -13,7 +10,7 @@ class TestConvertToUnix(unittest.TestCase):
         unix_timestamp=iso_to_unix(iso_timestamp)
 
         # valdiate
-        self.assertEqual(unix_timestamp,1707307200)
+        self.assertEqual(unix_timestamp,1707307200000000000)
 
 
     def test_iso_to_unix_tz_naive(self):
@@ -23,10 +20,10 @@ class TestConvertToUnix(unittest.TestCase):
         unix_timestamp=iso_to_unix(iso_timestamp)
 
         # valdiate
-        self.assertEqual(unix_timestamp,1675789200)
+        self.assertEqual(unix_timestamp,1675789200000000000)
 
     def test_unix_to_ios_UTC(self):
-        unix_timestamp =  1679789200
+        unix_timestamp =  1679789200000000000
         
         # test
         iso_timestamp=unix_to_iso(unix_timestamp)
@@ -35,7 +32,7 @@ class TestConvertToUnix(unittest.TestCase):
         self.assertEqual(iso_timestamp,"2023-03-26T00:06:40+00:00")
 
     def test_unix_to_ios_EST(self):
-        unix_timestamp =  1679789200
+        unix_timestamp =  1679789200000000000
         
         # test
         iso_timestamp=unix_to_iso(unix_timestamp, "US/Eastern")
