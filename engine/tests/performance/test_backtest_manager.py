@@ -7,123 +7,126 @@ from pandas.testing import assert_frame_equal
 import pandas as pd
 import numpy as np
 
-from engine.performance.backtest.manager import Backtest, BacktestPerformanceManager
-from engine.performance.regression import RegressionAnalysis
-from engine.account_data import EquityDetails, Trade
-from engine.events import SignalEvent, Action, ExecutionDetails
 from engine.command.parameters import Parameters
+from engine.performance.regression import RegressionAnalysis
+from engine.performance.backtest.manager import BacktestPerformanceManager
 from engine.events import MarketEvent, OrderEvent, SignalEvent, ExecutionEvent
-from engine.events import MarketData, BarData, QuoteData, OrderType, Action, TradeInstruction, MarketDataType
+
+from shared.trade import Trade, ExecutionDetails
+from shared.signal import TradeInstruction
+from shared.orders import OrderType, Action
+from shared.portfolio import  EquityDetails
+from shared.market_data import MarketData, BarData, QuoteData, MarketDataType
 
 #TODO: edge cases
-class TestBacktest(unittest.TestCase):    
-    def setUp(self) -> None:
-        self.mock_db_client = Mock()
-        self.backtest = Backtest(self.mock_db_client)
-        self.mock_parameters = {
-            "strategy_name": "cointegrationzscore", 
-            "capital": 100000, 
-            "data_type": "BAR", 
-            "strategy_allocation": 1.0, 
-            "train_start": "2018-05-18", 
-            "train_end": "2023-01-19", 
-            "test_start": "2023-01-19", 
-            "test_end": "2024-01-19", 
-            "tickers": ["HE.n.0", "ZC.n.0"], 
-            "benchmark": ["^GSPC"]
-        }
-        self.mock_static_stats = [{
-            "total_return": 10.0,
-            "total_trades": 5,
-            "total_fees": 2.5
-        }]
-        self.mock_timeseries_stats =  [{
-            "timestamp": "2023-12-09T12:00:00Z",
-            "equity_value": 10000.0,
-            "percent_drawdown": 9.9, 
-            "cumulative_return": -0.09, 
-            "daily_return": 79.9
-        }]
-        self.mock_trades =  [{
-            "trade_id": 1, 
-            "leg_id": 1, 
-            "timestamp": "2023-01-03T00:00:00+0000", 
-            "symbol": "AAPL", 
-            "quantity": 4, 
-            "price": 130.74, 
-            "cost": -522.96, 
-            "action": "BUY", 
-            "fees": 0.0
-        }]
-        self.mock_signals =  [{
-            "timestamp": "2023-01-03T00:00:00+0000", 
-            "trade_instructions": [{
-                "ticker": "AAPL", 
-                "action": "BUY", 
-                "trade_id": 1, 
-                "leg_id": 1, 
-                "weight": 0.05
-            }, 
-            {
-                "ticker": "MSFT", 
-                "action": "SELL", 
-                "trade_id": 1, 
-                "leg_id": 2, 
-                "weight": 0.05
-            }]
-        }]
+# class TestBacktest(unittest.TestCase):    
+#     def setUp(self) -> None:
+#         self.mock_db_client = Mock()
+#         self.backtest = Backtest(self.mock_db_client)
+#         self.mock_parameters = {
+#             "strategy_name": "cointegrationzscore", 
+#             "capital": 100000, 
+#             "data_type": "BAR", 
+#             "strategy_allocation": 1.0, 
+#             "train_start": "2018-05-18", 
+#             "train_end": "2023-01-19", 
+#             "test_start": "2023-01-19", 
+#             "test_end": "2024-01-19", 
+#             "tickers": ["HE.n.0", "ZC.n.0"], 
+#             "benchmark": ["^GSPC"]
+#         }
+#         self.mock_static_stats = [{
+#             "total_return": 10.0,
+#             "total_trades": 5,
+#             "total_fees": 2.5
+#         }]
+#         self.mock_timeseries_stats =  [{
+#             "timestamp": "2023-12-09T12:00:00Z",
+#             "equity_value": 10000.0,
+#             "percent_drawdown": 9.9, 
+#             "cumulative_return": -0.09, 
+#             "daily_return": 79.9
+#         }]
+#         self.mock_trades =  [{
+#             "trade_id": 1, 
+#             "leg_id": 1, 
+#             "timestamp": "2023-01-03T00:00:00+0000", 
+#             "symbol": "AAPL", 
+#             "quantity": 4, 
+#             "price": 130.74, 
+#             "cost": -522.96, 
+#             "action": "BUY", 
+#             "fees": 0.0
+#         }]
+#         self.mock_signals =  [{
+#             "timestamp": "2023-01-03T00:00:00+0000", 
+#             "trade_instructions": [{
+#                 "ticker": "AAPL", 
+#                 "action": "BUY", 
+#                 "trade_id": 1, 
+#                 "leg_id": 1, 
+#                 "weight": 0.05
+#             }, 
+#             {
+#                 "ticker": "MSFT", 
+#                 "action": "SELL", 
+#                 "trade_id": 1, 
+#                 "leg_id": 2, 
+#                 "weight": 0.05
+#             }]
+#         }]
 
-        self.backtest.parameters = self.mock_parameters
-        self.backtest.static_stats = self.mock_static_stats
-        self.backtest.timeseries_stats = self.mock_timeseries_stats
-        self.backtest.trade_data = self.mock_trades
-        self.backtest.signal_data = self.mock_signals
+#         self.backtest.parameters = self.mock_parameters
+#         self.backtest.static_stats = self.mock_static_stats
+#         self.backtest.timeseries_stats = self.mock_timeseries_stats
+#         self.backtest.trade_data = self.mock_trades
+#         self.backtest.signal_data = self.mock_signals
 
-    # Basic Validation
-    def test_to_dict_valid(self):
-        backtest_dict = self.backtest.to_dict()
+#     # Basic Validation
+#     def test_to_dict_valid(self):
+#         backtest_dict = self.backtest.to_dict()
 
-        self.assertEqual(backtest_dict['parameters'], self.mock_parameters)
-        self.assertEqual(backtest_dict['static_stats'], self.mock_static_stats)
-        self.assertEqual(backtest_dict['timeseries_stats'], self.mock_timeseries_stats)
-        self.assertEqual(backtest_dict['signals'], self.mock_signals)
-        self.assertEqual(backtest_dict['trades'], self.mock_trades)
+#         self.assertEqual(backtest_dict['parameters'], self.mock_parameters)
+#         self.assertEqual(backtest_dict['static_stats'], self.mock_static_stats)
+#         self.assertEqual(backtest_dict['timeseries_stats'], self.mock_timeseries_stats)
+#         self.assertEqual(backtest_dict['signals'], self.mock_signals)
+#         self.assertEqual(backtest_dict['trades'], self.mock_trades)
 
-    def test_save_successful(self):
-        with ExitStack() as stack:
-            mock_create_backtest = stack.enter_context(patch.object(self.mock_db_client,'create_backtest', return_value = 201))
-            mock_print = stack.enter_context(patch('builtins.print'))
+#     def test_save_successful(self):
+#         with ExitStack() as stack:
+#             mock_create_backtest = stack.enter_context(patch.object(self.mock_db_client,'create_backtest', return_value = 201))
+#             mock_print = stack.enter_context(patch('builtins.print'))
             
-            self.backtest.save()
-            mock_create_backtest.assert_called_once_with(self.backtest.to_dict())
-            mock_print.assert_called_once_with("Backtest save successful.")
+#             self.backtest.save()
+#             mock_create_backtest.assert_called_once_with(self.backtest.to_dict())
+#             mock_print.assert_called_once_with("Backtest save successful.")
 
-    def test_save_unsuccessful(self):
-        response = 500
-        with ExitStack() as stack:
-            mock_create_backtest = stack.enter_context(patch.object(self.mock_db_client,'create_backtest', return_value = response))
-            mock_print = stack.enter_context(patch('builtins.print'))
+#     def test_save_unsuccessful(self):
+#         response = 500
+#         with ExitStack() as stack:
+#             mock_create_backtest = stack.enter_context(patch.object(self.mock_db_client,'create_backtest', return_value = response))
+#             mock_print = stack.enter_context(patch('builtins.print'))
             
-            self.backtest.save()
-            mock_create_backtest.assert_called_once_with(self.backtest.to_dict())
-            mock_print.assert_called_once_with(f"Backtest save failed with response code: {response}")
+#             self.backtest.save()
+#             mock_create_backtest.assert_called_once_with(self.backtest.to_dict())
+#             mock_print.assert_called_once_with(f"Backtest save failed with response code: {response}")
 
-    def test_save_validation_exception(self):
-        def create_backtest_error(self):
-            raise ValueError
+#     def test_save_validation_exception(self):
+#         def create_backtest_error(self):
+#             raise ValueError
         
-        self.backtest.parameters = ""
+#         self.backtest.parameters = ""
         
-        with ExitStack() as stack:
-            mock_create_backtest = stack.enter_context(patch.object(self.mock_db_client,'create_backtest', side_effect = create_backtest_error))
-            with self.assertRaisesRegex(ValueError,f"Validation Error:" ):
-                self.backtest.save()
+#         with ExitStack() as stack:
+#             mock_create_backtest = stack.enter_context(patch.object(self.mock_db_client,'create_backtest', side_effect = create_backtest_error))
+#             with self.assertRaisesRegex(ValueError,f"Validation Error:" ):
+#                 self.backtest.save()
 
-    def test_validate_attributes_success(self):
-        try:
-            self.backtest.validate_attributes()
-        except ValueError:
-            self.fail("validate_attributes() raised ValueError unexpectedly!")
+#     def test_validate_attributes_success(self):
+#         try:
+#             self.backtest.validate_attributes()
+#         except ValueError:
+#             self.fail("validate_attributes() raised ValueError unexpectedly!")
 
 class TestPerformanceManager(unittest.TestCase):    
     def setUp(self) -> None:
@@ -252,7 +255,7 @@ class TestPerformanceManager(unittest.TestCase):
                                                 weight = 0.5)
         self.valid_trade_instructions = [self.valid_trade1,self.valid_trade2]
                         
-        signal_event = SignalEvent(1651500000, 10000,self.valid_trade_instructions)
+        signal_event = SignalEvent(np.uint64(1651500000), 10000,self.valid_trade_instructions)
 
         self.performance_manager.update_signals(signal_event)
         self.assertEqual(self.performance_manager.signals[0], signal_event.to_dict())
@@ -273,10 +276,10 @@ class TestPerformanceManager(unittest.TestCase):
                                                 weight = 0.5)
         self.valid_trade_instructions = [self.valid_trade1,self.valid_trade2]
                         
-        signal_event = SignalEvent(1651500000, 10000,self.valid_trade_instructions)
+        signal_event = SignalEvent(np.uint64(1651500000), 10000,self.valid_trade_instructions)
         
         self.performance_manager.update_signals(signal_event)
-        self.mock_logger.info.assert_called_once_with("\nSignals Updated:  {'timestamp': '2022-05-02T14:00:00+00:00', 'trade_instructions': [{'ticker': 'AAPL', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 5, 'weight': 0.5}, {'ticker': 'TSLA', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 6, 'weight': 0.5}]} \n")
+        self.mock_logger.info.assert_called_once_with("\nSignals Updated:  {'timestamp': 1651500000, 'trade_instructions': [{'ticker': 'AAPL', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 5, 'weight': 0.5}, {'ticker': 'TSLA', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 6, 'weight': 0.5}]} \n")
 
     def test_update_equity_new_valid(self):
         equity = EquityDetails(
@@ -515,7 +518,7 @@ class TestPerformanceManager(unittest.TestCase):
                                                 weight = 0.5)
         self.valid_trade_instructions = [self.valid_trade1,self.valid_trade2]
                         
-        signal_event = SignalEvent(1651500000, 10000,self.valid_trade_instructions)
+        signal_event = SignalEvent(np.uint(1651500000), 10000,self.valid_trade_instructions)
 
         self.performance_manager.update_signals(signal_event)
 

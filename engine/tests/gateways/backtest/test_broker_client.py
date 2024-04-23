@@ -1,13 +1,16 @@
 import unittest
+import numpy as np
 from ibapi.order import Order
 from contextlib import ExitStack
 from ibapi.contract import Contract
 from unittest.mock import Mock, patch
 
 from engine.gateways.backtest import BrokerClient
-from engine.account_data import AccountDetails, EquityDetails
-from engine.events import OrderEvent, ExecutionEvent, Action, MarketOrder
+from engine.events import OrderEvent, ExecutionEvent
 from engine.gateways.backtest.dummy_broker import PositionDetails, ExecutionDetails
+
+from shared.orders import Action, MarketOrder
+from shared.portfolio import AccountDetails, EquityDetails
 
 # TODO: # Type/edge/integration
 
@@ -36,7 +39,7 @@ class TestBrokerClient(unittest.TestCase):
             mock_method.assert_called_once() # check placeOrder called on a valid order event
 
     def test_on_order(self):
-        self.valid_timestamp = 1651500000
+        self.valid_timestamp = np.uint64(1651500000)
         self.valid_action = Action.LONG
         self.valid_trade_id = 2
         self.valid_leg_id =  6
@@ -140,7 +143,7 @@ class TestBrokerClient(unittest.TestCase):
             mock_m3.assert_called_once_with(equity)
 
     def test_on_execution(self):
-        timestamp = 1651500000 
+        timestamp = np.uint64(641651500000)
         trade_id = 1 
         leg_id = 2 
         contract = Contract()

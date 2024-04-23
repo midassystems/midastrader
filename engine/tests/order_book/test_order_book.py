@@ -1,31 +1,37 @@
 import unittest
+import numpy as np
+from decimal import Decimal
 from unittest.mock import Mock
 
 from engine.order_book import OrderBook
+from engine.events import MarketEvent
 from engine.observer import EventType, Observer, Subject
-from engine.events import BarData, QuoteData, MarketDataType, MarketEvent, MarketData
 
-# self.mock_event_queue.put.assert_called_once_with(MarketEvent(timestamp=time, data={'AAPL':valid_bar}))
+from shared.market_data import BarData, QuoteData, MarketDataType, MarketData
+
 #TODO: edge cases / orderbook depth 
 class TestOrderBook(unittest.TestCase):
     def setUp(self) -> None:
         self.mock_event_queue = Mock()
         self.valid_bardata_order_book = OrderBook(MarketDataType.BAR, self.mock_event_queue)
         self.valid_quotedata_order_book = OrderBook(MarketDataType.QUOTE, self.mock_event_queue)
-        self.valid_timestamp = 1651500000
+        self.timestamp = np.uint64(1707221160000000000)
+        self.ticker="AAPL"
+        self.valid_bar = BarData(ticker=self.ticker,
+                        timestamp = self.timestamp,
+                        open = Decimal(80.90),
+                        close = Decimal(9000.90),
+                        high = Decimal(75.90),
+                        low = Decimal(8800.09),
+                        volume = np.uint64(880000))
 
-        self.valid_bar = BarData(timestamp = 1651500000,
-                                    open = 80.90,
-                                    close = 9000.90,
-                                    high = 75.90,
-                                    low = 8800.09,
-                                    volume = 880000)
-        
-        self.valid_quote = QuoteData(timestamp = 1651500000,
-                                    ask = 80.90,
-                                    ask_size = 90000.9,
-                                    bid = 75.90,
-                                    bid_size = 9000.8)
+
+        self.valid_quote = QuoteData(ticker=self.ticker,
+                            timestamp=self.timestamp,
+                            ask=Decimal(34.989889),
+                            ask_size=Decimal(2232.323232),
+                            bid=Decimal(12.34456),
+                            bid_size=Decimal(112.234345))
         
         class ChildObserver(Observer):
             def __init__(self) -> None:
@@ -83,14 +89,15 @@ class TestOrderBook(unittest.TestCase):
     def test_update_market_data_bar_valid(self):
         tickers = ['HEJ4', 'AAPL']
         data = {tickers[0]: self.valid_bar, tickers[1]: self.valid_bar}
-        event = MarketEvent(data=data, timestamp=1651500000)
+        timestamp = np.uint64(1651700000)
+        event = MarketEvent(data=data, timestamp=timestamp)
         self.assertEqual(self.observer_bar_order_book.tester, None)
         
         # Test
-        self.valid_bardata_order_book.update_market_data(data=data,timestamp=1651500000)
+        self.valid_bardata_order_book.update_market_data(data=data,timestamp=timestamp)
 
         # Validation
-        self.mock_event_queue.put.assert_called_once_with(MarketEvent(timestamp=1651500000, data=data))
+        self.mock_event_queue.put.assert_called_once_with(MarketEvent(timestamp=timestamp, data=data))
         self.assertEqual(len(self.valid_bardata_order_book.book.keys()), len(tickers))
         self.assertEqual(self.valid_bardata_order_book.book, data)
         self.assertEqual(self.observer_bar_order_book.tester, 4)
@@ -99,12 +106,13 @@ class TestOrderBook(unittest.TestCase):
         tickers = ['HEJ4', 'AAPL']
         data = {tickers[0]: self.valid_quote, tickers[1]: self.valid_quote}
         self.assertEqual(self.observer_quote_order_book.tester, None)
+        timestamp = np.uint64(1651500000)
         
         # Test
-        self.valid_quotedata_order_book.update_market_data(data=data,timestamp=1651500000)
+        self.valid_quotedata_order_book.update_market_data(data=data,timestamp=timestamp)
 
         # Validation
-        self.mock_event_queue.put.assert_called_once_with(MarketEvent(timestamp=1651500000, data=data))
+        self.mock_event_queue.put.assert_called_once_with(MarketEvent(timestamp=timestamp, data=data))
         self.assertEqual(len(self.valid_quotedata_order_book.book.keys()), len(tickers))
         self.assertEqual(self.valid_quotedata_order_book.book, data)
         self.assertEqual(self.observer_quote_order_book.tester, 4)
@@ -120,7 +128,7 @@ class TestOrderBook(unittest.TestCase):
         # Validation
         self.assertEqual(price, data[tickers[0]].close)
         self.assertEqual(price, data[tickers[1]].close)
-        self.assertEqual(type(price), float)
+        self.assertEqual(type(price), Decimal)
 
     def test_current_price_tick_valid(self):
         tickers = ['HEJ4', 'AAPL']
@@ -132,7 +140,7 @@ class TestOrderBook(unittest.TestCase):
         # Validation
         self.assertEqual(price, (data[tickers[0]].ask + data[tickers[0]].bid )/2)
         self.assertEqual(price,  (data[tickers[1]].ask + data[tickers[1]].bid )/2)
-        self.assertEqual(type(price), float)
+        self.assertEqual(type(price), Decimal)
     
     def test_current_prices_bar_valid(self):
         tickers = ['HEJ4', 'AAPL']

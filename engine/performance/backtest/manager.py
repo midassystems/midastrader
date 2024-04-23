@@ -7,61 +7,16 @@ from client import DatabaseClient
 
 from ..base_manager import BasePerformanceManager
 from ..regression import RegressionAnalysis
-from engine.account_data import EquityDetails, Trade, AccountDetails
-class Backtest:
-    def __init__(self, database_client:DatabaseClient):
-        self.database_client = database_client
-        
-        self.parameters = {}
-        self.signal_data = []
-        self.trade_data = []
-        self.static_stats = []
-        self.regression_stats = []
-        self.timeseries_stats = []
-        
-    def to_dict(self):
-        return {
-            "parameters": self.parameters,
-            "static_stats": self.static_stats,
-            "regression_stats": self.regression_stats,
-            "timeseries_stats":self.timeseries_stats,
-            "signals": self.signal_data,
-            "trades": self.trade_data,
-        }
-    
-    def validate_attributes(self):
-        if not isinstance(self.parameters, dict):
-            raise ValueError("parameters must be a dictionary")
-        if not all(isinstance(item, dict) for item in self.static_stats):
-            raise ValueError("static_stats must be a list of dictionaries")
-        if not all(isinstance(item, dict) for item in self.regression_stats):
-            raise ValueError("regression_stats must be a list of dictionaries")
-        if not all(isinstance(item, dict) for item in self.timeseries_stats):
-            raise ValueError("timeseries_stats must be a list of dictionaries")
-        if not all(isinstance(item, dict) for item in self.trade_data):
-            raise ValueError("trade_data must be a list of dictionaries")
-        if not all(isinstance(item, dict) for item in self.signal_data):
-            raise ValueError("signal_data must be a list of dictionaries")
-    
-    def save(self):
-        try:
-            self.validate_attributes()
-            # backtest_json = json.dumps(self.to_dict())
-            response = self.database_client.create_backtest(self.to_dict())
-            if response == 201:
-               print("Backtest save successful.")
-            else:
-                # Log or print the response code for debugging purposes
-                print(f"Backtest save failed with response code: {response}")
-        except ValueError as e:
-            raise ValueError (f"Validation Error: {e}")
-        except Exception as e:
-            raise Exception(f"Error when saving the backtest: {e}")
+
+from shared.trade import Trade
+from shared.backtest import Backtest
+from shared.portfolio import EquityDetails, AccountDetails
+
 
 class BacktestPerformanceManager(BasePerformanceManager):
     def __init__(self, database: DatabaseClient, logger:logging.Logger, params, granularity: str="D") -> None:
         super().__init__(database, logger, params)
-        self.backtest = Backtest(database)
+        # self.backtest = Backtest(database)
         self.static_stats : List[Dict] =  []
         self.regression_stats : List[Dict] = []
         self.timeseries_stats : pd.DataFrame = ()
@@ -150,6 +105,8 @@ class BacktestPerformanceManager(BasePerformanceManager):
         standardized_equity_df = self._standardize_to_granularity(raw_equity_df.copy(), "equity_value")
 
         # Regression Analysis 
+        print(raw_equity_df)
+        print(benchmark_df)
         regression = RegressionAnalysis(raw_equity_df, benchmark_df)
         regression.perform_regression_analysis()
         regression_results = regression.compile_results()
@@ -202,14 +159,23 @@ class BacktestPerformanceManager(BasePerformanceManager):
 
     def create_backtest(self) -> Backtest:
         # Create Backtest Object
-        self.backtest.parameters = self.params.to_dict()
-        self.backtest.static_stats = self.static_stats
-        self.backtest.regression_stats = self.regression_stats
-        self.backtest.timeseries_stats = self.timeseries_stats.to_dict(orient='records')
-        self.backtest.trade_data = self.trades
-        self.backtest.signal_data = self.signals
+        self.backtest = Backtest(parameters=self.params.to_dict(), 
+                                 static_stats=self.static_stats,
+                                 regression_stats=self.regression_stats,
+                                 timeseries_stats=self.timeseries_stats.to_dict(orient='records'),
+                                 trade_data=self.trades,
+                                 signal_data=self.signals
+                                 )
+
+        # self.backtest.static_stats = self.static_stats
+        # self.backtest.regression_stats = self.regression_stats
+        # self.backtest.timeseries_stats = self.timeseries_stats.to_dict(orient='records')
+        # self.backtest.trade_data = self.trades
+        # self.backtest.signal_data = self.signals
+
+
 
         # Save Backtest Object
-        self.backtest.save()
+        # self.backtest.save()
         # backtest_json = json.dumps(self.backtest.to_dict())
         # print(self.backtest.to_dict())

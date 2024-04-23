@@ -8,137 +8,17 @@ from datetime import datetime, timezone
 from pandas.testing import assert_frame_equal
 
 from engine.command.parameters import Parameters
-from engine.account_data import EquityDetails, Trade
-from engine.events import SignalEvent, Action, ExecutionDetails
 from engine.events import MarketEvent, OrderEvent, SignalEvent, ExecutionEvent
-from engine.performance.live.manager import LiveTradingSession, LivePerformanceManager
-from engine.events import MarketData, BarData, QuoteData, OrderType, Action, TradeInstruction, MarketDataType
+from engine.performance.live.manager import LivePerformanceManager
+
+from shared.signal import TradeInstruction
+from shared.portfolio import EquityDetails
+from shared.orders import Action, OrderType
+from shared.trade import Trade, ExecutionDetails
+from shared.market_data import MarketData, BarData, QuoteData, MarketDataType
+
 
 #TODO: edge cases
-class TestLiveTradingSession(unittest.TestCase):    
-    def setUp(self) -> None:
-        self.mock_db_client = Mock()
-        self.session = LiveTradingSession(self.mock_db_client)
-        
-        self.mock_parameters = {
-            "strategy_name": "cointegrationzscore", 
-            "capital": 100000, 
-            "data_type": "BAR", 
-            "strategy_allocation": 1.0, 
-            "train_start": "2018-05-18", 
-            "train_end": "2023-01-19", 
-            "test_start": "2023-01-19", 
-            "test_end": "2024-01-19", 
-            "tickers": ["HE.n.0", "ZC.n.0"], 
-            "benchmark": ["^GSPC"]
-        }
-        
-        self.mock_acount = [{
-            "start_BuyingPower": "2557567.234", 
-            "currency": "USD", 
-            "start_ExcessLiquidity": "767270.345", 
-            "start_FullAvailableFunds": "767270.4837", 
-            "start_FullInitMarginReq": "282.3937", 
-            "start_FullMaintMarginReq": "282.3938", 
-            "start_FuturesPNL": "-464.883", 
-            "start_NetLiquidation": "767552.392", 
-            "start_TotalCashBalance": "-11292.332", 
-            "start_UnrealizedPnL": "0", 
-            "start_timestamp": "2024-04-11T11:40:09.861731", 
-            "end_BuyingPower": "2535588.9282", 
-            "end_ExcessLiquidity": "762034.2928", 
-            "end_FullAvailableFunds": "760676.292", 
-            "end_FullInitMarginReq": "7074.99", 
-            "end_FullMaintMarginReq": "5716.009", 
-            "end_FuturesPNL": "-487.998", 
-            "end_NetLiquidation": "767751.998", 
-            "end_TotalCashBalance": "766935.99", 
-            "end_UnrealizedPnL": "-28.99", 
-            "end_timestamp": "2024-04-11T11:42:17.046984"
-        }]
-        
-        self.mock_trades =  [{
-            "trade_id": 1, 
-            "leg_id": 1, 
-            "timestamp": "2023-01-03T00:00:00+0000", 
-            "symbol": "AAPL", 
-            "quantity": 4, 
-            "price": 130.74, 
-            "cost": -522.96, 
-            "action": "BUY", 
-            "fees": 0.0
-        }]
-        
-        self.mock_signals =  [{
-            "timestamp": "2023-01-03T00:00:00+0000", 
-            "trade_instructions": [{
-                "ticker": "AAPL", 
-                "action": "BUY", 
-                "trade_id": 1, 
-                "leg_id": 1, 
-                "weight": 0.05
-            }, 
-            {
-                "ticker": "MSFT", 
-                "action": "SELL", 
-                "trade_id": 1, 
-                "leg_id": 2, 
-                "weight": 0.05
-            }]
-        }]
-
-        self.session.parameters = self.mock_parameters
-        self.session.account_data = self.mock_acount
-        self.session.trade_data = self.mock_trades
-        self.session.signal_data = self.mock_signals
-
-    # Basic Validation
-    def test_to_dict_valid(self):
-        session_dict = self.session.to_dict()
-
-        self.assertEqual(session_dict['parameters'], self.mock_parameters)
-        self.assertEqual(session_dict['account_data'], self.mock_acount)
-        self.assertEqual(session_dict['signals'], self.mock_signals)
-        self.assertEqual(session_dict['trades'], self.mock_trades)
-
-    # def test_save_successful(self):
-    #     expected_return = {'id': 4, 'summary_stats': [{'ending_equity': None, 'total_fees': 0.0, 'unrealized_pnl': 0.0, 'realized_pnl': 0.0}], 'trades': [], 'signals': [], 'parameters': {'strategy_name': 'cointegrationzscore', 'tickers': ['HE', 'ZC'], 'benchmark': ['^GSPC'], 'data_type': 'BAR', 'train_start': '2020-05-18', 'train_end': '2024-01-01', 'test_start': '2024-01-02', 'test_end': '2024-01-19', 'capital': 100000.0, 'created_at': '2024-04-09T17:34:25.001994Z'}, 'price_data': []}
-
-    #     with ExitStack() as stack:
-    #         mock_create_session = stack.enter_context(patch.object(self.mock_db_client,'create_live_session', return_value = expected_return))
-    #         mock_print = stack.enter_context(patch('builtins.print'))
-            
-    #         result = self.session.save()
-    #         mock_create_session.assert_called_once_with(self.session.to_dict())
-    #         self.assertEqual(expected_return, result)
-
-    # def test_save_unsuccessful(self):
-    #     response = 500
-    #     with ExitStack() as stack:
-    #         mock_create_session = stack.enter_context(patch.object(self.mock_db_client,'create_live_session', return_value = response))
-    #         mock_print = stack.enter_context(patch('builtins.print'))
-            
-    #         self.session.save()
-    #         mock_create_session.assert_called_once_with(self.session.to_dict())
-    #         mock_print.assert_called_once_with(f"Live session save failed with response code: {response}")
-
-    def test_save_validation_exception(self):
-        def create_session_error(self):
-            raise ValueError
-        
-        self.session.parameters = ""
-        
-        with ExitStack() as stack:
-            mock_create_session = stack.enter_context(patch.object(self.mock_db_client,'create_live_session', side_effect = create_session_error))
-            with self.assertRaisesRegex(ValueError,f"Validation Error:" ):
-                self.session.save()
-
-    def test_validate_attributes_success(self):
-        try:
-            self.session.validate_attributes()
-        except ValueError:
-            self.fail("validate_attributes() raised ValueError unexpectedly!")
-
 class TestPerformanceManager(unittest.TestCase):    
     def setUp(self) -> None:
         self.mock_db_client = Mock()
@@ -253,7 +133,7 @@ class TestPerformanceManager(unittest.TestCase):
                                                 weight = 0.5)
         self.valid_trade_instructions = [self.valid_trade1,self.valid_trade2]
                         
-        signal_event = SignalEvent(1651500000, 10000,self.valid_trade_instructions)
+        signal_event = SignalEvent(np.uint64(1651500000), 10000,self.valid_trade_instructions)
 
         self.performance_manager.update_signals(signal_event)
         self.assertEqual(self.performance_manager.signals[0], signal_event.to_dict())
@@ -274,10 +154,10 @@ class TestPerformanceManager(unittest.TestCase):
                                                 weight = 0.5)
         self.valid_trade_instructions = [self.valid_trade1,self.valid_trade2]
                         
-        signal_event = SignalEvent(1651500000, 10000,self.valid_trade_instructions)
+        signal_event = SignalEvent(np.uint64(1651500000), 10000,self.valid_trade_instructions)
         
         self.performance_manager.update_signals(signal_event)
-        self.mock_logger.info.assert_called_once_with("\nSignals Updated:  {'timestamp': '2022-05-02T14:00:00+00:00', 'trade_instructions': [{'ticker': 'AAPL', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 5, 'weight': 0.5}, {'ticker': 'TSLA', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 6, 'weight': 0.5}]} \n")
+        self.mock_logger.info.assert_called_once_with("\nSignals Updated:  {'timestamp': 1651500000, 'trade_instructions': [{'ticker': 'AAPL', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 5, 'weight': 0.5}, {'ticker': 'TSLA', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 6, 'weight': 0.5}]} \n")
 
     def test_update_equity_new_valid(self):
         equity = EquityDetails(
@@ -317,7 +197,7 @@ class TestPerformanceManager(unittest.TestCase):
                                                 weight = 0.5)
         self.valid_trade_instructions = [self.valid_trade1,self.valid_trade2]
                         
-        signal_event = SignalEvent(1651500000, 10000,self.valid_trade_instructions)
+        signal_event = SignalEvent(np.uint64(1651500000), 10000,self.valid_trade_instructions)
 
         self.performance_manager.update_signals(signal_event)
 

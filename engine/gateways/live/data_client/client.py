@@ -6,11 +6,11 @@ from decouple import config
 from ibapi.contract import Contract
 
 from .wrapper import DataApp
-from engine.events import MarketDataType
 from engine.order_book import OrderBook
 
-class DataClient:
+from shared.market_data import MarketDataType
 
+class DataClient:
     def __init__(self, event_queue: Queue, order_book: OrderBook, logger: logging.Logger, host=config('HOST'), port=config('PORT'), clientId=config('DATA_CLIENT_ID'), ib_account =config('IB_ACCOUNT')):
         self.logger = logger
         self.app = DataApp(event_queue, order_book, logger)

@@ -1,10 +1,11 @@
+import numpy as np
 from datetime import datetime
 from dataclasses import dataclass, field
 from typing  import  Dict, Any, Union, TypedDict
 
 @dataclass
 class EODEvent:
-    timestamp: Union[int, float]
+    timestamp: np.uint64
     type: str = field(init=False, default='End-of-day')
 
     # def __post_init__(self):

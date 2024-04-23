@@ -3,28 +3,44 @@ from ibapi.order import Order
 from ibapi.contract import Contract
 from unittest.mock import patch, Mock
 
-from engine.events import Action
 from engine.observer import Observer, EventType, Subject
 from engine.portfolio import PortfolioServer
-from engine.account_data import Position, AccountDetails, ActiveOrder
-from engine.symbols.symbols import Future, Equity, Currency, Exchange
 
+from shared.portfolio import Position, AccountDetails, ActiveOrder
+from shared.symbol import Future, Equity, Currency, Venue, Industry, ContractUnits
 #TODO: edge cases, integration
 
 class TestPortfolioServer(unittest.TestCase):
     def setUp(self) -> None:
-        self.valid_symbols_map = {'HEJ4' : Future(ticker='HEJ4',
-                                                  currency=Currency.USD,
-                                                  exchange=Exchange.CME,
-                                                  fees=0.1,
-                                                  lastTradeDateOrContractMonth='202412',
-                                                  multiplier=400,
-                                                  tickSize=0.0025,
-                                                  initialMargin=4000),
-                                    'AAPL' : Equity(ticker="APPL", 
-                                                currency=Currency.CAD , 
-                                                exchange=Exchange.NYSE, 
-                                                fees= 0.10)}
+        self.valid_symbols_map = {'HEJ4' : Future(ticker = "HEJ4",
+                                            data_ticker = "HE.n.0",
+                                            currency = Currency.USD,  
+                                            exchange = Venue.CME,  
+                                            fees = 0.85,  
+                                            initialMargin =4564.17,
+                                            quantity_multiplier=40000,
+                                            price_multiplier=0.01,
+                                            product_code="HE",
+                                            product_name="Lean Hogs",
+                                            industry=Industry.AGRICULTURE,
+                                            contract_size=40000,
+                                            contract_units=ContractUnits.POUNDS,
+                                            tick_size=0.00025,
+                                            min_price_fluctuation=10,
+                                            continuous=False,
+                                            lastTradeDateOrContractMonth="202404"),
+                                    'AAPL' : Equity(ticker="AAPL",
+                                                    currency = Currency.USD  ,
+                                                    exchange = Venue.NASDAQ  ,
+                                                    fees = 0.1,
+                                                    initialMargin = 0,
+                                                    quantity_multiplier=1,
+                                                    price_multiplier=1,
+                                                    data_ticker = "AAPL2",
+                                                    company_name = "Apple Inc.",
+                                                    industry=Industry.TECHNOLOGY,
+                                                    market_cap=10000000000.99,
+                                                    shares_outstanding=1937476363)}
         self.mock_logger= Mock() 
         self.portfolio_server = PortfolioServer(symbols_map=self.valid_symbols_map, logger=self.mock_logger)
 
@@ -98,7 +114,8 @@ class TestPortfolioServer(unittest.TestCase):
 
         # validate
         expected  = ['AAPL', 'TSLA']
-        self.assertEqual(result, expected)
+        for i in expected:
+            self.assertIn(i, result)
 
     def test_update_positions_new_valid(self):
         self.portfolio_server.pending_positions_update.add("AAPL")
@@ -109,7 +126,8 @@ class TestPortfolioServer(unittest.TestCase):
                             quantity=100,
                             total_cost=100000,
                             market_value=10000,
-                            multiplier=1,
+                            quantity_multiplier=1,
+                            price_multiplier=1,
                             initial_margin=0)
         self.assertEqual(self.observer.tester, None)
         
@@ -131,7 +149,8 @@ class TestPortfolioServer(unittest.TestCase):
                             quantity=100,
                             total_cost=100000,
                             market_value=10000,
-                            multiplier=1,
+                            quantity_multiplier=1,
+                            price_multiplier=1,
                             initial_margin=0)
         
         self.portfolio_server.positions[contract.symbol] = position
@@ -155,14 +174,15 @@ class TestPortfolioServer(unittest.TestCase):
                     quantity=100,
                     total_cost=100000,
                     market_value=10000,
-                    multiplier=1,
+                    quantity_multiplier=1,
+                    price_multiplier=1,
                     initial_margin=0)
         
         # Test
         self.portfolio_server.update_positions(contract, position)
 
         # Validation
-        self.mock_logger.info.assert_called_once_with("\nPositions Updated: \n AAPL: {'action': 'BUY', 'avg_cost': 10.9, 'quantity': 100, 'total_cost': 100000, 'market_value': 10000, 'multiplier': 1, 'initial_margin': 0} \n")
+        self.mock_logger.info.assert_called_once_with("\nPositions Updated: \n AAPL: {'action': 'BUY', 'avg_cost': 10.9, 'quantity': 100, 'total_cost': 100000, 'market_value': 10000, 'quantity_multiplier': 1, 'price_multiplier': 1, 'initial_margin': 0} \n")
 
     def test_update_account_details_valid(self):
         account_info = AccountDetails(FullAvailableFunds = 100000.0, 

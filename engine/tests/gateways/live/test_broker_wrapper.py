@@ -6,11 +6,12 @@ from ibapi.contract import Contract
 from ibapi.execution import Execution
 from unittest.mock import Mock, patch
 
-from engine.account_data import ActiveOrder
+from engine.events import ExecutionEvent
 from engine.gateways.live.broker_client.wrapper import BrokerApp
-from engine.symbols.symbols import Equity, Future, Currency, Exchange
-from engine.account_data import Position,ActiveOrder, AccountDetails, EquityDetails
-from engine.events import ExecutionEvent, Action, BaseOrder, TradeInstruction, ExecutionDetails
+
+from shared.portfolio import AccountDetails, ActiveOrder, EquityDetails, Position
+from shared.symbol import Equity, Future, Currency, Venue, Industry, ContractUnits
+
 
 #TODO: execution Details
 
@@ -119,7 +120,8 @@ class TestBrokerApp(unittest.TestCase):
                                         quantity=aapl_position,
                                         total_cost=aapl_position*aapl_avg_cost,
                                         market_value=aapl_market_price,
-                                        multiplier=1,
+                                        quantity_multiplier=1,
+                                        price_multiplier=1,
                                         initial_margin=0
                                         )
         
@@ -139,21 +141,39 @@ class TestBrokerApp(unittest.TestCase):
                                 quantity=he_position,
                                 total_cost=he_position*aapl_avg_cost,
                                 market_value=he_market_price,
-                                multiplier=400,
-                                initial_margin=4000
+                                quantity_multiplier=40000,
+                                price_multiplier=0.01,
+                                initial_margin=4564.17
                                 )
-        self.broker_app.symbols_map = {'HEJ4' : Future(ticker='HEJ4',
-                                            currency=Currency.USD,
-                                            exchange=Exchange.CME,
-                                            fees=0.1,
-                                            lastTradeDateOrContractMonth='202412',
-                                            multiplier=400,
-                                            tickSize=0.0025,
-                                            initialMargin=4000),
-                            'AAPL' : Equity(ticker="APPL", 
-                                        currency=Currency.CAD , 
-                                        exchange=Exchange.NYSE, 
-                                        fees= 0.10)}
+        self.broker_app.symbols_map = {'HEJ4' : Future(ticker = "HEJ4",
+                                            data_ticker = "HE.n.0",
+                                            currency = Currency.USD,  
+                                            exchange = Venue.CME,  
+                                            fees = 0.85,  
+                                            initialMargin =4564.17,
+                                            quantity_multiplier=40000,
+                                            price_multiplier=0.01,
+                                            product_code="HE",
+                                            product_name="Lean Hogs",
+                                            industry=Industry.AGRICULTURE,
+                                            contract_size=40000,
+                                            contract_units=ContractUnits.POUNDS,
+                                            tick_size=0.00025,
+                                            min_price_fluctuation=10,
+                                            continuous=False,
+                                            lastTradeDateOrContractMonth="202404"),
+                                    'AAPL' : Equity(ticker="AAPL",
+                                                    currency = Currency.USD  ,
+                                                    exchange = Venue.NASDAQ  ,
+                                                    fees = 0.1,
+                                                    initialMargin = 0,
+                                                    quantity_multiplier=1,
+                                                    price_multiplier=1,
+                                                    data_ticker = "AAPL2",
+                                                    company_name = "Apple Inc.",
+                                                    industry=Industry.TECHNOLOGY,
+                                                    market_cap=10000000000.99,
+                                                    shares_outstanding=1937476363)}
 
         positions = {1:aapl_position_obj,2: he_position_obj}
         test_data = {1 : {'contract': aapl_contract, 'position':aapl_position, 'marketPrice':aapl_market_price, 'marketValue': aapl_market_value, 'averageCost': aapl_avg_cost, 'unrealizedPNL':aapl_realizedPNL, 'realizedPNL':aapl_realizedPNL, 'accountName':accountName},

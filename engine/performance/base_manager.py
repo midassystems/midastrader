@@ -1,11 +1,14 @@
 import logging
 from typing import List, Dict
 from datetime import datetime, timezone
+
 from client import DatabaseClient
 
 from engine.events import SignalEvent
 from .statistics import PerformanceStatistics
-from engine.account_data import EquityDetails, Trade, AccountDetails
+
+from shared.trade import Trade
+from shared.portfolio import EquityDetails, AccountDetails
 
 
 class BasePerformanceManager(PerformanceStatistics):

@@ -7,9 +7,7 @@ from decouple import config
 from client import DatabaseClient
 from .parameters import Parameters
 from engine.order_book import OrderBook
-from engine.symbols.symbols import Symbol
 from engine.strategies import BaseStrategy
-from engine.utils.logger import SystemLogger
 from engine.portfolio import PortfolioServer
 from engine.order_manager import OrderManager
 from engine.data_sync import DatabaseUpdater
@@ -17,8 +15,11 @@ from engine.performance import BasePerformanceManager
 from engine.risk_model import BaseRiskModel
 from engine.observer import EventType
 
-DATABASE_KEY = config('MIDAS_API_KEY')
-DATABASE_URL = config('MIDAS_URL')
+from shared.symbol import Symbol
+from shared.utils.logger import SystemLogger
+
+DATABASE_KEY = config('LOCAL_API_KEY')
+DATABASE_URL = config('LOCAL_URL')
 
 class Mode(Enum):
     LIVE = "LIVE"
@@ -203,8 +204,9 @@ class Config:
         # Check if 'strategy' is a class and a subclass of BaseStrategy
         if not isinstance(strategy, type) or not issubclass(strategy, BaseStrategy):
             raise ValueError(f"'strategy' must be a class and a subclass of BaseStrategy.")
-
         try:
+            print(self.train_data)
             self.strategy = strategy(symbols_map= self.symbols_map, train_data = self.train_data, portfolio_server=self.portfolio_server, logger = self.logger, order_book = self.order_book, event_queue=self.event_queue)
+            
         except:
             raise RuntimeError("Error creating strategy instance.")

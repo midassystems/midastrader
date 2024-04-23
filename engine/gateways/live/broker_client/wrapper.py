@@ -14,8 +14,8 @@ from ibapi.contract import Contract, ContractDetails
 
 from engine.portfolio import PortfolioServer
 from engine.performance.live import LivePerformanceManager
-from engine.account_data import ActiveOrder, Position, Trade
-from engine.account_data import Position,ActiveOrder, AccountDetails, EquityDetails
+
+from shared.portfolio import  Position,ActiveOrder, AccountDetails, EquityDetails
 
 class BrokerApp(EWrapper, EClient):
     def __init__(self, logger:logging.Logger, portfolio_server: PortfolioServer, performance_manager: LivePerformanceManager):
@@ -121,7 +121,8 @@ class BrokerApp(EWrapper, EClient):
                 quantity= float(position),
                 total_cost= abs(float(position)) * averageCost if contract.secType =='FUT' else float(position) * averageCost,
                 market_value=marketValue, 
-                multiplier=self.symbols_map[contract.symbol].multiplier,
+                quantity_multiplier=self.symbols_map[contract.symbol].quantity_multiplier,
+                price_multiplier=self.symbols_map[contract.symbol].price_multiplier,
                 initial_margin=self.symbols_map[contract.symbol].initialMargin
             )
     

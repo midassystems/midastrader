@@ -4,27 +4,71 @@ import pandas as pd
 from contextlib import ExitStack
 from unittest.mock import Mock, patch
 from pandas.testing import assert_frame_equal
+from decouple import config
+
+from client import DatabaseClient
+
 
 from engine.observer import EventType
 from engine.order_book import OrderBook
-from engine.events import MarketDataType
 from engine.strategies import BaseStrategy
 from engine.risk_model import BaseRiskModel
-from engine.utils.logger import SystemLogger
 from engine.portfolio import PortfolioServer
 from engine.order_manager import OrderManager
 from engine.command import Config, Mode, Parameters
 from engine.performance.live import LivePerformanceManager
 from engine.performance.backtest import BacktestPerformanceManager
-from engine.order_book import OrderBook
-from engine.symbols.symbols import Future, Equity, Currency, Exchange
+
+from shared.utils.logger import SystemLogger
+from shared.market_data import MarketDataType
+from shared.symbol import Future, Equity, Currency, Venue, Industry, ContractUnits, Currency
+
+DATABASE_KEY = config('LOCAL_API_KEY')
+DATABASE_URL = config('LOCAL_URL')
+
 
 #TODO: edge cases
-class TestConfig(unittest.TestCase):    
+class TestConfig(unittest.TestCase):   
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.db_client=DatabaseClient(DATABASE_KEY, DATABASE_URL) 
+
     def setUp(self) -> None:
         self.valid_symbols = [
-                Future(ticker="HE",data_ticker= "HE.n.0", currency=Currency.USD,exchange=Exchange.CME,fees=0.85, lastTradeDateOrContractMonth="202404",multiplier=40000,tickSize=0.00025, initialMargin=4564.17),
-                Future(ticker="ZC",data_ticker= "ZC.n.0", currency=Currency.USD,exchange=Exchange.CBOT,fees=0.85,lastTradeDateOrContractMonth="202403",multiplier=5000,tickSize=0.0025, initialMargin=2056.75)
+            Future(ticker = "HE",
+                data_ticker = "HE.n.0",
+                currency = Currency.USD,  
+                exchange = Venue.CME,  
+                fees = 0.85,  
+                initialMargin =4564.17,
+                quantity_multiplier=40000,
+                price_multiplier=0.01,
+                product_code="HE",
+                product_name="Lean Hogs",
+                industry=Industry.AGRICULTURE,
+                contract_size=40000,
+                contract_units=ContractUnits.POUNDS,
+                tick_size=0.00025,
+                min_price_fluctuation=10,
+                continuous=False,
+                lastTradeDateOrContractMonth="202404"),
+            Future(ticker = "ZC",
+                data_ticker = "ZC.n.0",
+                currency = Currency.USD,  
+                exchange = Venue.CBOT,  
+                fees = 0.85,  
+                initialMargin =2056.75,
+                quantity_multiplier=40000,
+                price_multiplier=0.01,
+                product_code="ZC",
+                product_name="Corn",
+                industry=Industry.AGRICULTURE,
+                contract_size=5000,
+                contract_units=ContractUnits.BUSHELS,
+                tick_size=0.0025,
+                min_price_fluctuation=10,
+                continuous=False,
+                lastTradeDateOrContractMonth="202406")
         ]
         self.params = Parameters(strategy_name = "Testing",
                             capital = 1000000,
@@ -43,7 +87,7 @@ class TestConfig(unittest.TestCase):
         
         with ExitStack() as stack:
             mock_setup = stack.enter_context(patch.object(Config, 'setup'))
-            self.config = Config(1, mode, self.params, logger_output='terminal')
+            self.config = Config(11, mode, self.params, logger_output='terminal')
             self.config.live_data_client = Mock()
             self.config.broker_client = Mock()
             
@@ -62,7 +106,7 @@ class TestConfig(unittest.TestCase):
         with ExitStack() as stack:
             mock_setup = stack.enter_context(patch.object(Config, 'setup'))
             mock_connect_live = stack.enter_context(patch.object(Config, '_connect_live_clients'))
-            self.config = Config(1, mode, self.params)
+            self.config = Config(111, mode, self.params)
             self.config.portfolio_server = Mock() 
             self.config.performance_manager = Mock() 
             self.config.order_book = Mock() 
@@ -84,7 +128,7 @@ class TestConfig(unittest.TestCase):
         
         with ExitStack() as stack:
             mock_setup = stack.enter_context(patch.object(Config, 'setup'))
-            self.config = Config(1,mode, self.params)
+            self.config = Config(123,mode, self.params)
             self.config.portfolio_server = Mock() 
             self.config.performance_manager = Mock() 
             self.config.order_book = Mock()
@@ -100,11 +144,12 @@ class TestConfig(unittest.TestCase):
 
     def test_initialize_observer_patterns(self):
         mode = Mode.LIVE
+        session_id=27852
         
         with ExitStack() as stack:
             mock_setup = stack.enter_context(patch.object(Config, 'setup'))
             mock_set_live_environment = stack.enter_context(patch.object(Config, '_set_live_environment'))
-            self.config = Config(2785, mode, self.params)
+            self.config = Config(session_id, mode, self.params)
 
             # Test
             self.config._initialize_components()
@@ -113,14 +158,18 @@ class TestConfig(unittest.TestCase):
             self.assertEqual(self.config.order_book._observers, {EventType.MARKET_EVENT : [self.config.db_updater]})
             self.assertEqual(self.config.portfolio_server._observers, {EventType.POSITION_UPDATE : [self.config.db_updater], EventType.ACCOUNT_DETAIL_UPDATE : [self.config.db_updater], EventType.ORDER_UPDATE : [self.config.db_updater]})
 
+            # clean  up
+            self.db_client.delete_session(session_id)
+
     def test_initialize_observer_patterns_with_risk_model(self):
         mode = Mode.LIVE
+        session_id =23453
 
         
         with ExitStack() as stack:
             mock_setup = stack.enter_context(patch.object(Config, 'setup'))
             mock_set_live_environment = stack.enter_context(patch.object(Config, '_set_live_environment'))
-            self.config = Config(2345, mode, self.params, BaseRiskModel)
+            self.config = Config(session_id, mode, self.params, BaseRiskModel)
 
             # Test
             self.config._initialize_components()
@@ -128,6 +177,9 @@ class TestConfig(unittest.TestCase):
             # Validation
             self.assertEqual(self.config.order_book._observers, {EventType.MARKET_EVENT : [self.config.db_updater, self.config.risk_model]})
             self.assertEqual(self.config.portfolio_server._observers, {EventType.POSITION_UPDATE : [self.config.db_updater, self.config.risk_model], EventType.ACCOUNT_DETAIL_UPDATE : [self.config.db_updater, self.config.risk_model], EventType.ORDER_UPDATE : [self.config.db_updater, self.config.risk_model]})
+            
+            # clean  up
+            self.db_client.delete_session(session_id)
 
     def test_initialize_components_live(self):
         mode = Mode.LIVE
@@ -136,7 +188,7 @@ class TestConfig(unittest.TestCase):
             mock_setup = stack.enter_context(patch.object(Config, 'setup'))
             mock_set_live_environment = stack.enter_context(patch.object(Config, '_set_live_environment'))
             mock_initialize_observer_patterns = stack.enter_context(patch.object(Config, '_initialize_observer_patterns'))
-            self.config = Config(1, mode, self.params)
+            self.config = Config(165, mode, self.params)
 
             # Test
             self.config._initialize_components()
@@ -154,7 +206,7 @@ class TestConfig(unittest.TestCase):
         with ExitStack() as stack:
             mock_setup = stack.enter_context(patch.object(Config, 'setup'))
             mock_set_backtest_environment = stack.enter_context(patch.object(Config, '_set_backtest_environment'))
-            self.config = Config(1, mode, self.params)
+            self.config = Config(1345, mode, self.params)
 
             # Test
             self.config._initialize_components()
@@ -170,7 +222,7 @@ class TestConfig(unittest.TestCase):
         
         with ExitStack() as stack:
             mock_setup = stack.enter_context(patch.object(Config, 'setup'))
-            self.config = Config(1, mode, self.params)
+            self.config = Config(10897, mode, self.params)
 
             for symbol in self.valid_symbols:
                 # Test
@@ -185,7 +237,7 @@ class TestConfig(unittest.TestCase):
         
         with ExitStack() as stack:
             mock_setup = stack.enter_context(patch.object(Config, 'setup'))
-            self.config = Config(1, mode, self.params)
+            self.config = Config(1786, mode, self.params)
             self.config.contract_handler = Mock()
 
             for symbol in self.valid_symbols:

@@ -1,12 +1,16 @@
 import unittest
+import numpy as np
 from unittest.mock import Mock
 from unittest.mock import patch
 from ibapi.contract import Contract
 
 from engine.order_manager import OrderManager
-from engine.symbols.symbols import Equity, Currency,Exchange, Future
-from engine.events import BarData, MarketEvent, SignalEvent, TradeInstruction, MarketOrder, LimitOrder, StopLoss
-from engine.events import  SignalEvent, MarketEvent, OrderEvent, TradeInstruction, Action, OrderType
+from engine.events import MarketEvent, SignalEvent, OrderEvent
+
+from shared.market_data import BarData
+from shared.signal import TradeInstruction
+from shared.symbol import Equity, Currency,Venue, Future, Industry, ContractUnits
+from shared.orders import MarketOrder, LimitOrder, StopLoss, OrderType, Action
 
 # TODO : Edge Cases
 
@@ -17,19 +21,35 @@ class TestOrderManager(unittest.TestCase):
         self.mock_logger = Mock()
         self.mock_portfolio_server = Mock()
         
-        self.valid_symbols_map = {'HEJ4' : Future(ticker='HEJ4',
-                                                  currency=Currency.USD,
-                                                  exchange=Exchange.CME,
-                                                  fees=0.1,
-                                                  lastTradeDateOrContractMonth='202412',
-                                                  quantity_multiplier=4000,
-                                                  price_multiplier=0.001,
-                                                  tickSize=0.0025,
-                                                  initialMargin=4000),
-                                    'AAPL' : Equity(ticker="APPL", 
-                                                currency=Currency.CAD , 
-                                                exchange=Exchange.NYSE, 
-                                                fees= 0.10)}
+        self.valid_symbols_map = {'HEJ4' : Future(ticker = "HEJ4",
+                                            data_ticker = "HE.n.0",
+                                            currency = Currency.USD,  
+                                            exchange = Venue.CME,  
+                                            fees = 0.85,  
+                                            initialMargin =4564.17,
+                                            quantity_multiplier=40000,
+                                            price_multiplier=0.01,
+                                            product_code="HE",
+                                            product_name="Lean Hogs",
+                                            industry=Industry.AGRICULTURE,
+                                            contract_size=40000,
+                                            contract_units=ContractUnits.POUNDS,
+                                            tick_size=0.00025,
+                                            min_price_fluctuation=10,
+                                            continuous=False,
+                                            lastTradeDateOrContractMonth="202404"),
+                                    'AAPL' : Equity(ticker="AAPL",
+                                                    currency = Currency.USD  ,
+                                                    exchange = Venue.NASDAQ  ,
+                                                    fees = 0.1,
+                                                    initialMargin = 0,
+                                                    quantity_multiplier=1,
+                                                    price_multiplier=1,
+                                                    data_ticker = "AAPL2",
+                                                    company_name = "Apple Inc.",
+                                                    industry=Industry.TECHNOLOGY,
+                                                    market_cap=10000000000.99,
+                                                    shares_outstanding=1937476363)}
         
         self.mock_portfolio_server.account = {'FullAvailableFunds': 10000,
                                                 'FullInitMarginReq': 5000,
@@ -39,7 +59,7 @@ class TestOrderManager(unittest.TestCase):
 
 
         # Test Data
-        self.valid_timestamp = 1651500000
+        self.valid_timestamp = np.uint64(1651500000)
         self.valid_trade_capital = 10000
         self.valid_trade_equity = TradeInstruction(ticker = 'AAPL',
                                                 order_type = OrderType.MARKET,
@@ -223,7 +243,7 @@ class TestOrderManager(unittest.TestCase):
             mocked_method.assert_called_once()
 
     def test_set_order(self):
-        self.valid_timestamp = 1651500000
+        self.valid_timestamp = np.uint64(1651500000)
         self.valid_action = Action.LONG
         self.valid_trade_id = 2
         self.valid_leg_id =  6

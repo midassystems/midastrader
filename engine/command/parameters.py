@@ -2,8 +2,9 @@ from datetime import datetime
 from typing import List, Literal
 from dataclasses import dataclass, field
 
-from engine.symbols import Symbol
-from engine.events import MarketDataType
+from shared.symbol import Symbol
+from shared.market_data import MarketDataType
+from shared.utils.unix import iso_to_unix, unix_to_iso
 
 @dataclass
 class Parameters:
@@ -81,10 +82,10 @@ class Parameters:
             "strategy_name": self.strategy_name, 
             "capital": self.capital, 
             "data_type": self.data_type.value, 
-            "train_start": self.train_start, 
-            "train_end": self.train_end, 
-            "test_start": self.test_start,
-            "test_end": self.test_end,
+            "train_start": iso_to_unix(self.train_start) if self.train_start else None, 
+            "train_end":  iso_to_unix(self.train_end) if self.train_end else None, 
+            "test_start": iso_to_unix(self.test_start),
+            "test_end": iso_to_unix(self.test_end),
             "tickers": self.tickers, 
             "benchmark": self.benchmark
         }   

@@ -7,13 +7,15 @@ from unittest.mock import Mock, patch
 from datetime import datetime, timezone
 from pandas.testing import assert_frame_equal
 
-from engine.account_data import AccountDetails
 from engine.command.parameters import Parameters
-from engine.account_data import EquityDetails, Trade
 from engine.performance import BasePerformanceManager
-from engine.events import SignalEvent, Action, ExecutionDetails
-from engine.events import MarketEvent, OrderEvent, SignalEvent, ExecutionEvent
-from engine.events import MarketData, BarData, QuoteData, OrderType, Action, TradeInstruction, MarketDataType
+from engine.events import MarketEvent, OrderEvent, SignalEvent, ExecutionEvent, SignalEvent
+
+from shared.signal import  TradeInstruction
+from shared.orders import Action, OrderType
+from shared.portfolio import AccountDetails, EquityDetails
+from shared.trade import ExecutionDetails, Trade
+from shared.market_data import MarketData, BarData, QuoteData,  MarketDataType
 
 #TODO: edge cases
 class TestBasePerformanceManager(unittest.TestCase):    
@@ -143,7 +145,7 @@ class TestBasePerformanceManager(unittest.TestCase):
                                                 weight = 0.5)
         self.valid_trade_instructions = [self.valid_trade1,self.valid_trade2]
                         
-        signal_event = SignalEvent(1651500000, 10000,self.valid_trade_instructions)
+        signal_event = SignalEvent(np.uint64(1651500000), 10000,self.valid_trade_instructions)
 
         self.performance_manager.update_signals(signal_event)
         self.assertEqual(self.performance_manager.signals[0], signal_event.to_dict())
@@ -164,10 +166,10 @@ class TestBasePerformanceManager(unittest.TestCase):
                                                 weight = 0.5)
         self.valid_trade_instructions = [self.valid_trade1,self.valid_trade2]
                         
-        signal_event = SignalEvent(1651500000, 10000,self.valid_trade_instructions)
+        signal_event = SignalEvent(np.uint64(1651500000), 10000,self.valid_trade_instructions)
         
         self.performance_manager.update_signals(signal_event)
-        self.mock_logger.info.assert_called_once_with("\nSignals Updated:  {'timestamp': '2022-05-02T14:00:00+00:00', 'trade_instructions': [{'ticker': 'AAPL', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 5, 'weight': 0.5}, {'ticker': 'TSLA', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 6, 'weight': 0.5}]} \n")
+        self.mock_logger.info.assert_called_once_with("\nSignals Updated:  {'timestamp': 1651500000, 'trade_instructions': [{'ticker': 'AAPL', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 5, 'weight': 0.5}, {'ticker': 'TSLA', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 6, 'weight': 0.5}]} \n")
 
     def test_update_equity_new_valid(self):
         equity = EquityDetails(

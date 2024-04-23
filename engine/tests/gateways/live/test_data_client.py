@@ -5,7 +5,8 @@ from ibapi.contract import Contract
 from unittest.mock import Mock, patch
 
 from engine.gateways.live import DataClient
-from engine.events import OrderEvent, ExecutionEvent, Action, MarketDataType
+
+from shared.market_data import MarketDataType
 
 #TODO: edge cases
 
