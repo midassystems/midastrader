@@ -7,49 +7,13 @@ from typing import List, Dict
 from client import DatabaseClient
 
 from ..base_manager import BasePerformanceManager
-
-class LiveTradingSession:
-    def __init__(self, database_client:DatabaseClient):
-        self.database_client = database_client
-        
-        self.parameters = {}
-        self.signal_data = []
-        self.trade_data = []
-        self.account_data = []
-        
-    def to_dict(self):
-        return {
-            "parameters": self.parameters,
-            "signals": self.signal_data,
-            "trades": self.trade_data,
-            "account_data": self.account_data,
-        }
-    
-    def validate_attributes(self):
-        if not isinstance(self.parameters, dict):
-            raise ValueError("parameters must be a dictionary")
-        if not all(isinstance(item, dict) for item in self.trade_data):
-            raise ValueError("trade_data must be a list of dictionaries")
-        if not all(isinstance(item, dict) for item in self.account_data):
-            raise ValueError("account_data must be a list of dictionaries")
-        if not all(isinstance(item, dict) for item in self.signal_data):
-            raise ValueError("signal_data must be a list of dictionaries")
-    
-    def save(self):
-        try:
-            self.validate_attributes()
-            response = self.database_client.create_live_session(self.to_dict())
-            return response
-        except ValueError as e:
-            raise ValueError (f"Validation Error: {e}")
-        except Exception as e:
-            raise Exception(f"Error when saving the live session: {e}")
+from shared.live_session import LiveTradingSession
         
 class LivePerformanceManager(BasePerformanceManager):
     def __init__(self, database:DatabaseClient, logger:logging.Logger, params) -> None:
         super().__init__(database, logger, params)
         
-        self.live_summary = LiveTradingSession(database)
+        # self.live_summary = LiveTradingSession(database)
         self.trades = {}
 
     def update_trades(self, trade_id, trade_data):
@@ -80,17 +44,18 @@ class LivePerformanceManager(BasePerformanceManager):
         self._process_account_snapshot(self.account_log[-1], 'end', combined_data)
 
         # Create Live Summary Object
-        self.live_summary.parameters = self.params.to_dict()
-        self.live_summary.trade_data = list(self.trades.values())
-        self.live_summary.signal_data = self.signals
-        self.live_summary.account_data = [combined_data]
+
+        self.live_summary = LiveTradingSession(parameters=self.params.to_dict(),
+                                               signal_data=self.signals,
+                                               trade_data=list(self.trades.values()),
+                                               account_data=[combined_data])
 
         # j = json.dumps(self.live_summary.to_dict())
         # print(j)
 
         # Save Live Summary Object
-        response = self.live_summary.save()
-        self.logger.info(f"Live session details saved :\n{response}")
+        # response = self.live_summary.save()
+        # self.logger.info(f"Live session details saved :\n{response}")
 
 
     

@@ -1,12 +1,15 @@
 import unittest
+import numpy as np
 from decouple import config
 from ibapi.order import Order
 from ibapi.contract import Contract
 from unittest.mock import Mock, patch
 
+from engine.events import OrderEvent
 from engine.gateways.live import BrokerClient
-from engine.events import OrderEvent, Action, BaseOrder, MarketOrder
-from engine.account_data import AccountDetails
+
+from shared.portfolio import AccountDetails
+from shared.orders import Action, BaseOrder, MarketOrder
 
 #TODO : Edge Cases
 
@@ -59,7 +62,7 @@ class TestBrokerClient(unittest.TestCase):
         self.broker_client.app.disconnect.assert_called_once()
 
     def test_on_order_valid(self):
-        self.valid_timestamp = 1651500000
+        self.valid_timestamp = np.uint64(1651500000)
         self.valid_action = Action.LONG
         self.valid_trade_id = 2
         self.valid_leg_id =  6

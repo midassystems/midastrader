@@ -1,14 +1,16 @@
 import logging
 from queue import Queue
-from ibapi.order import Order
 from datetime import datetime
 from ibapi.contract import Contract
 from typing import Dict, Union, TypedDict, Union, Optional
 
 from engine.order_book import OrderBook
-from engine.symbols.symbols import Symbol, Future, Equity
-from engine.account_data import AccountDetails,  EquityDetails
-from engine.events import ExecutionEvent, Action, BaseOrder, TradeInstruction, ExecutionDetails
+from engine.events import ExecutionEvent 
+
+from shared.trade import ExecutionDetails
+from shared.orders import  Action, BaseOrder 
+from shared.symbol import Symbol, Future, Equity
+from shared.portfolio import AccountDetails, EquityDetails
 
 class PositionDetails(TypedDict):
     action: str
@@ -60,7 +62,7 @@ class DummyBroker:
         if contract.secType == 'STK':
             tick_size = 1
         elif contract.secType == 'FUT':
-            tick_size = self.symbols_map[contract.symbol].tickSize
+            tick_size = self.symbols_map[contract.symbol].tick_size
         else:
             raise ValueError("'contract.sectype' must be one of the following : STK, FUT.")
         adjusted_price = self._slippage_adjust_price(tick_size, current_price, action)

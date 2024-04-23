@@ -5,7 +5,9 @@ from abc import ABC, abstractmethod
 
 from engine.order_book import OrderBook
 from engine.portfolio import PortfolioServer
-from engine.events import  SignalEvent, MarketEvent, TradeInstruction
+from engine.events import  SignalEvent, MarketEvent
+
+from shared.signal import TradeInstruction
 
 
 class BaseStrategy(ABC):

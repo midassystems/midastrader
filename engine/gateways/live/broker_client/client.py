@@ -10,9 +10,9 @@ from ibapi.contract import Contract
 from .wrapper import BrokerApp
 from engine.events import OrderEvent
 from engine.portfolio import PortfolioServer
-from engine.account_data import AccountDetails
 from engine.performance import BasePerformanceManager
 
+from shared.portfolio import AccountDetails
 
 class BrokerClient():
 

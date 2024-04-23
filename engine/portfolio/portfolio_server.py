@@ -2,10 +2,12 @@ import logging
 from typing import Dict
 from ibapi.contract import Contract
 
-from engine.symbols.symbols import Symbol
-from engine.account_data import Position,ActiveOrder, AccountDetails
 from client import DatabaseClient
+
 from engine.observer import Subject, EventType
+
+from shared.portfolio import Position,ActiveOrder, AccountDetails
+from shared.symbol import Symbol
 
 class PortfolioServer(Subject):
     """

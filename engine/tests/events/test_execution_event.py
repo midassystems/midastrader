@@ -1,16 +1,20 @@
 import random
 import unittest
+import numpy as np
 from ibapi.order import Order
 from datetime import datetime
 from ibapi.contract import Contract
 
-from engine.events import TradeInstruction, Action
-from engine.events import ExecutionEvent,ExecutionDetails
+from engine.events import ExecutionEvent
+
+from shared.orders import Action
+from shared.trade import ExecutionDetails
+from shared.signal import TradeInstruction
 
 # TOOO : edge cases
 class TestExecutionEvent(unittest.TestCase):
     def setUp(self) -> None:
-        self.valid_timetamp = 1651500000
+        self.valid_timetamp = np.uint64(1651500000)
         self.valid_trade_details =ExecutionDetails(
                                                     timestamp = 1651500000 ,
                                                     trade_id = 1,
@@ -41,44 +45,31 @@ class TestExecutionEvent(unittest.TestCase):
         self.assertEqual(type(exec.contract), Contract)
 
     # Type Check
-    def test_timestamp_type_validation(self):
-        self.invalid_timetamp = datetime(2024,1,1)
-
-        with self.assertRaisesRegex(TypeError,"'timestamp' should be in UNIX format of type float or int"):
-            ExecutionEvent(timestamp=self.invalid_timetamp,
+    def test_type_constraint(self):
+        with self.assertRaisesRegex(TypeError,"timestamp must be of type np.uint64."):
+            ExecutionEvent(timestamp=datetime(2024,1,1),
                                trade_details=self.valid_trade_details,
                                action=self.valid_action,
                                contract=self.valid_contract)
             
-    def test_action_type_validation(self):
         with self.assertRaisesRegex(TypeError, "'action' must be of type Action enum."): 
             ExecutionEvent(timestamp=self.valid_timetamp,
                                trade_details=self.valid_trade_details,
                                action="self.valid_action",
                                contract=self.valid_contract)
             
-    def test_trade_details_type_validation(self):
         with self.assertRaisesRegex(TypeError,"'trade_details' must be of type ExecutionDetails dict."): 
             ExecutionEvent(timestamp=self.valid_timetamp,
                                trade_details="self.valid_trade_details,",
                                action=self.valid_action,
                                contract=self.valid_contract)
             
-    def test_contract_type_validation(self):
         with self.assertRaisesRegex(TypeError,"'contract' must be of type Contract instance."): 
             ExecutionEvent(timestamp=self.valid_timetamp,
                                trade_details=self.valid_trade_details,
                                action=self.valid_action,
                                contract="self.valid_contract")
-    
-    # Constraints
-    def test_timestamp_format_validation(self):
-        invalid_timestamp = "14-10-2020"
-        with self.assertRaisesRegex(TypeError, "'timestamp' should be in UNIX format of type float or int"):
-            ExecutionEvent(timestamp=invalid_timestamp,
-                    trade_details=self.valid_trade_details,
-                    action=self.valid_action,
-                    contract="self.valid_contract")        
+         
     
 
 if __name__=="__main__":

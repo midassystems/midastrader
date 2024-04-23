@@ -5,7 +5,7 @@ from unittest.mock import patch, Mock
 
 
 from engine.gateways.live import ContractManager
-from engine.symbols.symbols import Future, Equity, Currency, Exchange
+from shared.symbol import Future, Equity, Currency, Venue, Industry, ContractUnits
 
 #TODO : edge cases
 
@@ -17,18 +17,35 @@ class TestContractManager(unittest.TestCase):
         self.contract_manager = ContractManager(client_instance=self.mock_client, logger=self.mock_logger)
         self.contract_manager.app.validate_contract_event = threading.Event()
         
-        self.valid_symbols_map = {'HEJ4' : Future(ticker='HEJ4',
-                                                  currency=Currency.USD,
-                                                  exchange=Exchange.CME,
-                                                  fees=0.1,
-                                                  lastTradeDateOrContractMonth='202412',
-                                                  multiplier=400,
-                                                  tickSize=0.0025,
-                                                  initialMargin=4000),
-                                    'AAPL' : Equity(ticker="APPL", 
-                                                currency=Currency.CAD , 
-                                                exchange=Exchange.NYSE, 
-                                                fees= 0.10)}
+        self.valid_symbols_map = {'HEJ4' : Future(ticker = "HEJ4",
+                                            data_ticker = "HE.n.0",
+                                            currency = Currency.USD,  
+                                            exchange = Venue.CME,  
+                                            fees = 0.85,  
+                                            initialMargin =4564.17,
+                                            quantity_multiplier=40000,
+                                            price_multiplier=0.01,
+                                            product_code="HE",
+                                            product_name="Lean Hogs",
+                                            industry=Industry.AGRICULTURE,
+                                            contract_size=40000,
+                                            contract_units=ContractUnits.POUNDS,
+                                            tick_size=0.00025,
+                                            min_price_fluctuation=10,
+                                            continuous=False,
+                                            lastTradeDateOrContractMonth="202404"),
+                                    'AAPL' : Equity(ticker="AAPL",
+                                                    currency = Currency.USD  ,
+                                                    exchange = Venue.NASDAQ  ,
+                                                    fees = 0.1,
+                                                    initialMargin = 0,
+                                                    quantity_multiplier=1,
+                                                    price_multiplier=1,
+                                                    data_ticker = "AAPL2",
+                                                    company_name = "Apple Inc.",
+                                                    industry=Industry.TECHNOLOGY,
+                                                    market_cap=10000000000.99,
+                                                    shares_outstanding=1937476363)}
 
     # Basic Validation
     def change_is_valid_contract_true(self, reqId, contract):

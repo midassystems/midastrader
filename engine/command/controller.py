@@ -93,5 +93,5 @@ class EventController:
         self.broker_client.liquidate_positions()
         
         # Finalize and save to database
-        self.performance_manager.calculate_statistics()
+        self.performance_manager.calculate_statistics() ## -- check point --
         self.performance_manager.create_backtest()

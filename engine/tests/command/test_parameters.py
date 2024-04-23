@@ -3,8 +3,10 @@ import unittest
 from datetime import datetime
 
 from engine.command import Parameters
-from engine.events import MarketDataType
-from engine.symbols.symbols import Equity, Future, Currency, Exchange, Symbol
+
+from shared.market_data import MarketDataType
+from shared.symbol import Equity, Future, Currency, Venue, Symbol, Industry,ContractUnits
+from shared.utils import iso_to_unix, unix_to_iso
 
 
 #TODO: Edge cases
@@ -21,9 +23,41 @@ class TestParameters(unittest.TestCase):
         self.valid_test_start = "2024-01-01"
         self.valid_test_end = "2024-01-19"
         self.valid_symbols = [
-                Future(ticker="HE",data_ticker= "HE.n.0", currency=Currency.USD,exchange=Exchange.CME,fees=0.85, lastTradeDateOrContractMonth="202404",multiplier=40000,tickSize=0.00025, initialMargin=4564.17),
-                Future(ticker="ZC",data_ticker= "ZC.n.0", currency=Currency.USD,exchange=Exchange.CBOT,fees=0.85,lastTradeDateOrContractMonth="202403",multiplier=5000,tickSize=0.0025, initialMargin=2056.75)
-            ]
+            Future(ticker = "HE",
+                data_ticker = "HE.n.0",
+                currency = Currency.USD,  
+                exchange = Venue.CME,  
+                fees = 0.85,  
+                initialMargin =4564.17,
+                quantity_multiplier=40000,
+                price_multiplier=0.01,
+                product_code="HE",
+                product_name="Lean Hogs",
+                industry=Industry.AGRICULTURE,
+                contract_size=40000,
+                contract_units=ContractUnits.POUNDS,
+                tick_size=0.00025,
+                min_price_fluctuation=10,
+                continuous=False,
+                lastTradeDateOrContractMonth="202404"),
+            Future(ticker = "ZC",
+                data_ticker = "ZC.n.0",
+                currency = Currency.USD,  
+                exchange = Venue.CBOT,  
+                fees = 0.85,  
+                initialMargin =2056.75,
+                quantity_multiplier=40000,
+                price_multiplier=0.01,
+                product_code="ZC",
+                product_name="Corn",
+                industry=Industry.AGRICULTURE,
+                contract_size=5000,
+                contract_units=ContractUnits.BUSHELS,
+                tick_size=0.0025,
+                min_price_fluctuation=10,
+                continuous=False,
+                lastTradeDateOrContractMonth="202406")
+        ]
         self.valid_benchmark = ["^GSPC"]
         
     # Basic Validation
@@ -92,10 +126,10 @@ class TestParameters(unittest.TestCase):
         self.assertEqual(params_dict["strategy_name"], self.valid_strategy_name)
         self.assertEqual(params_dict["capital"], self.valid_capital)
         self.assertEqual(params_dict["data_type"], self.valid_data_type.value)
-        self.assertEqual(params_dict["train_start"], self.valid_train_start)
-        self.assertEqual(params_dict["train_end"], self.valid_train_end)
-        self.assertEqual(params_dict["test_start"], self.valid_test_start)
-        self.assertEqual(params_dict["test_end"], self.valid_test_end)
+        self.assertEqual(params_dict["train_start"], iso_to_unix(self.valid_train_start))
+        self.assertEqual(params_dict["train_end"], iso_to_unix(self.valid_train_end))
+        self.assertEqual(params_dict["test_start"], iso_to_unix(self.valid_test_start))
+        self.assertEqual(params_dict["test_end"], iso_to_unix(self.valid_test_end))
         self.assertEqual(params_dict["benchmark"], self.valid_benchmark)
 
         tickers = [symbol.ticker for symbol in self.valid_symbols]

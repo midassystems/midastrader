@@ -1,8 +1,12 @@
 import unittest
+import numpy as np
+from decimal import Decimal
 from unittest.mock import Mock, patch
 
-from engine.events import BarData, MarketEvent
+from engine.events import MarketEvent
 from engine.gateways.live.data_client.wrapper import DataApp
+
+from shared.market_data import BarData
 
 # TODO: edge cases
 class TestDataApp(unittest.TestCase):
@@ -51,20 +55,22 @@ class TestDataApp(unittest.TestCase):
         self.data_app.reqId_to_symbol_map[123] = 'AAPL'
 
         reqId = 123
-        time = 165500000 
-        open = 109.9
-        high = 110
-        low = 105.6
-        close = 108
-        volume = 10000 
+        time = np.uint64(165500000)
+        open = Decimal(109.9)
+        high = Decimal(110)
+        low = Decimal(105.6)
+        close = Decimal(108)
+        volume = Decimal(10000)
         wap = 109 
         count = 10
-        valid_bar = BarData(timestamp=time,
+        valid_bar = BarData(
+                            ticker='AAPL',
+                            timestamp=time,
                             open=open, 
                             high=high,
                             low=low,
                             close=close,
-                            volume=volume)
+                            volume=np.uint64(volume))
 
         self.data_app.realtimeBar(reqId, time, open, high, low, close, volume, wap, count)
         self.mock_order_book.update_market_data.assert_called_once_with(timestamp=time, data={'AAPL':valid_bar})

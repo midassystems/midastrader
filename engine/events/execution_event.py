@@ -1,24 +1,14 @@
-from datetime import datetime
+import numpy as np
 from ibapi.contract import Contract
+from typing  import  Dict, Any, Union
 from dataclasses import dataclass, field
-from typing  import  Dict, Any, Union, TypedDict
 
-from engine.events import Action
-from engine.account_data import Trade
-class ExecutionDetails(TypedDict):
-    timestamp: Union[int,float]
-    trade_id: int
-    leg_id: int
-    symbol: str
-    quantity: int
-    price: float
-    cost: float
-    action: str
-    fees: float
+from shared.orders import Action
+from shared.trade import ExecutionDetails
 
 @dataclass
 class ExecutionEvent:
-    timestamp: Union[int, float]
+    timestamp: np.uint64
     trade_details: ExecutionDetails
     action: Action 
     contract: Contract
@@ -26,8 +16,8 @@ class ExecutionEvent:
 
     def __post_init__(self):
         # Type Check
-        if not isinstance(self.timestamp, (float,int)):
-            raise TypeError(f"'timestamp' should be in UNIX format of type float or int, got {type(self.timestamp).__name__}")
+        if not isinstance(self.timestamp, np.uint64):
+            raise TypeError("timestamp must be of type np.uint64.")
         if not isinstance(self.action, Action):
             raise TypeError("'action' must be of type Action enum.")
         if not isinstance(self.trade_details, dict):

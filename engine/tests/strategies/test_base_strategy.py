@@ -1,10 +1,14 @@
 import unittest
-from unittest.mock import Mock
-from unittest.mock import patch
+import numpy as np
+from decimal import Decimal
+from unittest.mock import Mock, patch
 
 from engine.strategies import BaseStrategy
-from engine.events import BarData, MarketEvent, SignalEvent
-from engine.events import  SignalEvent, MarketEvent, TradeInstruction, Action, OrderType
+from engine.events import  SignalEvent, MarketEvent
+
+from shared.market_data import BarData
+from shared.signal import TradeInstruction
+from shared.orders import Action, OrderType
 
 # TODO: Edge case testing
 
@@ -34,17 +38,19 @@ class TestTestStrategy(unittest.TestCase):
                                           logger = self.mock_portfolio_server, event_queue=self.mock_event_queue)
 
         # Test Data
-        self.valid_timestamp = 1651500000
         self.valid_trade_capital = 1000000
-
-        self.valid_bar = BarData(timestamp = self.valid_timestamp,
-                        open = 80.90,
-                        close = 9000.90,
-                        high = 75.90,
-                        low = 8800.09,
-                        volume = 880000)
+        self.timestamp = np.uint64(1707221160000000000)
+        self.ticker="AAPL"
+        self.valid_bar = BarData(ticker=self.ticker,
+                        timestamp = self.timestamp,
+                        open = Decimal(80.90),
+                        close = Decimal(9000.90),
+                        high = Decimal(75.90),
+                        low = Decimal(8800.09),
+                        volume = np.uint64(880000))
+        
         self.valid_market_event = MarketEvent(data={'AAPL': self.valid_bar}, 
-                                                timestamp=self.valid_timestamp)
+                                                timestamp=self.timestamp)
         
         self.valid_trade1 = TradeInstruction(ticker = 'AAPL',
                                                 order_type = OrderType.MARKET,
@@ -68,7 +74,7 @@ class TestTestStrategy(unittest.TestCase):
         
     def test_set_signal(self):
         # Test
-        self.test_strategy.set_signal(self.valid_trade_instructions, self.valid_trade_capital, self.valid_timestamp)
+        self.test_strategy.set_signal(self.valid_trade_instructions, self.valid_trade_capital, self.timestamp)
 
         # Validation
         self.assertTrue(self.mock_event_queue.put.called, "The event_queue.put() method was not called.") # check that event_queue.put() was called
@@ -84,7 +90,7 @@ class TestTestStrategy(unittest.TestCase):
     def test_create_signal_event_invalid_trade_instructions(self):
         # Test failure to create signal event
         with self.assertRaisesRegex(RuntimeError, "Failed to create or queue SignalEvent due to input error"):
-            self.test_strategy.set_signal([], self.valid_trade_capital, self.valid_timestamp)
+            self.test_strategy.set_signal([], self.valid_trade_capital, self.timestamp)
 
 if __name__ == "__main__":
     unittest.main()

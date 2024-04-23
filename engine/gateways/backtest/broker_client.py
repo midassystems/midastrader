@@ -4,11 +4,14 @@ from ibapi.order import Order
 from ibapi.contract import Contract
 
 from .dummy_broker import DummyBroker
+from engine.events import ExecutionEvent
 from engine.portfolio import PortfolioServer
-from engine.account_data import Position, Trade
 from engine.performance import BasePerformanceManager
-from engine.events import ExecutionEvent, Action, BaseOrder
-from engine.events import ExecutionEvent, OrderEvent, TradeInstruction, Action
+from engine.events import ExecutionEvent, OrderEvent
+
+from shared.trade import Trade
+from shared.portfolio import Position
+from shared.orders import Action, BaseOrder
 
 class BrokerClient:
     """

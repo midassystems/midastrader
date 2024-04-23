@@ -1,8 +1,11 @@
 from queue import Queue
 from typing import Dict, Union
 
+from engine.events import  MarketEvent
 from engine.observer import Subject, EventType
-from engine.events import BarData, QuoteData, MarketDataType, MarketEvent, MarketData
+
+from shared.market_data import MarketData, MarketDataType, BarData, QuoteData
+
 
 class OrderBook(Subject):
     def __init__(self, data_type: MarketDataType, event_queue: Queue):

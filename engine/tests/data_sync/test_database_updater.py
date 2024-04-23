@@ -1,9 +1,11 @@
 import unittest
 from unittest.mock import Mock
 
-from engine.account_data import Position, ActiveOrder, AccountDetails
 from engine.data_sync import DatabaseUpdater
 from engine.observer import Subject,EventType
+
+from shared.portfolio import Position, ActiveOrder, AccountDetails
+
 
 class ChildSubject(Subject):
     def __init__(self):
@@ -13,7 +15,8 @@ class ChildSubject(Subject):
                             quantity=100,
                             total_cost=100000,
                             market_value=10000,
-                            multiplier=1,
+                            quantity_multiplier=40000,
+                            price_multiplier=0.01,
                             initial_margin=0)}
         
         self.order = { 123: ActiveOrder(permId = 10,

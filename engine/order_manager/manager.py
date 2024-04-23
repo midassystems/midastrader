@@ -6,10 +6,11 @@ from typing import Dict,List, Union
 
 from engine.order_book import OrderBook
 from engine.portfolio import PortfolioServer
-from engine.symbols.symbols import Symbol, Future, Equity
-from engine.events import  (SignalEvent, OrderEvent,  
-                           LimitOrder, MarketOrder, StopLoss, 
-                           Action, OrderType, TradeInstruction, BaseOrder)
+from engine.events import  SignalEvent, OrderEvent
+
+from shared.signal import TradeInstruction
+from shared.symbol import Symbol, Future, Equity
+from shared.orders import LimitOrder, MarketOrder, StopLoss, Action, OrderType, BaseOrder
 
 class OrderManager:
     def __init__(self, symbols_map: Dict[str, Symbol], event_queue: Queue, order_book:OrderBook, portfolio_server: PortfolioServer, logger:logging.Logger):

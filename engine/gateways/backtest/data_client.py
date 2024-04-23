@@ -1,12 +1,16 @@
 import pandas as pd
+import numpy as np
+from decimal import Decimal
 from queue import Queue
 from datetime import datetime
 from typing import Dict, List
 
 from client import DatabaseClient
-from engine.events import MarketEvent, BarData, EODEvent
 from engine.order_book import OrderBook
+from engine.events import MarketEvent, EODEvent
 
+from shared.market_data import BarData, QuoteData
+from shared.utils import unix_to_iso, iso_to_unix
 class DataClient(DatabaseClient):
     def __init__(self, event_queue: Queue, data_client: DatabaseClient, order_book:OrderBook):
         """
@@ -95,16 +99,14 @@ class DataClient(DatabaseClient):
 
     def _process_bardata(self, data:pd.DataFrame):
         """ Transform the data provide by the database into the needed format for the backtest. """
-        
-        # Convert the 'timestamp' column to datetime objects
-        data['timestamp'] = pd.to_datetime(data['timestamp'])
 
         # Convert the 'timestamp' column from datetime to Unix time (seconds since epoch)
-        data['timestamp'] = (data['timestamp'].astype('int64') // 1e9).astype('int')
-
-        # Convert OHLCV columns to floats
-        ohlcv_columns = ['open', 'high', 'low', 'close', 'volume']
-        data[ohlcv_columns] = data[ohlcv_columns].astype(float)
+        data['timestamp'] = data['timestamp'].astype(np.uint64)
+        data['open'] = data['open'].apply(Decimal)
+        data['high'] = data['high'].apply(Decimal)
+        data['low'] = data['low'].apply(Decimal)
+        data['close'] = data['close'].apply(Decimal)
+        data['volume'] = data['volume'].astype(np.uint64)
 
         # Sorting the DataFrame by the 'timestamp' column in ascending order
         return  data.sort_values(by='timestamp', ascending=True).reset_index(drop=True)
@@ -113,6 +115,7 @@ class DataClient(DatabaseClient):
         """
         Simulates a market data listener, iterates through the unique dates, callign the setMarketData for each date until finished.
         """
+        from dateutil import parser
         self.current_date_index += 1
 
         if self.current_date_index >= len(self.unique_timestamps):
@@ -120,7 +123,8 @@ class DataClient(DatabaseClient):
             
         # Update the next_date here
         self.next_date = self.unique_timestamps[self.current_date_index]
-        next_day = datetime.fromtimestamp(self.next_date).date() 
+        iso = unix_to_iso(self.next_date)
+        next_day = parser.parse(iso).date()
 
         if self.current_day is None or next_day != self.current_day:
             if self.current_day is not None:
@@ -144,7 +148,13 @@ class DataClient(DatabaseClient):
         result_dict = {}
         for idx, row in latest_data_batch.iterrows():
             ticker = row['symbol']
-            result_dict[ticker] = BarData.from_series(row) 
+            result_dict[ticker] = BarData(ticker=ticker,
+                                            timestamp=np.uint64(row['timestamp']),
+                                            open=row['open'],
+                                            high=row['high'],            
+                                            low=row['low'],
+                                            close=row['close'],
+                                            volume=np.uint64(row['volume']))
         
         self.order_book.update_market_data(data=result_dict, timestamp=self.next_date)
 
