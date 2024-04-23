@@ -77,14 +77,14 @@ class Right(Enum):
 # -- Symbols -- 
 @dataclass
 class Symbol:
-    ticker: str
-    security_type: SecurityType
-    currency: Currency
-    exchange: Venue
-    fees: float
-    initialMargin: float
-    quantity_multiplier: int 
-    price_multiplier: float 
+    ticker: str = None
+    security_type: SecurityType = None
+    currency: Currency = None
+    exchange: Venue = None
+    fees: float = None
+    initialMargin: float = None
+    quantity_multiplier: int = None
+    price_multiplier: float = None
     data_ticker: Optional[str] = None
     contract: Contract = field(init=False)
 
@@ -156,6 +156,7 @@ class Equity(Symbol):
     industry: Industry = None
     market_cap: float = None
     shares_outstanding: int = None
+    security_type: SecurityType = SecurityType.STOCK
 
     def __post_init__(self):
         # Additional type checks
@@ -197,6 +198,7 @@ class Future(Symbol):
     min_price_fluctuation: float = None
     continuous: bool = None
     lastTradeDateOrContractMonth: str = None
+    security_type: SecurityType = SecurityType.FUTURE    
 
     def __post_init__(self):
         # Additional type checks
@@ -260,6 +262,7 @@ class Option(Symbol):
     contract_size: int = None
     underlying_name: str = None
     lastTradeDateOrContractMonth: str = None
+    security_type: SecurityType = SecurityType.OPTION
 
     def __post_init__(self):
         # Additional type checks
@@ -316,6 +319,7 @@ class Index(Symbol):
     quantity_multiplier: int = 1
     price_multiplier: float = 1.0
     exchange: Venue= Venue.INDEX
+    security_type: SecurityType = SecurityType.INDEX
 
 
     def __post_init__(self):
