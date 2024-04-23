@@ -16,7 +16,7 @@ class MarketData(ABC):
     pass
 
 @dataclass
-class BarData:
+class BarData(MarketData):
     ticker: str
     timestamp: np.uint64
     open: Decimal
@@ -55,17 +55,18 @@ class BarData:
         if self.volume < 0:
             raise ValueError(f"'volume' must be non-negative")
         
-    @classmethod
-    def from_series(cls, series: pd.Series):
-        """Create an instance from a data series."""
-        return cls(
-            timestamp=series['timestamp'],
-            open=series['open'],
-            high=series['high'],
-            low=series['low'],
-            close=series['close'],
-            volume=series['volume'],
-        )
+    # @classmethod
+    # def from_series(cls, series: pd.Series):
+    #     """Create an instance from a data series."""
+    #     return cls(
+    #         ticker=series
+    #         timestamp=series['timestamp'],
+    #         open=series['open'],
+    #         high=series['high'],
+    #         low=series['low'],
+    #         close=series['close'],
+    #         volume=series['volume'],
+    #     )
     
     def to_dict(self):
         return {
@@ -97,7 +98,7 @@ def round_decimal(value):
     return Decimal(value).quantize(Decimal('.0001'), rounding=ROUND_HALF_UP)
 
 @dataclass
-class QuoteData:
+class QuoteData(MarketData):
     ticker: str
     timestamp: int
     ask: Decimal
