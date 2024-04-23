@@ -3,8 +3,8 @@ import numpy as np
 from decouple import config
 from decimal import Decimal
 
-from client.sources.databento import *
-from client.client import DatabaseClient
+from sources.databento import *
+from client import DatabaseClient
 from shared.market_data import BarData
 
 DATABENTO_KEY=config('DATABENTO_API_KEY')
