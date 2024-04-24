@@ -325,7 +325,7 @@ class TestBrokerApp(unittest.TestCase):
 
         execution = Execution()
         execution.execId = 11
-        execution.time = "2024-01-01"
+        execution.time = "20240424 09:54:50 US/Central"
         execution.acctNumber = "128294"
         execution.exchange = 'NASDAQ'
         execution.side = "SLD"
@@ -337,7 +337,7 @@ class TestBrokerApp(unittest.TestCase):
         execution.orderRef = ""
 
         execution_data = {
-            "timestamp": execution.time, 
+            "timestamp": 1713970490000000000, 
             "ticker": contract.symbol, 
             "quantity": format(execution.shares, 'f'),  # Decimal
             "cumQty": format(execution.cumQty, 'f'),  # Decimal

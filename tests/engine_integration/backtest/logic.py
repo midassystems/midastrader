@@ -1,6 +1,7 @@
 import logging
 import numpy as np
 import pandas as pd
+from decimal import Decimal
 from typing import Dict
 from queue import Queue
 from enum import Enum, auto
@@ -8,12 +9,20 @@ from datetime import datetime
 from ibapi.contract import Contract
 
 from engine.order_book import OrderBook
-from engine.symbols.symbols import Symbol
 from engine.strategies import BaseStrategy
 from engine.portfolio import PortfolioServer
-from engine.events import TradeInstruction, OrderType, Action
+
+from shared.symbol import Symbol
+from shared.orders import OrderType, Action
+from shared.signal import TradeInstruction
 
 from research.analysis import TimeseriesTests
+
+def convert_decimals_to_floats(df: pd.DataFrame):
+    for column in df.columns:
+        if df[column].dtype == object and isinstance(df[column].iloc[0], Decimal):
+            df[column] = df[column].apply(float)  # Convert Decimal to float
+    return df
 
 class Signal(Enum):
     """ Long and short are treated as entry actions and short/cover are treated as exit actions. """
@@ -24,7 +33,7 @@ class Signal(Enum):
 
 class Cointegrationzscore(BaseStrategy):
     def __init__(self, symbols_map:Dict[str, Symbol], train_data:pd.DataFrame, portfolio_server: PortfolioServer, logger:logging.Logger, order_book:OrderBook,event_queue:Queue):
-        super().__init__(portfolio_server,order_book, logger, event_queue)
+        super().__init__(portfolio_server, order_book, logger, event_queue)
         self.symbols_map = symbols_map
         self.trade_id = 1
         
@@ -42,7 +51,7 @@ class Cointegrationzscore(BaseStrategy):
 
     def prepare(self, train_data: pd.DataFrame):
         # train_data = adjust_to_business_time(train_data, frequency='daily')
-        self.historical_data = train_data
+        self.historical_data = convert_decimals_to_floats(train_data)
         self.cointegration_vector = self._cointegration(train_data)
 
         # Establish histroccal values
@@ -58,6 +67,8 @@ class Cointegrationzscore(BaseStrategy):
     def _cointegration(self, train_data: pd.DataFrame):
         # Determine Lag Length
         lag = TimeseriesTests.select_lag_length(data=train_data)
+
+        # lag = 6
         
         # Check Cointegration Relationship
         johansen_results, num_cointegrations = TimeseriesTests.johansen_test(data=train_data, k_ar_diff=lag-1)
@@ -106,14 +117,14 @@ class Cointegrationzscore(BaseStrategy):
         spread_combined = pd.DataFrame({'Original': spread_series, 'Lagged': spread_lagged}).dropna()
         
         # Calculate half-life and add to results
-        half_life, residuals = TimeseriesTests.half_life(Y=spread_combined['Original'], Y_lagged=spread_combined['Lagged'])
-        results['half_life'] = half_life
+        # half_life, residuals = TimeseriesTests.half_life(Y=spread_combined['Original'], Y_lagged=spread_combined['Lagged'])
+        # results['half_life'] = half_life
 
         # Log the results 
         self.logger.info(TimeseriesTests.display_adf_results({'spread': results['adf_test']}, False))
         self.logger.info(TimeseriesTests.display_pp_results({'spread': results['pp_test']}, False))
         self.logger.info(f"\nHurst Exponent: {results['hurst_exponent']}")
-        self.logger.info(f"\nHalf-Life: {results['half_life']}")
+        # self.logger.info(f"\nHalf-Life: {results['half_life']}")
 
     def _update_spread(self, new_data: pd.DataFrame):
         # Convert the cointegration vector dictionary to a pandas Series

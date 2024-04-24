@@ -61,6 +61,7 @@ class DataClient(DatabaseClient):
         # Process the data
         data = pd.DataFrame(response)
         data.drop(columns=['id'], inplace=True)
+        self._check_duplicates(data)
         data = self._handle_null_values(data, missing_values_strategy)
         self.data = self._process_bardata(data)
                 
@@ -68,6 +69,12 @@ class DataClient(DatabaseClient):
         self.unique_timestamps = self.data['timestamp'].unique().tolist()
         
         return True
+    
+    def _check_duplicates(self, data: pd.DataFrame):
+        duplicates = data.duplicated(subset=['timestamp', 'symbol'], keep=False)
+        if duplicates.any():
+            print("Duplicates found:")
+            print(data[duplicates])
 
     def _validate_timestamp_format(self, timestamp:str):
         # Timestamp format check for ISO 8601
@@ -156,7 +163,7 @@ class DataClient(DatabaseClient):
                                             close=row['close'],
                                             volume=np.uint64(row['volume']))
         
-        self.order_book.update_market_data(data=result_dict, timestamp=self.next_date)
+        self.order_book.update_market_data(data=result_dict, timestamp=np.uint64(self.next_date))
 
         
 

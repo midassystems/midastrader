@@ -81,7 +81,7 @@ class TestBasePerformanceManager(unittest.TestCase):
     # Basic Validation
     def test_update_trades_new_trade_valid(self): 
         trade = Trade(
-                timestamp= 165000000,
+                timestamp= np.uint64(165000000),
                 trade_id= 2,
                 leg_id=2,
                 ticker = 'HEJ4',
@@ -93,12 +93,12 @@ class TestBasePerformanceManager(unittest.TestCase):
         )       
 
         self.performance_manager.update_trades(trade)
-        self.assertEqual(self.performance_manager.trades[0], trade.to_dict())
+        self.assertEqual(self.performance_manager.trades[0], trade)
         self.mock_logger.info.assert_called_once()
     
     def test_update_trades_old_trade_valid(self):        
         trade = Trade(
-                timestamp= 165000000,
+                timestamp= np.uint64(165000000),
                 trade_id= 2,
                 leg_id=2,
                 ticker = 'HEJ4',
@@ -108,16 +108,16 @@ class TestBasePerformanceManager(unittest.TestCase):
                 action=  Action.SHORT.value,
                 fees= 70 # because not actually a trade
         )  
-        self.performance_manager.trades.append(trade.to_dict())
+        self.performance_manager.trades.append(trade)
 
         self.performance_manager.update_trades(trade)
-        self.assertEqual(self.performance_manager.trades[0], trade.to_dict())
+        self.assertEqual(self.performance_manager.trades[0], trade)
         self.assertEqual(len(self.performance_manager.trades), 1)
         self.assertFalse(self.mock_logger.info.called)
     
     def test_output_trades(self):
         trade = Trade(
-                timestamp= 165000000,
+                timestamp= np.uint64(165000000000000000),
                 trade_id= 2,
                 leg_id=2,
                 ticker = 'HEJ4',
@@ -128,7 +128,7 @@ class TestBasePerformanceManager(unittest.TestCase):
                 fees= 70 # because not actually a trade
         ) 
         self.performance_manager.update_trades(trade)
-        self.mock_logger.info.assert_called_once_with("\nTrades Updated: \n {'timestamp': '1975-03-25T17:20:00+00:00', 'trade_id': 2, 'leg_id': 2, 'ticker': 'HEJ4', 'quantity': -10, 'price': 50, 'cost': -500, 'action': 'SHORT', 'fees': 70} \n")
+        self.mock_logger.info.assert_called_once_with('\nTrades Updated:\n  Timestamp: 1975-03-25T17:20:00+00:00\n  Trade ID: 2\n  Leg ID: 2\n  Ticker: HEJ4\n  Quantity: -10\n  Price: 50\n  Cost: -500\n  Action: SHORT\n  Fees: 70\n')
 
     def test_update_signals_valid(self):        
         self.valid_trade1 = TradeInstruction(ticker = 'AAPL',

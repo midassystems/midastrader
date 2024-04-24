@@ -1,6 +1,9 @@
 import os
-import logging
+import pytz
+import time
+import logging 
 import threading
+import numpy as np
 from decimal import Decimal
 from threading import Timer
 from datetime import datetime
@@ -101,7 +104,7 @@ class BrokerApp(EWrapper, EClient):
     def process_account_updates(self):
         with self.account_update_lock:
             self.account_update_timer = None
-            self.account_info['Timestamp'] = datetime.now().isoformat()
+            self.account_info['Timestamp'] = int(time.time() * 1e9)
             # Copy the account_info to avoid modification during iteration
             account_info_copy = self.account_info.copy()
         
@@ -201,7 +204,7 @@ class BrokerApp(EWrapper, EClient):
 
     #### Wrapper function for end of reqAccountSummary
     def accountSummaryEnd(self, reqId: int):
-        self.account_info['Timestamp'] = datetime.now().isoformat()
+        self.account_info['Timestamp'] = int(time.time() * 1e9)
         self.logger.info(f"Account Summary Request Complete: {reqId}")
 
         self.performance_manager.update_account_log(self.account_info.copy())
@@ -211,8 +214,13 @@ class BrokerApp(EWrapper, EClient):
         super().execDetails(reqId, contract, execution)
         side = "SELL" if execution.side == "SLD" else "BUY"
 
+        datetime_part, timezone_part = execution.time.rsplit(" ", 1)
+
+        # Now use the split parts with the previously defined method
+        unix_ns = datetime_to_unix_ns(datetime_part, timezone_part)
+
         execution_data = {
-            "timestamp": execution.time, 
+            "timestamp": unix_ns, 
             "ticker": contract.symbol, 
             "quantity": format(execution.shares, 'f'),  # Decimal
             "cumQty": format(execution.cumQty, 'f'),  # Decimal
@@ -229,9 +237,31 @@ class BrokerApp(EWrapper, EClient):
         self.performance_manager.update_trade_commission(commissionReport.execId, commissionReport.commission)
 
 
- 
-    
-    
+def datetime_to_unix_ns(datetime_str, timezone_str):
+    """
+    Convert a datetime string with a specified timezone to Unix time in nanoseconds.
+
+    Parameters:
+    - datetime_str (str): The datetime string in the format "YYYYMMDD HH:MM:SS".
+    - timezone_str (str): The timezone string, e.g., "US/Central".
+
+    Returns:
+    - int: Unix timestamp in nanoseconds.
+    """
+    # Parse the datetime part
+    dt_naive = datetime.strptime(datetime_str, "%Y%m%d %H:%M:%S")
+
+    # Attach the timezone to the datetime object using pytz
+    timezone = pytz.timezone(timezone_str)
+    dt_aware = timezone.localize(dt_naive)
+
+    # Convert the timezone-aware datetime object to a Unix timestamp in seconds
+    unix_timestamp_seconds = dt_aware.timestamp()
+
+    # Convert the Unix timestamp to nanoseconds
+    unix_timestamp_nanoseconds = int(unix_timestamp_seconds * 1e9)
+
+    return unix_timestamp_nanoseconds
     
     
 

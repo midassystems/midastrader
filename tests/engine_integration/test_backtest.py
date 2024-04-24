@@ -1,10 +1,10 @@
 import unittest
 
-from .cointegrationzscore.backtest import main
+from .backtest.main import main
 
 class MidasBacktestIntegration(unittest.TestCase):
-    def setUp(self) -> None:
-        return super().setUp()
+    def test_backtest(self):
+        main() # run full backtest
     
 if __name__ == "__main__":
     unittest.main()

@@ -1,12 +1,12 @@
-import logging
 import json 
+import logging
 import numpy as np
 import pandas as pd
 from typing import List, Dict
 from client import DatabaseClient
 
-from ..base_manager import BasePerformanceManager
 from ..regression import RegressionAnalysis
+from ..base_manager import BasePerformanceManager
 
 from shared.trade import Trade
 from shared.backtest import Backtest
@@ -14,7 +14,7 @@ from shared.portfolio import EquityDetails, AccountDetails
 
 
 class BacktestPerformanceManager(BasePerformanceManager):
-    def __init__(self, database: DatabaseClient, logger:logging.Logger, params, granularity: str="D") -> None:
+    def __init__(self, database: DatabaseClient, logger: logging.Logger, params, granularity: str="D") -> None:
         super().__init__(database, logger, params)
         # self.backtest = Backtest(database)
         self.static_stats : List[Dict] =  []
@@ -23,9 +23,9 @@ class BacktestPerformanceManager(BasePerformanceManager):
         self.granularity = granularity  # 'D' for daily, 'H' for hourly, etc.
 
     def update_trades(self, trade: Trade):
-        trade_dict = trade.to_dict()
-        if trade_dict not in self.trades:
-            self.trades.append(trade_dict)
+        # trade_dict = trade.to_dict()
+        if trade not in self.trades:
+            self.trades.append(trade)
             self.logger.info(f"\nTrades Updated: \n{self._output_trades()}")
             
     def _aggregate_trades(self) -> pd.DataFrame:
@@ -55,15 +55,20 @@ class BacktestPerformanceManager(BasePerformanceManager):
         aggregated.reset_index(inplace=True)
 
         return aggregated
-    
+
+    def _timestamps_to_datetime(self, data: pd.DataFrame):
+        """
+        Convert the 'timestamp' from Unix nanoseconds to datetime and set as index.
+        """
+        data['timestamp'] = pd.to_datetime(data['timestamp'], unit='ns')
+        data.set_index('timestamp', inplace=True)
+        return data
+
     def _standardize_to_granularity(self, data: pd.DataFrame, value_column: str):
         """
         Standardizes input DataFrame to the specified granularity and calculates returns.
+        Assumes 'timestamp' in data is Unix nanoseconds.
         """
-        # Ensure 'timestamp' is datetime and set as index
-        data['timestamp'] = pd.to_datetime(data['timestamp'])
-        data.set_index('timestamp', inplace=True)
-        
         # Resample to the specified granularity, taking the last value of the period
         period_data = data.resample(self.granularity).last()
 
@@ -71,7 +76,7 @@ class BacktestPerformanceManager(BasePerformanceManager):
         period_data.dropna(inplace=True)
 
         return period_data
-      
+
     def _calculate_return_and_drawdown(self, data: pd.DataFrame):
         
         equity_curve = data['equity_value'].to_numpy()
@@ -94,19 +99,21 @@ class BacktestPerformanceManager(BasePerformanceManager):
         # Get Benchmark Data
         benchmark_data = self.database.get_benchmark_data(self.params.benchmark, self.params.test_start, self.params.test_end)
         benchmark_df = pd.DataFrame(benchmark_data)
+        print(benchmark_df)
         benchmark_df["close"] = benchmark_df["close"].astype(float)
+        benchmark_df= self._timestamps_to_datetime(benchmark_df)
+        benchmark_df=benchmark_df.reset_index()
         
         # Aggregate Trades
         aggregated_trades = self._aggregate_trades()
 
         # Normalize Equity Curve
         raw_equity_df = pd.DataFrame(self.equity_value)
-        raw_equity_df.reset_index().rename(columns={'index': 'timestamp'})
+        raw_equity_df = self._timestamps_to_datetime(raw_equity_df)
         standardized_equity_df = self._standardize_to_granularity(raw_equity_df.copy(), "equity_value")
+        raw_equity_df=raw_equity_df.reset_index()
 
         # Regression Analysis 
-        print(raw_equity_df)
-        print(benchmark_df)
         regression = RegressionAnalysis(raw_equity_df, benchmark_df)
         regression.perform_regression_analysis()
         regression_results = regression.compile_results()
@@ -121,8 +128,8 @@ class BacktestPerformanceManager(BasePerformanceManager):
         self.timeseries_stats = self.timeseries_stats.join(daily_strategy_returns, how='left')
         self.timeseries_stats = self.timeseries_stats.join(daily_benchmark_returns, how='left')
         self.timeseries_stats.fillna(0, inplace=True)  # Replace NaN with 0 for the first element
-        self.timeseries_stats = self.timeseries_stats.reset_index()
-        self.timeseries_stats['timestamp'] = self.timeseries_stats['timestamp'].dt.strftime('%Y-%m-%dT%H:%M:%S+00:00')
+        self.timeseries_stats.index = self.timeseries_stats.index.view('int64')
+        self.timeseries_stats = self.timeseries_stats.reset_index(names="timestamp")
 
         # Convert the appropriate equity curve dataframes to numpy arrays for calculations
         raw_equity_curve = raw_equity_df['equity_value'].to_numpy()
@@ -157,25 +164,16 @@ class BacktestPerformanceManager(BasePerformanceManager):
         except TypeError as e:
             raise TypeError(f"Error while calculcating statistics. {e}")
 
-    def create_backtest(self) -> Backtest:
+    def save_backtest(self) -> Backtest:
         # Create Backtest Object
         self.backtest = Backtest(parameters=self.params.to_dict(), 
                                  static_stats=self.static_stats,
                                  regression_stats=self.regression_stats,
                                  timeseries_stats=self.timeseries_stats.to_dict(orient='records'),
-                                 trade_data=self.trades,
+                                 trade_data=[trade.to_dict() for trade in self.trades],
                                  signal_data=self.signals
                                  )
-
-        # self.backtest.static_stats = self.static_stats
-        # self.backtest.regression_stats = self.regression_stats
-        # self.backtest.timeseries_stats = self.timeseries_stats.to_dict(orient='records')
-        # self.backtest.trade_data = self.trades
-        # self.backtest.signal_data = self.signals
-
-
-
+        
         # Save Backtest Object
-        # self.backtest.save()
-        # backtest_json = json.dumps(self.backtest.to_dict())
-        # print(self.backtest.to_dict())
+        response = self.database.create_backtest(self.backtest)
+        self.logger.info(f"Backtest saved to data base with response : {response}")

@@ -873,6 +873,30 @@ class TestTradingSessioMethods(unittest.TestCase):
                                 "tickers": ["HE", "ZC"], 
                                 "benchmark": ["^GSPC"]
                             }
+        
+        ac = [{
+                'start_BuyingPower': '2533616.6400', 
+                'currency': 'USD', 
+                'start_ExcessLiquidity': '761628.7100', 
+                'start_FullAvailableFunds': '760084.9900', 
+                'start_FullInitMarginReq': '8009.9500', 
+                'start_FullMaintMarginReq': '6466.2300', 
+                'start_FuturesPNL': '-510.3400', 
+                'start_NetLiquidation': '768094.9400', 
+                'start_TotalCashBalance': '-11655.0816', 
+                'start_UnrealizedPnL': '1.2100', 
+                'start_timestamp': 1713976287714991104, 
+                'end_BuyingPower': '2534489.4700', 
+                'end_ExcessLiquidity': '761890.0500', 
+                'end_FullAvailableFunds': '760346.8400', 
+                'end_FullInitMarginReq': '8004.0200', 
+                'end_FullMaintMarginReq': '6460.8000', 
+                'end_FuturesPNL': '-373.7300', 
+                'end_NetLiquidation': '768350.8600', 
+                'end_TotalCashBalance': '766337.6224', 
+                'end_UnrealizedPnL': '137.8300', 
+                'end_timestamp': 1713976770533925120
+            }]
         self.mock_acount = [{
                                 "start_BuyingPower": "2557567.234", 
                                 "currency": "USD", 

@@ -1,5 +1,6 @@
 import random
 import unittest
+import numpy as np
 
 from shared.trade import Trade
 
@@ -7,7 +8,7 @@ class TestTrade(unittest.TestCase):
     def setUp(self) -> None:
         self.valid_trade_id = 1
         self.valid_leg_id = 2
-        self.valid_timetamp = 16555000
+        self.valid_timetamp = np.uint64(16555000)
         self.valid_ticker = 'HEJ4'
         self.valid_quantity = 10
         self.valid_price= 85.98
@@ -63,7 +64,7 @@ class TestTrade(unittest.TestCase):
                       fees=self.valid_fees)
             
     def test_timestamp_type_validation(self):
-        with self.assertRaisesRegex(TypeError,"'timestamp' should be in UNIX format of type float or int"):
+        with self.assertRaisesRegex(TypeError,"timestamp must be of type np.uint64."):
             Trade(trade_id=self.valid_trade_id,
                       leg_id=self.valid_leg_id,
                       timestamp="2022-08-08",

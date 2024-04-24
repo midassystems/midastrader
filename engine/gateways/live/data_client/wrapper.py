@@ -75,13 +75,14 @@ class DataApp(EWrapper, EClient):
         super().realtimeBar(reqId, time, open, high, low, close, volume, wap, count)
         """ Updates the real time 5 seconds bars """
         symbol = self.reqId_to_symbol_map[reqId]
-        print(symbol)
 
-        new_bar_entry = BarData(ticker=symbol, timestamp=time, open=open, high=high, low=low, close=close, volume=np.uint64(volume))
+        timestamp= np.uint64(time * 1e9)
+        
+        new_bar_entry = BarData(ticker=symbol, timestamp= timestamp, open=Decimal(open), high=Decimal(high), low=Decimal(low), close=Decimal(close), volume=np.uint64(volume))
         self.current_bar_data[symbol] = new_bar_entry
         
         if len(self.current_bar_data) == len(self.reqId_to_symbol_map):
-            self.order_book.update_market_data(timestamp=time, data=self.current_bar_data)
+            self.order_book.update_market_data(timestamp=timestamp, data=self.current_bar_data)
             # market_data_event = MarketEvent(timestamp=time, data=self.current_bar_data)
             # self.event_queue.put(market_data_event)
             # Reset current bar data for the next bar

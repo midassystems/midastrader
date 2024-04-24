@@ -82,10 +82,11 @@ class Parameters:
             "strategy_name": self.strategy_name, 
             "capital": self.capital, 
             "data_type": self.data_type.value, 
-            "train_start": iso_to_unix(self.train_start) if self.train_start else None, 
-            "train_end":  iso_to_unix(self.train_end) if self.train_end else None, 
-            "test_start": iso_to_unix(self.test_start),
-            "test_end": iso_to_unix(self.test_end),
+            "train_start": int(iso_to_unix(self.train_start)) if self.train_start else None, 
+            "train_end":  int(iso_to_unix(self.train_end)) if self.train_end else None, 
+            "test_start": int(iso_to_unix(self.test_start)),
+            "test_end": int(iso_to_unix(self.test_end)),
             "tickers": self.tickers, 
             "benchmark": self.benchmark
         }   
+    

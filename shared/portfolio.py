@@ -1,11 +1,12 @@
 # shared/portfolio.py 
+import numpy as np
 from typing import TypedDict
 from datetime import datetime
 from dataclasses import dataclass
 from typing import TypedDict, Optional
 
 class EquityDetails(TypedDict):
-    timestamp : datetime
+    timestamp : np.uint64
     equity_value : float
 
 class AccountDetails(TypedDict):

@@ -19,114 +19,6 @@ from shared.portfolio import  EquityDetails
 from shared.market_data import MarketData, BarData, QuoteData, MarketDataType
 
 #TODO: edge cases
-# class TestBacktest(unittest.TestCase):    
-#     def setUp(self) -> None:
-#         self.mock_db_client = Mock()
-#         self.backtest = Backtest(self.mock_db_client)
-#         self.mock_parameters = {
-#             "strategy_name": "cointegrationzscore", 
-#             "capital": 100000, 
-#             "data_type": "BAR", 
-#             "strategy_allocation": 1.0, 
-#             "train_start": "2018-05-18", 
-#             "train_end": "2023-01-19", 
-#             "test_start": "2023-01-19", 
-#             "test_end": "2024-01-19", 
-#             "tickers": ["HE.n.0", "ZC.n.0"], 
-#             "benchmark": ["^GSPC"]
-#         }
-#         self.mock_static_stats = [{
-#             "total_return": 10.0,
-#             "total_trades": 5,
-#             "total_fees": 2.5
-#         }]
-#         self.mock_timeseries_stats =  [{
-#             "timestamp": "2023-12-09T12:00:00Z",
-#             "equity_value": 10000.0,
-#             "percent_drawdown": 9.9, 
-#             "cumulative_return": -0.09, 
-#             "daily_return": 79.9
-#         }]
-#         self.mock_trades =  [{
-#             "trade_id": 1, 
-#             "leg_id": 1, 
-#             "timestamp": "2023-01-03T00:00:00+0000", 
-#             "symbol": "AAPL", 
-#             "quantity": 4, 
-#             "price": 130.74, 
-#             "cost": -522.96, 
-#             "action": "BUY", 
-#             "fees": 0.0
-#         }]
-#         self.mock_signals =  [{
-#             "timestamp": "2023-01-03T00:00:00+0000", 
-#             "trade_instructions": [{
-#                 "ticker": "AAPL", 
-#                 "action": "BUY", 
-#                 "trade_id": 1, 
-#                 "leg_id": 1, 
-#                 "weight": 0.05
-#             }, 
-#             {
-#                 "ticker": "MSFT", 
-#                 "action": "SELL", 
-#                 "trade_id": 1, 
-#                 "leg_id": 2, 
-#                 "weight": 0.05
-#             }]
-#         }]
-
-#         self.backtest.parameters = self.mock_parameters
-#         self.backtest.static_stats = self.mock_static_stats
-#         self.backtest.timeseries_stats = self.mock_timeseries_stats
-#         self.backtest.trade_data = self.mock_trades
-#         self.backtest.signal_data = self.mock_signals
-
-#     # Basic Validation
-#     def test_to_dict_valid(self):
-#         backtest_dict = self.backtest.to_dict()
-
-#         self.assertEqual(backtest_dict['parameters'], self.mock_parameters)
-#         self.assertEqual(backtest_dict['static_stats'], self.mock_static_stats)
-#         self.assertEqual(backtest_dict['timeseries_stats'], self.mock_timeseries_stats)
-#         self.assertEqual(backtest_dict['signals'], self.mock_signals)
-#         self.assertEqual(backtest_dict['trades'], self.mock_trades)
-
-#     def test_save_successful(self):
-#         with ExitStack() as stack:
-#             mock_create_backtest = stack.enter_context(patch.object(self.mock_db_client,'create_backtest', return_value = 201))
-#             mock_print = stack.enter_context(patch('builtins.print'))
-            
-#             self.backtest.save()
-#             mock_create_backtest.assert_called_once_with(self.backtest.to_dict())
-#             mock_print.assert_called_once_with("Backtest save successful.")
-
-#     def test_save_unsuccessful(self):
-#         response = 500
-#         with ExitStack() as stack:
-#             mock_create_backtest = stack.enter_context(patch.object(self.mock_db_client,'create_backtest', return_value = response))
-#             mock_print = stack.enter_context(patch('builtins.print'))
-            
-#             self.backtest.save()
-#             mock_create_backtest.assert_called_once_with(self.backtest.to_dict())
-#             mock_print.assert_called_once_with(f"Backtest save failed with response code: {response}")
-
-#     def test_save_validation_exception(self):
-#         def create_backtest_error(self):
-#             raise ValueError
-        
-#         self.backtest.parameters = ""
-        
-#         with ExitStack() as stack:
-#             mock_create_backtest = stack.enter_context(patch.object(self.mock_db_client,'create_backtest', side_effect = create_backtest_error))
-#             with self.assertRaisesRegex(ValueError,f"Validation Error:" ):
-#                 self.backtest.save()
-
-#     def test_validate_attributes_success(self):
-#         try:
-#             self.backtest.validate_attributes()
-#         except ValueError:
-#             self.fail("validate_attributes() raised ValueError unexpectedly!")
 
 class TestPerformanceManager(unittest.TestCase):    
     def setUp(self) -> None:
@@ -191,7 +83,7 @@ class TestPerformanceManager(unittest.TestCase):
     # Basic Validation
     def test_update_trades_new_trade_valid(self): 
         trade = Trade(
-                timestamp= 165000000,
+                timestamp= np.uint64(165000000),
                 trade_id= 2,
                 leg_id=2,
                 ticker = 'HEJ4',
@@ -203,12 +95,12 @@ class TestPerformanceManager(unittest.TestCase):
         )       
 
         self.performance_manager.update_trades(trade)
-        self.assertEqual(self.performance_manager.trades[0], trade.to_dict())
+        self.assertEqual(self.performance_manager.trades[0], trade)
         self.mock_logger.info.assert_called_once()
     
     def test_update_trades_old_trade_valid(self):        
         trade = Trade(
-                timestamp= 165000000,
+                timestamp= np.uint64(165000000),
                 trade_id= 2,
                 leg_id=2,
                 ticker = 'HEJ4',
@@ -218,16 +110,16 @@ class TestPerformanceManager(unittest.TestCase):
                 action=  Action.SHORT.value,
                 fees= 70 # because not actually a trade
         )  
-        self.performance_manager.trades.append(trade.to_dict())
+        self.performance_manager.trades.append(trade)
 
         self.performance_manager.update_trades(trade)
-        self.assertEqual(self.performance_manager.trades[0], trade.to_dict())
+        self.assertEqual(self.performance_manager.trades[0], trade)
         self.assertEqual(len(self.performance_manager.trades), 1)
         self.assertFalse(self.mock_logger.info.called)
     
     def test_output_trades(self):
         trade = Trade(
-                timestamp= 165000000,
+                timestamp= np.uint64(165000000000000000),
                 trade_id= 2,
                 leg_id=2,
                 ticker = 'HEJ4',
@@ -238,7 +130,7 @@ class TestPerformanceManager(unittest.TestCase):
                 fees= 70 # because not actually a trade
         ) 
         self.performance_manager.update_trades(trade)
-        self.mock_logger.info.assert_called_once_with("\nTrades Updated: \n {'timestamp': '1975-03-25T17:20:00+00:00', 'trade_id': 2, 'leg_id': 2, 'ticker': 'HEJ4', 'quantity': -10, 'price': 50, 'cost': -500, 'action': 'SHORT', 'fees': 70} \n")
+        self.mock_logger.info.assert_called_once_with('\nTrades Updated: \nTimestamp: 1975-03-25T17:20:00+00:00\n  Trade ID: 2\n  Leg ID: 2\n  Ticker: HEJ4\n  Quantity: -10\n  Price: 50\n  Cost: -500\n  Action: SHORT\n  Fees: 70\n')
 
     def test_update_signals_valid(self):        
         self.valid_trade1 = TradeInstruction(ticker = 'AAPL',
@@ -306,10 +198,10 @@ class TestPerformanceManager(unittest.TestCase):
     def test_aggregate_trades_valid(self):
         # Adjusted trades data to use ExecutionDetails format
         self.performance_manager.trades = [
-            ExecutionDetails(timestamp='2022-01-01', trade_id=1, leg_id=1, symbol='XYZ', quantity=10, price=10, cost=-100,fees=10, action=Action.LONG.value),
-            ExecutionDetails(timestamp='2022-01-02', trade_id=1, leg_id=1, symbol='XYZ', quantity=-10, price=15, cost=150, fees=10,action=Action.SELL.value),
-            ExecutionDetails(timestamp='2022-01-01', trade_id=2, leg_id=1, symbol='HEJ4', quantity=-10, price=20, cost=500, fees=10,action=Action.SHORT.value),
-            ExecutionDetails(timestamp='2022-01-02', trade_id=2, leg_id=1, symbol='HEJ4', quantity=10, price=18, cost=-180, fees=10,  action=Action.COVER.value)
+            ExecutionDetails(timestamp=1640995200000000000, trade_id=1, leg_id=1, symbol='XYZ', quantity=10, price=10, cost=-100,fees=10, action=Action.LONG.value),
+            ExecutionDetails(timestamp=1641081600000000000, trade_id=1, leg_id=1, symbol='XYZ', quantity=-10, price=15, cost=150, fees=10,action=Action.SELL.value),
+            ExecutionDetails(timestamp=1640995200000000000, trade_id=2, leg_id=1, symbol='HEJ4', quantity=-10, price=20, cost=500, fees=10,action=Action.SHORT.value),
+            ExecutionDetails(timestamp=1641081600000000000, trade_id=2, leg_id=1, symbol='HEJ4', quantity=10, price=18, cost=-180, fees=10,  action=Action.COVER.value)
         ]
 
         # Call the method
@@ -336,85 +228,78 @@ class TestPerformanceManager(unittest.TestCase):
 
     def test_standardize_to_granularity(self):
         self.equity_curve = [
-            EquityDetails(timestamp='2022-01-01', equity_value=1000.0),
-            EquityDetails(timestamp='2022-01-02', equity_value=99),
-            EquityDetails(timestamp='2022-01-02', equity_value=1010.0),
-            EquityDetails(timestamp='2022-01-03', equity_value=1005.0)
+            EquityDetails(timestamp=1640995200000000000, equity_value=1000.0),
+            EquityDetails(timestamp=1641081600000000000, equity_value=99),
+            EquityDetails(timestamp=1641081600000000000, equity_value=1010.0),
+            EquityDetails(timestamp=1641168000000000000, equity_value=1005.0)
         ]
         
+        # Test 
+        df_input = pd.DataFrame(self.equity_curve)
+        df_input= self.performance_manager._timestamps_to_datetime(df_input) # this happens in the calculate_statistics method
+        df = self.performance_manager._standardize_to_granularity(df_input, 'equity_value')
+
         # Expected Data
         data = {
-                'timestamp': ['2022-01-01', '2022-01-02', '2022-01-03'],
+                'timestamp': pd.to_datetime(['2022-01-01', '2022-01-02', '2022-01-03']),
                 'equity_value': [1000.0, 1010.0, 1005.0],
             }
         expected_df = pd.DataFrame(data)
-        expected_df['timestamp'] = pd.to_datetime(expected_df['timestamp'])
         expected_df.set_index('timestamp', inplace=True)
-        expected_df = expected_df.asfreq('D')
+        expected_df.index.freq = 'D'  # Explicitly setting frequency to daily
 
-        # Test 
-        df_input = pd.DataFrame(self.equity_curve)
-        df = self.performance_manager._standardize_to_granularity(df_input, 'equity_value')
-        
         # Validate
-        # Validate the output types
         self.assertIsInstance(df, pd.DataFrame, "Equity values should be a dataframe.")
-        
-        # Validate the values are the last of each day
         assert_frame_equal(df, expected_df)
 
     def test_standardize_to_granularity_intraday_valid(self):
         self.equity_curve = [
-            EquityDetails(timestamp= '2022-01-01 09:30', equity_value= 1000.0),
-            EquityDetails(timestamp ='2022-01-01 16:00', equity_value= 1005.0),
-            EquityDetails(timestamp= '2022-01-02 09:30', equity_value= 1010.0),
-            EquityDetails(timestamp= '2022-01-02 12:00', equity_value= 1012.0),
-            EquityDetails(timestamp= '2022-01-02 16:00', equity_value= 1015.0),
-            EquityDetails(timestamp= '2022-01-03 09:30', equity_value= 1005.0),
-            EquityDetails(timestamp= '2022-01-03 11:00', equity_value= 1007.0),
-            EquityDetails(timestamp= '2022-01-03 16:00', equity_value= 1010.0)
+            EquityDetails(timestamp= 1641047400000000000, equity_value= 1000.0),
+            EquityDetails(timestamp= 1641070800000000000, equity_value= 1005.0),
+            EquityDetails(timestamp= 1641133800000000000, equity_value= 1010.0),
+            EquityDetails(timestamp= 1641142800000000000, equity_value= 1012.0),
+            EquityDetails(timestamp= 1641157200000000000, equity_value= 1015.0),
+            EquityDetails(timestamp= 1641220200000000000, equity_value= 1005.0),
+            EquityDetails(timestamp= 1641225600000000000, equity_value= 1007.0),
+            EquityDetails(timestamp= 1641243600000000000, equity_value= 1010.0)
         ]
         
+        # Test 
+        df_input = pd.DataFrame(self.equity_curve)
+        df_input= self.performance_manager._timestamps_to_datetime(df_input) # this happens in the calculate_statistics method
+        df = self.performance_manager._standardize_to_granularity(df_input, 'equity_value')
+
         # Expected Data
         data = {
-                'timestamp': ['2022-01-01', '2022-01-02', '2022-01-03'],
+                'timestamp': pd.to_datetime(['2022-01-01', '2022-01-02', '2022-01-03']),
                 'equity_value': [1005.0, 1015.0, 1010.0],
             }
         expected_df = pd.DataFrame(data)
-        expected_df['timestamp'] = pd.to_datetime(expected_df['timestamp'])
         expected_df.set_index('timestamp', inplace=True)
-        expected_df = expected_df.asfreq('D')
-
-        # Test 
-        df_input = pd.DataFrame(self.equity_curve)
-        df = self.performance_manager._standardize_to_granularity(df_input, 'equity_value')
+        expected_df.index.freq = 'D'  # Explicitly setting frequency to daily
         
         # Validate
-        # Validate the output types
         self.assertIsInstance(df, pd.DataFrame, "Equity values should be a dataframe.")
-        
-        # Validate the values are the last of each day
         assert_frame_equal(df, expected_df)
 
     def test_calculate_return_and_drawdown_valid(self):
         self.performance_manager.equity_value = [
-            EquityDetails(timestamp='2022-01-01', equity_value=1000.0),
-            EquityDetails(timestamp='2022-01-02', equity_value=1010.0),
-            EquityDetails(timestamp='2022-01-03', equity_value=1005.0),
-            EquityDetails(timestamp='2022-01-04', equity_value=1030.0),
+            EquityDetails(timestamp=1640995200000000000, equity_value=1000.0),
+            EquityDetails(timestamp=1641081600000000000, equity_value=1010.0),
+            EquityDetails(timestamp=1641168000000000000, equity_value=1005.0),
+            EquityDetails(timestamp=1641254400000000000, equity_value=1030.0),
         ]
 
+        # test
         df_input = pd.DataFrame(self.performance_manager.equity_value)
+        df_input= self.performance_manager._timestamps_to_datetime(df_input)
         df = self.performance_manager._calculate_return_and_drawdown(df_input)
 
-        # Check if the result is a DataFrame
+        # Validate
         self.assertTrue(isinstance(df, pd.DataFrame), "Result should be a pandas DataFrame")
+        self.assertFalse(df.empty, "Resulting DataFrame should not be empty") # Check if the DataFrame is not empty
         
-        # Check if the DataFrame is not empty
-        self.assertFalse(df.empty, "Resulting DataFrame should not be empty")
-
-        # Validate the expected columns are present
-        expected_columns = ['equity_value', 'period_return', 'cumulative_return', 'drawdown']
+        expected_columns = ['equity_value', 'period_return', 'cumulative_return', 'drawdown']# Validate the expected columns are present
         for column in expected_columns:
             self.assertIn(column, df.columns, f"Column {column} is missing in the result")
 
@@ -439,30 +324,30 @@ class TestPerformanceManager(unittest.TestCase):
     def test_calculate_statistics(self):
         # Trades
         self.performance_manager.trades = [
-            ExecutionDetails(timestamp='2022-01-01', trade_id=1, leg_id=1, symbol='XYZ', quantity=10, price=10, cost=-100,fees=10, action=Action.LONG.value),
-            ExecutionDetails(timestamp='2022-01-02', trade_id=1, leg_id=1, symbol='XYZ', quantity=-10, price=15, cost=150, fees=10,action=Action.SELL.value),
-            ExecutionDetails(timestamp='2022-01-01', trade_id=2, leg_id=1, symbol='HEJ4', quantity=-10, price=20, cost=500, fees=10,action=Action.SHORT.value),
-            ExecutionDetails(timestamp='2022-01-02', trade_id=2, leg_id=1, symbol='HEJ4', quantity=10, price=18, cost=-180, fees=10,  action=Action.COVER.value)
+            ExecutionDetails(timestamp=1640995200000000000, trade_id=1, leg_id=1, symbol='XYZ', quantity=10, price=10, cost=-100,fees=10, action=Action.LONG.value),
+            ExecutionDetails(timestamp=1641081600000000000, trade_id=1, leg_id=1, symbol='XYZ', quantity=-10, price=15, cost=150, fees=10,action=Action.SELL.value),
+            ExecutionDetails(timestamp=1640995200000000000, trade_id=2, leg_id=1, symbol='HEJ4', quantity=-10, price=20, cost=500, fees=10,action=Action.SHORT.value),
+            ExecutionDetails(timestamp=1641081600000000000, trade_id=2, leg_id=1, symbol='HEJ4', quantity=10, price=18, cost=-180, fees=10,  action=Action.COVER.value)
         ]
 
         # Equity Curve
         self.performance_manager.equity_value = [
-            EquityDetails(timestamp='2022-01-01 09:30', equity_value=1000.0),  # Initial equity
-            EquityDetails(timestamp='2022-01-01 16:00', equity_value=1000.0),  # No change, trades open
-            EquityDetails(timestamp='2022-01-02 09:30', equity_value=1030.0),  # Reflecting Trade 1 PnL
-            EquityDetails(timestamp='2022-01-02 12:00', equity_value=1330.0),  # Reflecting Trade 2 PnL
-            EquityDetails(timestamp='2022-01-02 16:00', equity_value=1330.0),  # No additional trades
-            EquityDetails(timestamp='2022-01-03 09:30', equity_value=1330.0),  # Assuming no further trades
-            EquityDetails(timestamp='2022-01-03 11:00', equity_value=1330.0),
-            EquityDetails(timestamp='2022-01-03 16:00', equity_value=1330.0)
+            EquityDetails(timestamp= 1641047400000000000, equity_value= 1000.0),
+            EquityDetails(timestamp= 1641070800000000000, equity_value= 1000.0),
+            EquityDetails(timestamp= 1641133800000000000, equity_value= 1030.0),
+            EquityDetails(timestamp= 1641142800000000000, equity_value= 1330.0),
+            EquityDetails(timestamp= 1641157200000000000, equity_value= 1330.0),
+            EquityDetails(timestamp= 1641220200000000000, equity_value= 1330.0),
+            EquityDetails(timestamp= 1641225600000000000, equity_value= 1330.0),
+            EquityDetails(timestamp= 1641243600000000000, equity_value= 1330.0)
         ]
 
 
         # Benchmark Curve
         self.mock_benchmark_data = [
-            {'timestamp': '2022-01-01', 'close': 2000.0},
-            {'timestamp': '2022-01-02', 'close': 2010.0},
-            {'timestamp': '2022-01-03', 'close': 2030.0},
+            {'timestamp': 1640995200000000000, 'close': 2000.0},
+            {'timestamp': 1641081600000000000, 'close': 2010.0},
+            {'timestamp': 1641168000000000000, 'close': 2030.0},
         ]
 
         # Mock the get_benchmark_data method to return the mock benchmark data
@@ -518,39 +403,38 @@ class TestPerformanceManager(unittest.TestCase):
                                                 weight = 0.5)
         self.valid_trade_instructions = [self.valid_trade1,self.valid_trade2]
                         
-        signal_event = SignalEvent(np.uint(1651500000), 10000,self.valid_trade_instructions)
+        signal_event = SignalEvent(np.uint(1651500000000000000), 10000,self.valid_trade_instructions)
 
         self.performance_manager.update_signals(signal_event)
 
         # Trades
         self.trades = [
-            Trade(timestamp=1640995200, trade_id=1, leg_id=1, ticker='XYZ', quantity=10, price=10, cost=-100,fees=10, action=Action.LONG.value),
-            Trade(timestamp=1641081600, trade_id=1, leg_id=1, ticker='XYZ', quantity=-10, price=15, cost=150, fees=10,action=Action.SELL.value),
-            Trade(timestamp=1640995200, trade_id=2, leg_id=1, ticker='HEJ4', quantity=-10, price=20, cost=500, fees=10,action=Action.SHORT.value),
-            Trade(timestamp=1641081600, trade_id=2, leg_id=1, ticker='HEJ4', quantity=10, price=18, cost=-180, fees=10,  action=Action.COVER.value)
+            Trade(timestamp=np.uint64(1640995200000000000), trade_id=1, leg_id=1, ticker='XYZ', quantity=10, price=10, cost=-100,fees=10, action=Action.LONG.value),
+            Trade(timestamp=np.uint64(1641081600000000000), trade_id=1, leg_id=1, ticker='XYZ', quantity=-10, price=15, cost=150, fees=10,action=Action.SELL.value),
+            Trade(timestamp=np.uint64(1640995200000000000), trade_id=2, leg_id=1, ticker='HEJ4', quantity=-10, price=20, cost=500, fees=10,action=Action.SHORT.value),
+            Trade(timestamp=np.uint64(1641081600000000000), trade_id=2, leg_id=1, ticker='HEJ4', quantity=10, price=18, cost=-180, fees=10,  action=Action.COVER.value)
         ]
 
         for trade in self.trades:
             self.performance_manager.update_trades(trade)
-
         # Equity Curve
         self.performance_manager.equity_value = [
-            EquityDetails(timestamp='2022-01-01 09:30', equity_value=1000.0),  # Initial equity
-            EquityDetails(timestamp='2022-01-01 16:00', equity_value=1000.0),  # No change, trades open
-            EquityDetails(timestamp='2022-01-02 09:30', equity_value=1030.0),  # Reflecting Trade 1 PnL
-            EquityDetails(timestamp='2022-01-02 12:00', equity_value=1330.0),  # Reflecting Trade 2 PnL
-            EquityDetails(timestamp='2022-01-02 16:00', equity_value=1330.0),  # No additional trades
-            EquityDetails(timestamp='2022-01-03 09:30', equity_value=1330.0),  # Assuming no further trades
-            EquityDetails(timestamp='2022-01-03 11:00', equity_value=1330.0),
-            EquityDetails(timestamp='2022-01-03 16:00', equity_value=1330.0)
+            EquityDetails(timestamp=np.uint64(1641047400000000000), equity_value=1000.0),  # Initial equity
+            EquityDetails(timestamp=np.uint64(1641070800000000000), equity_value=1000.0),  # No change, trades open
+            EquityDetails(timestamp=np.uint64(1641133800000000000), equity_value=1030.0),  # Reflecting Trade 1 PnL
+            EquityDetails(timestamp=np.uint64(1641142800000000000), equity_value=1330.0),  # Reflecting Trade 2 PnL
+            EquityDetails(timestamp=np.uint64(1641157200000000000), equity_value=1330.0),  # No additional trades
+            EquityDetails(timestamp=np.uint64(1641220200000000000), equity_value=1330.0),  # Assuming no further trades
+            EquityDetails(timestamp=np.uint64(1641225600000000000), equity_value=1330.0),
+            EquityDetails(timestamp=np.uint64(1641243600000000000), equity_value=1330.0)
         ]
 
 
         # Benchmark Curve
         self.mock_benchmark_data = [
-            {'timestamp': '2022-01-01', 'close': 2000.0},
-            {'timestamp': '2022-01-02', 'close': 2010.0},
-            {'timestamp': '2022-01-03', 'close': 2030.0},
+            {'timestamp': np.uint64(1640995200000000000), 'close': 2000.0},
+            {'timestamp': np.uint64(1641081600000000000), 'close': 2010.0},
+            {'timestamp': np.uint64(1641168000000000000), 'close': 2030.0},
         ]
 
         # Mock the get_benchmark_data method to return the mock benchmark data
@@ -558,12 +442,12 @@ class TestPerformanceManager(unittest.TestCase):
         self.performance_manager.calculate_statistics()
 
         # Test 
-        self.performance_manager.create_backtest()
+        self.performance_manager.save_backtest()
         backtest = self.performance_manager.backtest
 
         self.assertEqual(backtest.parameters, self.mock_parameters.to_dict())
         self.assertEqual(backtest.signal_data, [signal_event.to_dict()])
-        self.assertEqual(backtest.trade_data , [trade.to_dict() for trade in self.trades])
+        self.assertEqual(backtest.trade_data , [trade.to_dict() for trade in self.performance_manager.trades])
 
         expected_static_keys = {
                                 'net_profit', 
@@ -596,6 +480,7 @@ class TestPerformanceManager(unittest.TestCase):
 
         expected_timeseries_keys = {'timestamp', 'equity_value','period_return', 'cumulative_return', 'drawdown', 'daily_strategy_return', 'daily_benchmark_return'}  # Adjust based on your actual expected output
         actual_timeseries_keys = set(backtest.timeseries_stats[0].keys())
+        
         self.assertEqual(actual_timeseries_keys, expected_timeseries_keys, "Timeseries stats keys do not match expected keys.")
 
 

@@ -36,6 +36,7 @@ if __name__ == "__main__":
         database.create_venue(Venue.NASDAQ)
         database.create_venue(Venue.CBOT)
         database.create_venue(Venue.NYSE)
+        database.create_venue(Venue.INDEX)
 
         # Create Industries
         database.create_industry(Industry.AGRICULTURE)

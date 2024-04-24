@@ -26,7 +26,7 @@ if __name__ == "__main__":
     dataset=Datasets.CME
     stype=Symbology.CONTINUOSCONTRACT
     start_date="2024-01-07T12:00:00"
-    end_date="2024-02-07T12:10:00"
+    end_date="2024-03-20T12:10:00"
 
     # Check and create assets if they don't exist
     for symbol in symbols:

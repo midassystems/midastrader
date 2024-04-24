@@ -1,9 +1,12 @@
+import numpy as np
 from dataclasses import dataclass
 from typing import TypedDict, Union
 from datetime import datetime, timezone
 
+from shared.utils import unix_to_iso
+
 class ExecutionDetails(TypedDict):
-    timestamp: Union[int,float]
+    timestamp: np.uint64
     trade_id: int
     leg_id: int
     symbol: str
@@ -17,7 +20,7 @@ class ExecutionDetails(TypedDict):
 class Trade:
     trade_id: int
     leg_id: int
-    timestamp: Union[int,float]
+    timestamp: np.uint64
     ticker: str
     quantity: Union[int,float]
     price: float
@@ -31,8 +34,8 @@ class Trade:
             raise TypeError(f"'trade_id' must be of type int")
         if not isinstance(self.leg_id, int):
             raise TypeError(f"'leg_id' must be of type int")
-        if not isinstance(self.timestamp, (float,int)):
-            raise TypeError(f"'timestamp' should be in UNIX format of type float or int, got {type(self.timestamp).__name__}")
+        if not isinstance(self.timestamp, np.uint64):
+            raise TypeError("timestamp must be of type np.uint64.")
         if not isinstance(self.ticker, str):
             raise TypeError(f"'ticker' must be of type str")
         if not isinstance(self.quantity, (float, int)):
@@ -54,12 +57,17 @@ class Trade:
         
         #TODO : Add validation for cost/quantity depending on the action
 
-    # def __str__(self) -> str:
-    #     return f"\nTrade: \n Timestamp: {self.timestamp}\n Trade ID:\n{self.trade_id}\n Leg ID:\n{self.leg_id}\n Ticker:\n{self.ticker}\n Quantity:\n{self.quantity}\n Price:\n{self.price}\n Cost:\n{self.cost}\n Action:\n{self.action}\n Fees:\n{self.fees}\n"
+    def __str__(self) -> str:
+        return (f"Timestamp: {unix_to_iso(self.timestamp)}\n  Trade ID: {self.trade_id}\n  Leg ID: {self.leg_id}\n  Ticker: {self.ticker}\n  Quantity: {self.quantity}\n  Price: {self.price}\n  Cost: {self.cost}\n  Action: {self.action}\n  Fees: {self.fees}\n")
+    
+    def __eq__(self, other):
+        if not isinstance(other, Trade):
+            return NotImplemented
+        return self.trade_id == other.trade_id and self.leg_id == other.leg_id
     
     def to_dict(self):
         return {
-            "timestamp": datetime.fromtimestamp(self.timestamp, timezone.utc).isoformat(), # convert to isoformant form unix
+            "timestamp": int(self.timestamp), # convert to isoformant form unix
             "trade_id": self.trade_id,
             "leg_id": self.leg_id,
             "ticker": self.ticker, 

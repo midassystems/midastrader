@@ -65,7 +65,7 @@ class TestDataApp(unittest.TestCase):
         count = 10
         valid_bar = BarData(
                             ticker='AAPL',
-                            timestamp=time,
+                            timestamp=np.uint64(time * 1e9),
                             open=open, 
                             high=high,
                             low=low,
@@ -73,7 +73,7 @@ class TestDataApp(unittest.TestCase):
                             volume=np.uint64(volume))
 
         self.data_app.realtimeBar(reqId, time, open, high, low, close, volume, wap, count)
-        self.mock_order_book.update_market_data.assert_called_once_with(timestamp=time, data={'AAPL':valid_bar})
+        self.mock_order_book.update_market_data.assert_called_once_with(timestamp=np.uint64(time * 1e9), data={'AAPL':valid_bar})
         self.assertEqual(self.data_app.current_bar_data, {})
 
 if __name__ == '__main__':

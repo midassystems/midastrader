@@ -180,7 +180,7 @@ class TestController(unittest.TestCase):
         self.assertTrue(self.mock_config.broker_client.eod_update.called)
         self.assertTrue(self.mock_config.broker_client.liquidate_positions.called)
         self.assertTrue(self.mock_config.performance_manager.calculate_statistics.called)
-        self.assertTrue(self.mock_config.performance_manager.create_backtest.called)
+        self.assertTrue(self.mock_config.performance_manager.save_backtest.called)
     
     # ---- Have to exit is Ctrl + C or will hang ---- 
     # def test_run_live(self):
