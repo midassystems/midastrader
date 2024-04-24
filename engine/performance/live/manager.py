@@ -42,20 +42,20 @@ class LivePerformanceManager(BasePerformanceManager):
         combined_data = {}
         self._process_account_snapshot(self.account_log[0], 'start', combined_data)
         self._process_account_snapshot(self.account_log[-1], 'end', combined_data)
+        self.logger.info(f"Account Data {combined_data}")
 
         # Create Live Summary Object
-
         self.live_summary = LiveTradingSession(parameters=self.params.to_dict(),
                                                signal_data=self.signals,
                                                trade_data=list(self.trades.values()),
                                                account_data=[combined_data])
+        print(self.live_summary.to_dict())
+        
+        # Save Live Summary Session 
+        response = self.database.create_live_session(self.live_summary)
+        self.logger.info(f"Live Session= saved to data base with response : {response}")
 
-        # j = json.dumps(self.live_summary.to_dict())
-        # print(j)
 
-        # Save Live Summary Object
-        # response = self.live_summary.save()
-        # self.logger.info(f"Live session details saved :\n{response}")
 
 
     

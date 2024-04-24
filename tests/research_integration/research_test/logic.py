@@ -17,6 +17,7 @@ class Signal(Enum):
 class Cointegrationzscore(BaseStrategy):
     def __init__(self):
         self.last_signal = None  # 0: no position, 1: long, -1: short
+        self.zscore_lookback=30
         self.historical_data = None
         self.cointegration_vector = None
         self.historical_spread = []
@@ -24,7 +25,7 @@ class Cointegrationzscore(BaseStrategy):
 
     def prepare(self, train_data: pd.DataFrame) -> str:
         # Convert Unix to ISO
-        train_data.index = pd.to_datetime(train_data.index, unit='s')
+        # train_data.index = pd.to_datetime(train_data.index, unit='s')
         symbols = train_data.columns.tolist()
 
         # train_data = adjust_to_business_time(train_data, frequency='daily')
@@ -53,7 +54,7 @@ class Cointegrationzscore(BaseStrategy):
 
         html_content += f"{TimeseriesTests.display_adf_results({'spread': validation_results['adf_test']}, False, True, indent = 1)}\n"
         html_content += f"{TimeseriesTests.display_pp_results({'spread': validation_results['pp_test']}, False, True, indent = 1)}\n"
-        html_content += f"{tab}<p>Hurst Exponent: {validation_results['hurst_exponent']}</p>\n"
+        # html_content += f"{tab}<p>Hurst Exponent: {validation_results['hurst_exponent']}</p>\n"
         html_content += f"{tab}<p>Half-Life: {validation_results['half_life']}</p>\n"
         html_content += "</section>"
 
@@ -62,6 +63,7 @@ class Cointegrationzscore(BaseStrategy):
     def _cointegration(self, train_data:pd.DataFrame) -> None:
         # Determine Lag Length
         lag = TimeseriesTests.select_lag_length(data=train_data)
+        # lag = 2 # delete
         
         # Check Cointegration Relationship
         johansen_results, num_cointegrations = TimeseriesTests.johansen_test(data=train_data, k_ar_diff=lag-1)
@@ -82,14 +84,14 @@ class Cointegrationzscore(BaseStrategy):
         new_spread = train_data.dot(cointegration_vector) # produces a pd.Series
         self.historical_spread = new_spread.tolist()
 
-    def _historic_zscore(self, lookback_period=30) -> None:
+    def _historic_zscore(self) -> None:
         # Convert historical spread to a pandas Series for convenience
         spread_series = pd.Series(self.historical_spread)
         
-        if lookback_period is not None:
+        if self.zscore_lookback is not None:
             # Use a rolling window if lookback_period is specified
-            mean = spread_series.rolling(window=lookback_period).mean()
-            std = spread_series.rolling(window=lookback_period).std()
+            mean = spread_series.rolling(window=self.zscore_lookback).mean()
+            std = spread_series.rolling(window=self.zscore_lookback).std()
         else:
             # Use an expanding window if lookback_period is None, considering all data up to each point
             mean = spread_series.expanding().mean()
@@ -102,7 +104,7 @@ class Cointegrationzscore(BaseStrategy):
         results = {
             'adf_test': TimeseriesTests.adf_test(self.historical_spread),
             'pp_test': TimeseriesTests.phillips_perron_test(self.historical_spread),
-            'hurst_exponent': TimeseriesTests.hurst_exponent(self.historical_spread),
+            # 'hurst_exponent': TimeseriesTests.hurst_exponent(self.historical_spread),
             'half_life': None,  # This will be calculated and added below
         }
         

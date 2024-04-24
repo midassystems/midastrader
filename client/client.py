@@ -687,7 +687,7 @@ class DatabaseClient:
             all_data.extend(batch_data)
 
             # Set the start of the next batch to the end of the current batch
-            current_start_unix = current_end_unix
+            current_start_unix = current_end_unix + 1
 
         return all_data
 

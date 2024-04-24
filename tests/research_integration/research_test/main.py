@@ -14,17 +14,18 @@ from research.backtester import PerformanceStatistics
 
 logging.basicConfig(level=logging.INFO)
 
-database  = DatabaseClient(config('MIDAS_API_KEY'), config('MIDAS_URL'))
+database = DatabaseClient(config('LOCAL_API_KEY'), config('LOCAL_URL'))
 
-if __name__ == "__main__":
+def main():
     # Set-up Report
-    report_path = "/Users/anthony/git-projects/midas/midasPython/tests/research_integration/cointegrationzscore/outputs/cointegrationzscore.html"
+    report_path = "/Users/anthony/git-projects/midas/midasPython/tests/research_integration/research_test/outputs/cointegrationzscore.html"
     report = HTMLReportGenerator(report_path)
 
     # Step 1 : Set-Up
     # Parameters
-    start_date = "2024-01-06"
-    end_date = "2024-02-07"
+    start_date="2024-01-01T12:00:00"
+    end_date="2024-03-20T12:10:00"
+
     tickers = ['HE.n.0', 'ZC.n.0']
     benchmark=["^GSPC"]
     entry = [0.0]
@@ -39,12 +40,13 @@ if __name__ == "__main__":
     data_processing.get_data(tickers, start_date,end_date, "drop")
     data = data_processing.processed_data
 
+    data=data.pivot(index='timestamp', columns='symbol', values='close')
     data.dropna(inplace=True)
 
     # Benchmark Data
     benchmark_data = database.get_benchmark_data(benchmark, start_date, end_date)
     benchmark_df = pd.DataFrame(benchmark_data)
-    benchmark_df['timestamp'] = pd.to_datetime(benchmark_df['timestamp'])
+    # benchmark_df['timestamp'] = pd.to_datetime(benchmark_df['timestamp'], utc=True)
     benchmark_df['close'] = benchmark_df['close'].astype(float)
 
     # Step 3 : Run Backtest
@@ -111,7 +113,8 @@ if __name__ == "__main__":
     report.complete_report()
 
 
-
+if __name__ == "__main__":
+    main()
 
 # def run_sensitivity_analysis(backtest, entry_thresholds, exit_thresholds):
 #     sensitivity_results = {}

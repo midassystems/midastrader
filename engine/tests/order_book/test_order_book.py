@@ -128,7 +128,7 @@ class TestOrderBook(unittest.TestCase):
         # Validation
         self.assertEqual(price, data[tickers[0]].close)
         self.assertEqual(price, data[tickers[1]].close)
-        self.assertEqual(type(price), Decimal)
+        self.assertEqual(type(price), float)
 
     def test_current_price_tick_valid(self):
         tickers = ['HEJ4', 'AAPL']
@@ -138,9 +138,9 @@ class TestOrderBook(unittest.TestCase):
         price = self.valid_quotedata_order_book.current_price(ticker=tickers[0])
 
         # Validation
-        self.assertEqual(price, (data[tickers[0]].ask + data[tickers[0]].bid )/2)
-        self.assertEqual(price,  (data[tickers[1]].ask + data[tickers[1]].bid )/2)
-        self.assertEqual(type(price), Decimal)
+        self.assertEqual(price, float((data[tickers[0]].ask + data[tickers[0]].bid )/2))
+        self.assertEqual(price,  float((data[tickers[1]].ask + data[tickers[1]].bid )/2))
+        self.assertEqual(type(price), float)
     
     def test_current_prices_bar_valid(self):
         tickers = ['HEJ4', 'AAPL']

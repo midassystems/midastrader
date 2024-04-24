@@ -94,4 +94,4 @@ class EventController:
         
         # Finalize and save to database
         self.performance_manager.calculate_statistics() ## -- check point --
-        self.performance_manager.create_backtest()
+        self.performance_manager.save_backtest()

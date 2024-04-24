@@ -56,9 +56,9 @@ class OrderBook(Subject):
         if ticker in self.book:
             data = self.book[ticker]
             if self.data_type.value == MarketDataType.BAR.value:
-                return data.close # returns close as it is most recent
+                return float(data.close) # returns close as it is most recent
             elif self.data_type.value == MarketDataType.QUOTE.value: 
-                return (data.ask + data.bid) / 2 # returns a mid-price
+                return float((data.ask + data.bid) / 2) # returns a mid-price
         else:
             return None  # Ticker not found
 
@@ -66,7 +66,7 @@ class OrderBook(Subject):
         prices = {}
         for key, data in self.book.items():
             if self.data_type.value == MarketDataType.BAR.value:
-                prices[key] = data.close
+                prices[key] = float(data.close) # convert Decimal to float
             elif self.data_type.value == MarketDataType.QUOTE.value:
                 prices[key] = (data.ask + data.bid) / 2 
         return prices

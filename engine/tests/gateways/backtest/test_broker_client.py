@@ -94,7 +94,7 @@ class TestBrokerClient(unittest.TestCase):
         aapl_entry_price = 50
         aapl_multiplier = 1
         valid_trade_appl = ExecutionDetails(
-                timestamp= 165000000,
+                timestamp= np.uint64(165000000),
                 trade_id= 1,
                 leg_id=1,
                 symbol= aapl_contract.symbol,

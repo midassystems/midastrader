@@ -66,7 +66,7 @@ if __name__ == "__main__":
     
     # Variables
     start_date = "2024-01-01"
-    end_date ="2024-02-07"
+    end_date ="2024-03-20"
     symbols = ["^GSPC"]
 
     # Check if symbols exist

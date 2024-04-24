@@ -205,7 +205,6 @@ class Config:
         if not isinstance(strategy, type) or not issubclass(strategy, BaseStrategy):
             raise ValueError(f"'strategy' must be a class and a subclass of BaseStrategy.")
         try:
-            print(self.train_data)
             self.strategy = strategy(symbols_map= self.symbols_map, train_data = self.train_data, portfolio_server=self.portfolio_server, logger = self.logger, order_book = self.order_book, event_queue=self.event_queue)
             
         except:

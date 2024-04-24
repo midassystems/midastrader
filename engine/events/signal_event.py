@@ -36,6 +36,6 @@ class SignalEvent:
     
     def to_dict(self):
         return {
-            "timestamp": self.timestamp,
+            "timestamp": int(self.timestamp),
             "trade_instructions": [trade.to_dict() for trade in self.trade_instructions]
         }
