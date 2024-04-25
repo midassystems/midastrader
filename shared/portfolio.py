@@ -10,7 +10,7 @@ class EquityDetails(TypedDict):
     equity_value : float
 
 class AccountDetails(TypedDict):
-    Timestamp: Optional[str]
+    Timestamp: np.uint64
     FullAvailableFunds : float # Available funds of whole portfolio with no discounts or intraday credits
     FullInitMarginReq: float # Initial Margin of whole portfolio with no discounts or intraday credits
     NetLiquidation: float # The basis for determining the price of the assets in your account

@@ -3,7 +3,6 @@ from enum import Enum
 from typing import Optional
 from ibapi.contract import Contract
 from dataclasses import dataclass, field
-from decimal import Decimal, ROUND_HALF_UP
 
 # -- Symbol Details --
 class AssetClass(Enum):
@@ -59,8 +58,7 @@ class Industry(Enum):
     
     # Commodities
     METALS='Metals' 
-    AGRICULTURE='Agriculture'
-    #ENERGY         
+    AGRICULTURE='Agriculture'       
 
 class ContractUnits(Enum):
     BARRELS='Barrels'
@@ -159,7 +157,7 @@ class Equity(Symbol):
     security_type: SecurityType = SecurityType.STOCK
 
     def __post_init__(self):
-        # Additional type checks
+        # Type checks
         if not isinstance(self.company_name, str):
             raise TypeError("company_name must be of type str")
         if not isinstance(self.industry, Industry):
@@ -169,19 +167,19 @@ class Equity(Symbol):
         if not isinstance(self.shares_outstanding, int):
             raise TypeError("shares_outstanding must be of type int.")
         
-        super().__post_init__()  # Call to check types in superclass
+        super().__post_init__()
 
     def to_contract_data(self) -> dict:
         data = super().to_contract_data()
         return data
     
     def to_dict(self):
-        symbol_dict = super().to_dict()  # Properly call the superclass to_dict
+        symbol_dict = super().to_dict() 
         symbol_dict ["symbol_data"]= {
             'company_name': self.company_name,
-            'venue': self.exchange.value,  # Make sure venue is correctly serialized
-            'currency': self.currency.value,  # Same for currency
-            'industry': self.industry.value,  # And industry
+            'venue': self.exchange.value,  
+            'currency': self.currency.value,  
+            'industry': self.industry.value,  
             'market_cap': self.market_cap,
             'shares_outstanding': self.shares_outstanding
         }
@@ -201,7 +199,7 @@ class Future(Symbol):
     security_type: SecurityType = SecurityType.FUTURE    
 
     def __post_init__(self):
-        # Additional type checks
+        # Type checks
         if not isinstance(self.product_code, str):
             raise TypeError("product_code must be of type str")
         if not isinstance(self.product_name, str):
@@ -221,25 +219,19 @@ class Future(Symbol):
         if not isinstance(self.lastTradeDateOrContractMonth, str):
             raise TypeError(f"lastTradeDateOrContractMonth must be a string")
 
-        super().__post_init__()  # Call to check types in superclass
+        super().__post_init__() 
         
-        # Constraint Validation
+        # Constraint Checks
         if self.tick_size <= 0:
             raise ValueError(f"tickSize must be greater than 0")
-        # if self.multiplier <= 0:
-        #     raise ValueError(f"multiplier must be greater than 0")
-        # if self.initialMargin <= 0:
-        #     raise ValueError(f"initialMargin must be greater than 0")
 
     def to_contract_data(self) -> dict:
         data = super().to_contract_data()
         data["lastTradeDateOrContractMonth"] = self.lastTradeDateOrContractMonth
-        # data['multiplier'] = self.multiplier
         return data
 
-    
     def to_dict(self):
-        symbol_dict = super().to_dict()  # Properly call the superclass to_dict
+        symbol_dict = super().to_dict() 
         symbol_dict ["symbol_data"]= {
             'product_code': self.product_code,
             'product_name':  self.product_name,
@@ -265,7 +257,7 @@ class Option(Symbol):
     security_type: SecurityType = SecurityType.OPTION
 
     def __post_init__(self):
-        # Additional type checks
+        # Type checks
         if not isinstance(self.strike_price, (int, float)):
             raise TypeError("strike_price must be of type int or float")
         if not isinstance(self.expiration_date, str):
@@ -279,24 +271,21 @@ class Option(Symbol):
         if not isinstance(self.lastTradeDateOrContractMonth, str):
             raise TypeError(f"lastTradeDateOrContractMonth must be a string")
         
-        # Constraint Validation
+        # Constraint checks
         if self.strike_price <= 0:
             raise ValueError(f"strike must be greater than 0")
-        # if self.multiplier <= 0:
-        #     raise ValueError(f"multiplier must be greater than 0")
 
-        super().__post_init__()  # Call to check types in superclass
+        super().__post_init__()  
     
     def to_contract_data(self) -> dict:
         data = super().to_contract_data()
         data["lastTradeDateOrContractMonth"] = self.lastTradeDateOrContractMonth
-        # data['multiplier'] = self.multiplier
-        data["right"] = self.option_type.value  # Assuming Right is an Enum
+        data["right"] = self.option_type.value
         data["strike"] = self.strike_price
         return data
     
     def to_dict(self):
-        symbol_dict = super().to_dict()  # Properly call the superclass to_dict
+        symbol_dict = super().to_dict() 
         symbol_dict ["symbol_data"]= {
             'strike_price': self.strike_price,
             'currency': self.currency.value, 
@@ -313,7 +302,7 @@ class Index(Symbol):
     name: str = None
     asset_class: AssetClass = None
     
-    # Don't need to set these -- overiding symbol --
+    # Default
     fees: float = 0.0
     initialMargin: float = 0.0
     quantity_multiplier: int = 1
@@ -321,18 +310,17 @@ class Index(Symbol):
     exchange: Venue= Venue.INDEX
     security_type: SecurityType = SecurityType.INDEX
 
-
     def __post_init__(self):
-        # Additional type checks
+        # Type checks
         if not isinstance(self.name, str):
             raise TypeError("name must be of type str")
         if not isinstance(self.asset_class, AssetClass):
             raise TypeError("asset_class must be of type AssetClass.")
         
-        super().__post_init__()  # Call to check types in superclass
+        super().__post_init__()  
     
     def to_dict(self):
-        symbol_dict = super().to_dict()  # Properly call the superclass to_dict
+        symbol_dict = super().to_dict() 
         symbol_dict ["symbol_data"]= {
             'name': self.name,
             'currency': self.currency.value,

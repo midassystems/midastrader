@@ -2,7 +2,19 @@ import pytz
 from datetime import datetime, timezone
 
 def iso_to_unix(timestamp_str: str):
-    """Converts ISO to UNIX in nanoseconds."""
+    """
+    Converts an ISO 8601 formatted date string to a UNIX timestamp in nanoseconds.
+
+    This function parses a provided ISO 8601 string, which may or may not include timezone information.
+    If no timezone is specified, the function defaults to UTC. It then converts this datetime object to
+    the corresponding UNIX timestamp expressed in nanoseconds since the epoch (January 1, 1970, 00:00:00 UTC).
+
+    Parameters:
+    - timestamp_str (str): An ISO 8601 formatted datetime string.
+
+    Returns:
+    - int: The UNIX timestamp in nanoseconds corresponding to the given ISO 8601 datetime.
+    """
     try:
         # Try to parse the timestamp with timezone information
         dt = datetime.fromisoformat(timestamp_str)
@@ -15,7 +27,20 @@ def iso_to_unix(timestamp_str: str):
     return unix_timestamp
 
 def unix_to_iso(unix_timestamp: int, tz_info='UTC'):
-    """Converts UNIX in nanoseconds to ISO assuming UNIX in nanoseconds"""
+    """
+    Converts a UNIX timestamp in nanoseconds to an ISO 8601 formatted string, with an optional timezone.
+
+    This function takes a UNIX timestamp in nanoseconds and converts it into a datetime object. The datetime
+    is initially set in UTC. If a different timezone is specified, the datetime is converted to that timezone
+    before formatting it into an ISO 8601 string.
+
+    Parameters:
+    - unix_timestamp (int): The UNIX timestamp in nanoseconds since the epoch.
+    - tz_info (str): A string representing the timezone for the resulting ISO string. Defaults to 'UTC'.
+
+    Returns:
+    - str: An ISO 8601 formatted datetime string in the specified timezone.
+    """
     # Convert Unix timestamp to datetime object in UTC
     dt_utc = datetime.fromtimestamp(unix_timestamp  / 1e9, tz=timezone.utc)
 

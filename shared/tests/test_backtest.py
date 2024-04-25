@@ -2,10 +2,6 @@ import unittest
 from unittest.mock import Mock, patch
 
 from shared.backtest import Backtest
-from shared.portfolio import EquityDetails
-from engine.command.parameters import Parameters
-from shared.trade import Trade, ExecutionDetails
-from engine.performance.regression import RegressionAnalysis
 
 # #TODO: edge cases
 class TestBacktest(unittest.TestCase):    
@@ -115,8 +111,10 @@ class TestBacktest(unittest.TestCase):
 
     # Basic Validation
     def test_to_dict(self):
+        # test
         backtest_dict = self.backtest.to_dict()
 
+        # validate
         self.assertEqual(backtest_dict['parameters'], self.mock_parameters)
         self.assertEqual(backtest_dict['static_stats'], self.mock_static_stats)
         self.assertEqual(backtest_dict['timeseries_stats'], self.mock_timeseries_stats)

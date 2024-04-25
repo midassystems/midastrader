@@ -1,7 +1,6 @@
 import numpy as np
 from dataclasses import dataclass
 from typing import TypedDict, Union
-from datetime import datetime, timezone
 
 from shared.utils import unix_to_iso
 
@@ -67,7 +66,7 @@ class Trade:
     
     def to_dict(self):
         return {
-            "timestamp": int(self.timestamp), # convert to isoformant form unix
+            "timestamp": int(self.timestamp), 
             "trade_id": self.trade_id,
             "leg_id": self.leg_id,
             "ticker": self.ticker, 

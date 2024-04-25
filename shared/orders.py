@@ -1,6 +1,5 @@
 # shared/orders.py
 from enum import Enum 
-from typing  import  Any
 from ibapi.order import Order
 
 
@@ -28,7 +27,13 @@ class OrderType(Enum):
 
 class BaseOrder:
     """ 
-    Base class for order creation. Should not be used directly, access through a subclass.
+    A base class for creating order objects. *** This class should not be instantiated directly but should be extended by subclasses that specify more detailed behavior. *** 
+
+    Parameters:
+    - action (Action): The action of the order, which should be an instance of the Action enum.
+    - quantity (float|int): The quantity of the financial instrument to be ordered. Must be a non-zero integer or float.
+    - orderType (OrderType): The type of order, which should be an instance of the OrderType enum.
+
     """
     def __init__(self, action: Action, quantity: float, orderType: OrderType) -> None:
         # Type Check
@@ -57,10 +62,35 @@ class BaseOrder:
         return self.order.totalQuantity if self.order.action == 'BUY' else -self.order.totalQuantity
 
 class MarketOrder(BaseOrder):
+    """
+    Represents a market order where the transaction is executed immediately at the current market price. 
+    This class inherits from the `BaseOrder` class and specifies the order type as MARKET.
+
+    Parameters:
+    - action (Action): The action of the order, 'BUY' or 'SELL'.
+    - quantity (float): The amount of the asset to be traded.
+
+    Example:
+    - buy_order = MarketOrder(action=Action.BUY, quantity=100)
+    """
+
     def __init__(self, action: Action, quantity: float):
         super().__init__(action, quantity, OrderType.MARKET)
 
 class LimitOrder(BaseOrder):
+    """
+    Represents a limit order where the transaction is executed at a specified price or better.
+    This class inherits from the `BaseOrder` class and specifies the order type as LIMIT.
+
+    Parameters:
+    - action (Action): The action of the order, 'BUY' or 'SELL'.
+    - quantity (float): The amount of the asset to be traded.
+    - limit_price (float|int): The price limit at which the order should be executed.
+
+    Example:
+    - sell_order = LimitOrder(action=Action.SELL, quantity=50, limit_price=150.25)
+    """
+
     def __init__(self, action: Action, quantity: float, limit_price: float):
         if not isinstance(limit_price, (float,int)):
             raise TypeError("'limit_price' must be of type float or int.")
@@ -71,6 +101,18 @@ class LimitOrder(BaseOrder):
         self.order.lmtPrice = limit_price
         
 class StopLoss(BaseOrder):
+    """
+    Represents a stop-loss order where the transaction is executed once a specified price point is reached.
+    This class inherits from the `BaseOrder` class and specifies the order type as STOPLOSS.
+
+    Parameters:
+    - action (Action): The action of the order, 'BUY' or 'SELL'.
+    - quantity (float): The amount of the asset to be traded.
+    - aux_price (float|int): The auxiliary price at which the order becomes a market order.
+
+    Example:
+    - stop_loss_order = StopLoss(action=Action.BUY, quantity=100, aux_price=300)
+    """
     def __init__(self, action: Action, quantity: float, aux_price: float) -> None:
         if not isinstance(aux_price,(float, int)):
             raise TypeError("'aux_price' must be of type float or int.")

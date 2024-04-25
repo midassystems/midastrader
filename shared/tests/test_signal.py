@@ -16,13 +16,14 @@ class TestTradeInsructions(unittest.TestCase):
     
     # Basic Validation
     def test_valid_construction(self):
+        # test
         instructions = TradeInstruction(ticker=self.valid_ticker,
                                         order_type=self.valid_order_type,
                                         action=self.valid_action,
                                         trade_id=self.valid_trade_id,
                                         leg_id=self.valid_leg_id,
                                         weight=self.valid_weight)
-
+        # validate
         self.assertEqual(instructions.ticker, self.valid_ticker)
         self.assertEqual(instructions.order_type, self.valid_order_type)
         self.assertEqual(instructions.action, self.valid_action)

@@ -7,7 +7,6 @@ from shared.live_session import LiveTradingSession
 #TODO: edge cases
 class TestLiveTradingSession(unittest.TestCase):    
     def setUp(self) -> None:
-        
         self.mock_parameters = {
                                 "strategy_name": "cointegrationzscore", 
                                 "capital": 100000, 
@@ -78,8 +77,10 @@ class TestLiveTradingSession(unittest.TestCase):
 
     # Basic Validation
     def test_to_dict_valid(self):
+        # test
         session_dict = self.session.to_dict()
 
+        # validate
         self.assertEqual(session_dict['parameters'], self.mock_parameters)
         self.assertEqual(session_dict['account_data'], self.mock_acount)
         self.assertEqual(session_dict['signals'], self.mock_signals)
