@@ -1,11 +1,7 @@
 import unittest
-import numpy as np
 from decouple import config
-from decimal import Decimal
 
 from sources.databento import *
-from client import DatabaseClient
-from shared.market_data import BarData
 
 DATABENTO_KEY=config('DATABENTO_API_KEY')
 
@@ -15,14 +11,12 @@ class TestDatabentoClient(unittest.TestCase):
         cls.client = DatabentoClient(DATABENTO_KEY)
     
     def setUp(self) -> None:
-        self.symbols = ['ZC.n.0'] #, 'ZM.n.0'] # 'n' Will rank the expirations by the open interest at the previous day's close
+        self.symbols = ['ZC.n.0'] # 'n' Will rank the expirations by the open interest at the previous day's close
         self.schema = Schemas.Trades
         self.dataset = Datasets.CME
         self.stype = Symbology.CONTINUOSCONTRACT
         self.start_date="2024-02-06T12:00:00"
         self.end_date="2024-02-06T12:10:00"
-        # start_datetime = datetime.strptime(start_date_str, "%Y-%m-%d")
-        # end_datetime = datetime.strptime(end_date_str, "%Y-%m-%d") + timedelta(days=1, seconds=-1)
 
     def test_get_cost(self):
         # test
@@ -50,16 +44,6 @@ class TestDatabentoClient(unittest.TestCase):
         # validate
         self.assertEqual(response.schema, schema.value)
         self.assertTrue(len(df) > 0)
-
-    # def test_get_historical_trades(self):
-    #     response=self.client._cost_check(self.dataset, self.symbols, self.schema, self.stype,self.start_date, self.end_date)
-        
-    #     print(response)
-
-    # def test_get_historical_tbbo(self):
-    #     # test
-    #     response=self.client.get_historical_tbbo(self.dataset, self.symbols,self.stype, self.start_date, self.end_date)
-    #     print(response.to_df())
 
 if __name__ == "__main__":
     unittest.main()
