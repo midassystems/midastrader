@@ -1,13 +1,5 @@
-import pandas as pd
 from enum import Enum
 import databento as db
-from decouple import config
-from datetime import datetime, timedelta
-
-pd.set_option('display.max_colwidth', None)
-pd.set_option('display.max_columns', 100)
-pd.set_option('display.width', 1000) # Adjust the width of the display in characters
-pd.set_option('display.max_rows', None)
 
 class Schemas(Enum):
     MBO='mbo'               # Market by order, full order book, tick data
@@ -41,7 +33,20 @@ class DatabentoClient:
         self.live_client = db.Live(api_key)
 
     def get_size(self, dataset: Datasets, symbols:list, schema:Schemas, stype:Symbology, start_date:str, end_date:str) -> float:
-        """ Returns data size in GBs."""
+        """
+        Calculates and returns the size of data in gigabytes (GB) for a specified range and criteria.
+
+        Parameters:
+        - dataset (Datasets): The dataset from which data is fetched. This should be an enum instance specifying the dataset.
+        - symbols (list): A list of strings representing the symbols for which data is requested.
+        - schema (Schemas): The schema to be used for the data. This should be an enum instance specifying the schema.
+        - stype (Symbology): The symbology type for the symbols provided. This should be an enum instance.
+        - start_date (str): The start date for the data range, formatted as 'YYYY-MM-DD'.
+        - end_date (str): The end date for the data range, formatted as 'YYYY-MM-DD'.
+
+        Returns:
+            float: The size of the requested data in gigabytes (GB).
+        """
         try:
             size = self.hist_client.metadata.get_billable_size(
                 dataset=dataset.value,
@@ -57,8 +62,20 @@ class DatabentoClient:
             raise Exception(f"Error retrieving request cost: {e}")
 
     def get_cost(self, dataset: Datasets, symbols:list, schema:Schemas, stype:Symbology, start_date:str, end_date:str) -> float:
-        """ Cost returned in USD."""
+        """
+        Returns the cost of a data request for a specified range and criteria.
 
+        Parameters:
+        - dataset (Datasets): The dataset from which data is fetched. This should be an enum instance specifying the dataset.
+        - symbols (list): A list of strings representing the symbols for which data is requested.
+        - schema (Schemas): The schema to be used for the data. This should be an enum instance specifying the schema.
+        - stype (Symbology): The symbology type for the symbols provided. This should be an enum instance.
+        - start_date (str): The start date for the data range, formatted as 'YYYY-MM-DD'.
+        - end_date (str): The end date for the data range, formatted as 'YYYY-MM-DD'.
+
+        Returns:
+            float: The cost of the requested data in USD($).
+        """
         try:
             cost = self.hist_client.metadata.get_cost(
                 dataset=dataset.value,
@@ -73,7 +90,21 @@ class DatabentoClient:
         except Exception as e:
             raise Exception(f"Error retrieving request cost: {e}")
 
-    def _cost_check(self, dataset: Datasets, symbols:list, schema:Schemas, stype:Symbology, start_date:str, end_date:str) -> float:
+    def _cost_check(self, dataset: Datasets, symbols:list, schema:Schemas, stype:Symbology, start_date:str, end_date:str) -> bool :
+        """
+        Checks and confirms with the user the cost of a data pull before proceeding.
+
+        Parameters:
+        - dataset (Datasets): The dataset from which data is fetched. This should be an enum instance specifying the dataset.
+        - symbols (list): A list of strings representing the symbols for which data is requested.
+        - schema (Schemas): The schema to be used for the data. This should be an enum instance specifying the schema.
+        - stype (Symbology): The symbology type for the symbols provided. This should be an enum instance.
+        - start_date (str): The start date for the data range, formatted as 'YYYY-MM-DD'.
+        - end_date (str): The end date for the data range, formatted as 'YYYY-MM-DD'.
+
+        Returns:
+            bool : True if the user confirms the cost and wishes to proceed, False if the user declines or fails to confirm correctly after three attempts.
+        """
         # Get the cost of data pull
         cost = self.get_cost(dataset, symbols, schema, stype, start_date, end_date)
 
@@ -105,29 +136,25 @@ class DatabentoClient:
             #     print("\nData size greater than 5 GB: Batch Load Recommended.")
             #     # Here you can add logic for batch loading if applicable
 
-    def resample_trades_to_ohlcv(self, data: db.DBNStore):
-
-        if data.schema != "trades":
-            raise ValueError(f"data must be DBNStore object with schema=trades")
-
-        try:
-            trades_data = data.to_df()
-
-            ohlcv_data = (
-                trades_data
-                .groupby(["symbol"])
-                .resample("1min")["price"].ohlc()
-            )
-
-            return ohlcv_data
-        except Exception as e:
-            raise Exception(f"Error converting trades to bar data {e}")
-        
     def get_historical_bar(self, dataset: Datasets, symbols:list, schema:Schemas, stype:Symbology, start_date:str, end_date:str) -> db.DBNStore:
-        """ Used to return smaller batches of data under """              
-        
-        # if schema not in [Schemas.OHLCV_1s, Schemas.OHLCV_1m, Schemas.OHLCV_1h, Schemas.OHLCV_1d]:
-        #     raise TypeError(f"schema but be of type OHLCV_xx")
+        """
+        Fetches and returns a range of historical data based on the provided criteria.
+
+        This method first performs a cost check to ensure the user is aware of the potential cost associated
+        with the data retrieval. If the user confirms, it proceeds to fetch the data. This method is intended
+        to be used for retrieving smaller batches of data within specific time intervals and symbol sets.
+
+        Parameters:
+        - dataset (Datasets): The dataset from which data is fetched. This should be an enum instance specifying the dataset.
+        - symbols (list): A list of strings representing the symbols for which data is requested.
+        - schema (Schemas): The schema to be used for the data. This should be an enum instance specifying the schema.
+        - stype (Symbology): The symbology type for the symbols provided. This should be an enum instance.
+        - start_date (str): The start date for the data range, formatted as 'YYYY-MM-DD'.
+        - end_date (str): The end date for the data range, formatted as 'YYYY-MM-DD'.
+
+        Returns:
+        - db.DBNStore: The retrieved historical data stored in a database-compatible format.
+        """
         try:
             check=self._cost_check(dataset, symbols, schema, stype, start_date, end_date)
 
@@ -144,22 +171,46 @@ class DatabentoClient:
                 return data
         except Exception as e:
             raise Exception(f"Error retrieving historical data: {e}")
-    
-    def get_historical_tbbo(self, dataset: Datasets, symbols:list,stype:Symbology, start_date:str, end_date:str) -> db.DBNStore:
         
-        schema=Schemas.Trades
-        self._cost_check(dataset, symbols, schema, stype, start_date, end_date)
+    # def resample_trades_to_ohlcv(self, data: db.DBNStore):
+    #     """ 
+    #     *** This method is untested *** 
+    #     """
 
-        data = self.hist_client.timeseries.get_range(
-            dataset=dataset.value,
-            symbols=symbols,
-            schema=schema.value,
-            stype_in=stype.value,
-            start=start_date,
-            end=end_date
+    #     if data.schema != "trades":
+    #         raise ValueError(f"data must be DBNStore object with schema=trades")
 
-        )
-        return data
+    #     try:
+    #         trades_data = data.to_df()
+
+    #         ohlcv_data = (
+    #             trades_data
+    #             .groupby(["symbol"])
+    #             .resample("1min")["price"].ohlc()
+    #         )
+
+    #         return ohlcv_data
+    #     except Exception as e:
+    #         raise Exception(f"Error converting trades to bar data {e}")
+        
+    # def get_historical_tbbo(self, dataset: Datasets, symbols:list,stype:Symbology, start_date:str, end_date:str) -> db.DBNStore:
+    #     """
+    #     *** This method is untested *** 
+    #     """
+        
+    #     schema=Schemas.Trades
+    #     self._cost_check(dataset, symbols, schema, stype, start_date, end_date)
+
+    #     data = self.hist_client.timeseries.get_range(
+    #         dataset=dataset.value,
+    #         symbols=symbols,
+    #         schema=schema.value,
+    #         stype_in=stype.value,
+    #         start=start_date,
+    #         end=end_date
+
+    #     )
+    #     return data
     
     # def get_batch(self):
     #     data = self.hist_client.batch.submit_job(
@@ -173,7 +224,9 @@ class DatabentoClient:
 
 
 
-# OHLCV
+
+### Exmaple Response Data 
+# --- OHLCV
 #                            rtype  publisher_id  instrument_id    open    high     low   close  volume  symbol
 # ts_event                                                                                                     
 # 2024-02-06 12:00:00+00:00     33             1         243778  443.50  443.75  443.50  443.75      20  ZC.n.0
@@ -182,7 +235,7 @@ class DatabentoClient:
 # 2024-02-06 12:03:00+00:00     33             1         243778  443.50  443.75  443.50  443.75      27  ZC.n.0
 # 2024-02-06 12:06:00+00:00     33             1         243778  443.50  443.50  443.50  443.50      10  ZC.n.0
 
-# Trades
+# --- Trades
 #                                                                ts_event  rtype  publisher_id  instrument_id action side  depth   price  size  flags  ts_in_delta  sequence  symbol
 # ts_recv                                                                                                                                                                           
 # 2024-02-06 12:00:29.132952677+00:00 2024-02-06 12:00:29.132637997+00:00      0             1         243778      T    B      0  443.50     2      0        15709  16910303  ZC.n.0
@@ -191,7 +244,7 @@ class DatabentoClient:
 # 2024-02-06 12:00:29.133968123+00:00 2024-02-06 12:00:29.132967857+00:00      0             1         243778      T    B      0  443.50     5      0        13082  16910355  ZC.n.0
 
 
-# TBBO
+# --- TBBO
 #                                                                ts_event  rtype  publisher_id  instrument_id action side  depth   price  size  flags  ts_in_delta  sequence  bid_px_00  ask_px_00  bid_sz_00  ask_sz_00  bid_ct_00  ask_ct_00  symbol
 # ts_recv                                                                                                                                                                                                                                             
 # 2024-02-06 12:00:29.132952677+00:00 2024-02-06 12:00:29.132637997+00:00      1             1         243778      T    B      0  443.50     2      0        15709  16910303     443.25     443.50        155         15         27          3  ZC.n.0

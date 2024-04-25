@@ -1,13 +1,7 @@
-import pandas as pd
 from decouple import config
-from datetime import datetime, timedelta
+
 from ..client import DatabaseClient
 from shared.symbol import SecurityType, Venue, Industry ,Currency, ContractUnits,AssetClass,  Equity, Future, Option, Index
-
-pd.set_option('display.max_colwidth', None)
-pd.set_option('display.max_columns', 100)
-pd.set_option('display.width', 1000) # Adjust the width of the display in characters
-pd.set_option('display.max_rows', None)
 
 DATABASE_KEY = config('LOCAL_API_KEY')
 DATABASE_URL = config('LOCAL_URL')

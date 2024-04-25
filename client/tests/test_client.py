@@ -6,10 +6,10 @@ from decouple import config
 
 from client import DatabaseClient
 
-from shared.symbol import Symbol,Equity, SecurityType, Currency, Future, Option, Index, AssetClass, ContractUnits, Venue, Industry, Right
 from shared.market_data import *
 from shared.backtest import Backtest
 from shared.live_session import LiveTradingSession
+from shared.symbol import Symbol,Equity, SecurityType, Currency, Future, Option, Index, AssetClass, ContractUnits, Venue, Industry, Right
 
 
 DATABASE_KEY = config('LOCAL_API_KEY')
@@ -22,9 +22,6 @@ class TestSymbolDataMethods(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-
-        logging.basicConfig(level=logging.DEBUG)
-
         resources = [
             ("asset classes", cls.client.get_asset_classes, cls.client.delete_asset_class),
             ("security types", cls.client.get_security_types, cls.client.delete_security_type),
@@ -40,11 +37,10 @@ class TestSymbolDataMethods(unittest.TestCase):
                 for item in items:
                     try:
                         deleter(item["id"])
-                        logging.debug(f"Successfully deleted {name[:-1]} with ID: {item['id']}")
                     except Exception as e:
-                        logging.error(f"Failed to delete {name[:-1]} with ID: {item['id']}: {e}")
+                        pass
             except Exception as e:
-                logging.error(f"Failed to retrieve {name}: {e}")
+                pass
 
     def test_create_asset_class(self):
         asset_class = AssetClass.FIXED_INCOME
@@ -362,11 +358,10 @@ class TestSymbolMethods(unittest.TestCase):
                 for item in items:
                     try:
                         deleter(item["id"])
-                        logging.debug(f"Successfully deleted {name[:-1]} with ID: {item['id']}")
                     except Exception as e:
-                        logging.error(f"Failed to delete {name[:-1]} with ID: {item['id']}: {e}")
+                        pass
             except Exception as e:
-                logging.error(f"Failed to retrieve {name}: {e}")
+                pass
 
         # delete symbols
         def delete_symbol(symbol: Symbol):
@@ -400,6 +395,7 @@ class TestSymbolMethods(unittest.TestCase):
         self.assertTrue(len(response) > 1)
         self.assertEqual(response["ticker"], self.equity.ticker)
 
+        # clean up
         self.client.delete_symbol(response["id"])
 
     def test_create_symbol_future(self):
@@ -409,7 +405,8 @@ class TestSymbolMethods(unittest.TestCase):
         # validate
         self.assertTrue(len(response) > 1)
         self.assertEqual(response["ticker"], self.future.ticker)
-
+        
+        # clean up
         self.client.delete_symbol(response["id"])
 
     def test_create_symbol_option(self):
@@ -419,7 +416,8 @@ class TestSymbolMethods(unittest.TestCase):
         # validate
         self.assertTrue(len(response) > 1)
         self.assertEqual(response["ticker"], self.option.ticker)
-
+        
+        # clean up
         self.client.delete_symbol(response["id"])
 
     def test_create_symbol_index(self):
@@ -429,7 +427,8 @@ class TestSymbolMethods(unittest.TestCase):
         # validate
         self.assertTrue(len(response) > 1)
         self.assertEqual(response["ticker"], self.index.ticker)
-
+        
+        # clean up
         self.client.delete_symbol(response["id"])
 
     def test_update_symbol(self):
@@ -579,11 +578,10 @@ class TestBarDataMethods(unittest.TestCase):
                 for item in items:
                     try:
                         deleter(item["id"])
-                        logging.debug(f"Successfully deleted {name[:-1]} with ID: {item['id']}")
                     except Exception as e:
-                        logging.error(f"Failed to delete {name[:-1]} with ID: {item['id']}: {e}")
+                        pass
             except Exception as e:
-                logging.error(f"Failed to retrieve {name}: {e}")
+                pass
 
         # delete symbols
         def delete_symbol(symbol: Symbol):
@@ -659,7 +657,6 @@ class TestBarDataMethods(unittest.TestCase):
         # valdiate
         self.assertGreaterEqual(len(response), 1)
 
-
     def test_create_bulk_bar_data(self):
         # test
         response=self.client.create_bulk_price_data(self.bars)
@@ -682,7 +679,6 @@ class TestBarDataMethods(unittest.TestCase):
         self.assertEqual(len(response['batch_responses'][0]['errors']), 2)
 
     def test_update_data(self):
-
         bar=BarData(ticker="AAPL4",
                     timestamp=np.uint64(1712200000000000000),
                     open=Decimal('99.9999'),

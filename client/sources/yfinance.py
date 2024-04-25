@@ -1,36 +1,38 @@
 import numpy as np
 import yfinance as yf
-from decimal import Decimal
+from typing import List
 from decouple import config
-from shared.market_data import BarData
+from decimal import Decimal
+
 from client import DatabaseClient
 from shared.utils import iso_to_unix
+from shared.market_data import BarData
 
 DATABASE_KEY = config('LOCAL_API_KEY')
 DATABASE_URL = config('LOCAL_URL')
-
-    
+   
 class YFinanceClient:
     def __init__(self) -> None:
         pass
 
-    def get_historical_data(self, symbols:list, start_date:str, end_date:str, interval='1d'):
+    def get_historical_data(self, symbols:list, start_date:str, end_date:str, interval='1d') -> List[BarData]:
         """
         Fetches historical price data for a given stock symbol using yfinance library.
 
         Parameters:
-        symbol (str): The stock symbol to fetch data for.
-        start_date (str): Start date for the data in YYYY-MM-DD format.
-        end_date (str): End date for the data in YYYY-MM-DD format.
-        interval (str): Data interval. Valid intervals: 1d, 1wk, 1mo (default '1d').
+        - symbol (str): The stock symbol to fetch data for.
+        - start_date (str): Start date for the data in YYYY-MM-DD format.
+        - end_date (str): End date for the data in YYYY-MM-DD format.
+        - interval (str): Data interval. Valid intervals: 1d, 1wk, 1mo (default '1d').
 
         Returns:
-        pandas.DataFrame: A DataFrame containing the historical price data.
+        - List[BarData]: A list containing BarData objects.
         """
-         # Join symbols into a single string if provided as a list
+        # Join symbols into a single string if provided as a list
         if isinstance(symbols, list):
             symbols_str= ' '.join(symbols)
         
+        # Make request
         df = yf.download(symbols_str, start=start_date, end=end_date, interval=interval, group_by='ticker')
         
         data = []
