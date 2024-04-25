@@ -78,7 +78,7 @@ class TestOrderBook(unittest.TestCase):
 
         # Test
         for ticker in tickers:
-            self.valid_quotedata_order_book._insert_or_update_quote(ticker = ticker, quote_data=self.valid_quote,timestamp=self.valid_quote.timestamp)
+            self.valid_quotedata_order_book._insert_or_update_quote(ticker = ticker, quote_data=self.valid_quote)
         
         # Validation
         self.assertEqual(len(self.valid_quotedata_order_book.book.keys()), len(tickers)) # check all tickers in book

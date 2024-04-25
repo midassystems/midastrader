@@ -135,7 +135,10 @@ class TestPerformanceManager(unittest.TestCase):
                         
         signal_event = SignalEvent(np.uint64(1651500000), 10000,self.valid_trade_instructions)
 
+        # test
         self.performance_manager.update_signals(signal_event)
+
+        # validate
         self.assertEqual(self.performance_manager.signals[0], signal_event.to_dict())
         self.mock_logger.info.assert_called_once()
     
@@ -156,28 +159,28 @@ class TestPerformanceManager(unittest.TestCase):
                         
         signal_event = SignalEvent(np.uint64(1651500000), 10000,self.valid_trade_instructions)
         
+        # test
         self.performance_manager.update_signals(signal_event)
+
+        # validate
         self.mock_logger.info.assert_called_once_with("\nSignals Updated:  {'timestamp': 1651500000, 'trade_instructions': [{'ticker': 'AAPL', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 5, 'weight': 0.5}, {'ticker': 'TSLA', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 6, 'weight': 0.5}]} \n")
 
     def test_update_equity_new_valid(self):
-        equity = EquityDetails(
-                    timestamp= 165500000,
-                    equity_value = 10000000.99
-                )
-        
+        equity = EquityDetails(timestamp= 165500000, equity_value = 10000000.99)
+        # test
         self.performance_manager.update_equity(equity)
 
+        # validate
         self.assertEqual(self.performance_manager.equity_value[0], equity)
         self.mock_logger.info.assert_called_once_with((f"\nEquity Updated: {equity}"))
     
     def test_update_equity_old_valid(self):
-        equity = EquityDetails(
-                    timestamp= 165500000,
-                    equity_value = 10000000.99
-                )
+        equity = EquityDetails(timestamp= 165500000, equity_value = 10000000.99)
         self.performance_manager.equity_value.append(equity)
-
+        # test
         self.performance_manager.update_equity(equity)
+        
+        # validate
         self.assertEqual(len(self.performance_manager.equity_value), 1)
         self.assertFalse(self.mock_logger.info.called)
         
@@ -212,9 +215,10 @@ class TestPerformanceManager(unittest.TestCase):
                                             {'BuyingPower': 2541533.29, 'Currency': 'USD', 'ExcessLiquidity': 763767.68, 'FullAvailableFunds': 762459.99, 'FullInitMarginReq': 6802.69, 'FullMaintMarginReq': 5495.0, 'FuturesPNL': -373.3, 'NetLiquidation': 769262.67, 'TotalCashBalance': 768538.5532, 'UnrealizedPnL': -11.73, 'Timestamp': '2024-04-10T13:13:43.160076'}]
 
         # Test 
-        self.performance_manager.create_live_session()
+        self.performance_manager.save()
         live_summary = self.performance_manager.live_summary
-
+        
+        # validate
         self.assertEqual(live_summary.parameters, self.mock_parameters.to_dict())
         self.assertEqual(live_summary.signal_data, [signal_event.to_dict()])
         self.assertEqual(live_summary.trade_data ,  list(trades.values()))

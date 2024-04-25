@@ -124,6 +124,7 @@ class TestDatabaseUpdater(unittest.TestCase):
 
     def test_update_market_data(self):
         pass
+    
     # Type Validation
     def test_update_type_invalid(self):
         with self.assertRaisesRegex(TypeError, "event_type must be of instance EventType enum."):

@@ -1,5 +1,5 @@
 import numpy as np
-from typing  import  Dict, Union
+from typing  import Dict
 from dataclasses import dataclass, field
 
 from shared.market_data import MarketData
@@ -7,7 +7,15 @@ from shared.market_data import MarketData
 @dataclass
 class MarketEvent:
     """
-    Event representing market data updates.
+    Represents an event that encapsulates market data updates, triggered when new market data is received.
+
+    This event is fundamental in a trading system for processing live market data updates, informing strategies and
+    other components of new market conditions.
+
+    Attributes:
+    - timestamp (np.uint64): The UNIX timestamp in nanoseconds when the market data was received.
+    - data (Dict[str, MarketData]): A dictionary mapping each contract's identifier to its respective MarketData object.
+    - type (str): Automatically set to 'MARKET_DATA', indicating the type of event.
     """
     timestamp : np.uint64
     data: Dict[str, MarketData]

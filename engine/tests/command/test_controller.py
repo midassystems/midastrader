@@ -1,11 +1,9 @@
-import os
 import time
 import signal
 import unittest
-import threading
 import numpy as np
-from decimal import Decimal
 from queue import Queue
+from decimal import Decimal
 from ibapi.order import Order
 from ibapi.contract import Contract
 from unittest.mock import Mock, patch
@@ -71,10 +69,10 @@ class TestController(unittest.TestCase):
         self.mock_config.hist_data_client.data_stream.side_effect = [True, False]# Simulates one iterations then stop
         self.event_controller.event_queue.put(market_event)
         
-        # Run the backtest
+        # test
         self.event_controller._run_backtest()
 
-        # Verify interactions
+        # validate
         self.mock_config.broker_client.update_equity_value.assert_called()
         self.mock_config.strategy.handle_market_data.assert_called()
 
@@ -101,10 +99,10 @@ class TestController(unittest.TestCase):
         self.mock_config.hist_data_client.data_stream.side_effect = [True, False]# Simulates one iterations then stop
         self.event_controller.event_queue.put(signal_event)
         
-        # Run the backtest
+        # test
         self.event_controller._run_backtest()
 
-        # Verify interactions
+        # validate
         self.mock_config.performance_manager.update_signals.assert_called_once_with(signal_event)
         self.mock_config.order_manager.on_signal.assert_called_once_with(signal_event)
 
@@ -121,10 +119,10 @@ class TestController(unittest.TestCase):
         self.mock_config.hist_data_client.data_stream.side_effect = [True, False]# Simulates one iterations then stop
         self.event_controller.event_queue.put(order_event)
         
-        # Run the backtest
+        # test
         self.event_controller._run_backtest()
 
-        # Verify interactions
+        # validate
         self.mock_config.broker_client.on_order.assert_called_once_with(order_event)
 
     def test_run_backtest_execution_event(self):
@@ -148,10 +146,10 @@ class TestController(unittest.TestCase):
         self.mock_config.hist_data_client.data_stream.side_effect = [True, False]# Simulates one iterations then stop
         self.event_controller.event_queue.put(execution_event)
         
-        # Run the backtest
+        # test
         self.event_controller._run_backtest()
 
-        # Verify interactions
+        # validate
         self.mock_config.broker_client.on_execution.assert_called_once_with(execution_event)
 
     def test_run_backtest_EOD_event(self):
@@ -162,10 +160,10 @@ class TestController(unittest.TestCase):
         eod_event = EODEvent(11111)
         self.event_controller.event_queue.put(eod_event)
         
-        # Run the backtest
+        # test
         self.event_controller._run_backtest()
 
-        # Verify interactions
+        # validate
         self.assertEqual(self.mock_config.broker_client.eod_update.call_count, 2)
 
     def test_wrap_up_backtest(self):
@@ -174,13 +172,14 @@ class TestController(unittest.TestCase):
     
         self.mock_config.hist_data_client.data_stream.side_effect = [False]# Simulates one iterations then stop
 
-        # Run the backtest
+        # test
         self.event_controller._run_backtest()
 
+        # validate
         self.assertTrue(self.mock_config.broker_client.eod_update.called)
         self.assertTrue(self.mock_config.broker_client.liquidate_positions.called)
         self.assertTrue(self.mock_config.performance_manager.calculate_statistics.called)
-        self.assertTrue(self.mock_config.performance_manager.save_backtest.called)
+        self.assertTrue(self.mock_config.performance_manager.save.called)
     
     # ---- Have to exit is Ctrl + C or will hang ---- 
     # def test_run_live(self):
@@ -215,7 +214,6 @@ class TestController(unittest.TestCase):
     #     self.mock_config.db_updater.delete_session.assert_called_once()
     #     # self.mock_config.performance_manager.calculate_statistics.assert_called_once()
     #     self.mock_config.performance_manager.create_live_session.assert_called_once()
-
 
 
 if __name__ == "__main__":

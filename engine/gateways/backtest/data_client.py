@@ -1,25 +1,38 @@
-import pandas as pd
 import numpy as np
-from decimal import Decimal
+import pandas as pd
+from typing import List
 from queue import Queue
+from decimal import Decimal
+from dateutil import parser
 from datetime import datetime
-from typing import Dict, List
 
-from client import DatabaseClient
 from engine.order_book import OrderBook
 from engine.events import MarketEvent, EODEvent
 
+from client import DatabaseClient
+from shared.utils import unix_to_iso
 from shared.market_data import BarData, QuoteData
-from shared.utils import unix_to_iso, iso_to_unix
-class DataClient(DatabaseClient):
-    def __init__(self, event_queue: Queue, data_client: DatabaseClient, order_book:OrderBook):
-        """
-        Class constructor.
 
-        Args:
-            event_queue (Queue) : The main event queue, new MarketDataEvents are added to this queue.
-            data_client (DatabaseClient) : Responsible for interacting with the database to pull the data via a client class based on a Django Rest-Framework API.
-        
+class DataClient(DatabaseClient):
+    """
+    Manages data fetching, processing, and streaming for trading simulations, extending the DatabaseClient for specific trading data operations.
+
+    This class is responsible for interacting with the database to fetch historical market data,
+    processing it according to specified parameters, and streaming it to simulate live trading conditions in a backtest environment.
+
+    Attributes:
+    - event_queue (Queue): The queue used for posting market data and end-of-day events.
+    - data_client (DatabaseClient): A client class based on a Django Rest-Framework API for interacting with the database.
+    - order_book (OrderBook): The order book where market data is posted for trading operations.
+    """
+    def __init__(self, event_queue: Queue, data_client: DatabaseClient, order_book: OrderBook):
+        """
+        Initializes the DataClient with the necessary components for market data management.
+
+        Parameters:
+        - event_queue (Queue): The main event queue for posting data-related events.
+        - data_client (DatabaseClient): The database client used for retrieving market data.
+        - order_book (OrderBook): The order book where the market data will be used for trading operations.
         """
         self.event_queue = event_queue
         self.data_client = data_client
@@ -32,15 +45,18 @@ class DataClient(DatabaseClient):
         self.current_date_index = -1
         self.current_day = None
 
-    def get_data(self, tickers:List[str], start_date: str, end_date: str, missing_values_strategy: str = 'fill_forward'):
+    def get_data(self, tickers:List[str], start_date: str, end_date: str, missing_values_strategy: str = 'fill_forward') -> bool:
         """
-        Retrieves data from the database and initates the data processing. Stores initial data response in self.price_log.
+        Retrieves historical market data from the database and initializes the data processing.
 
-        Args:
-            symbols (List[str]) : A list of tickers ex. ['AAPL', 'MSFT']
-            start_date (str) : Beginning date for the backtest ex. "2023-01-01"
-            end_date (str) : End date for the backtest ex. "2024-01-01"
-            missing_values_strategy (str): Strategy to handle missing values ('drop' or 'fill_forward'). Default is 'fill_forward'.
+        Parameters:
+        - tickers (List[str]): A list of ticker symbols (e.g., ['AAPL', 'MSFT']).
+        - start_date (str): The start date for the data retrieval in ISO format 'YYYY-MM-DD'.
+        - end_date (str): The end date for the data retrieval in ISO format 'YYYY-MM-DD'.
+        - missing_values_strategy (str): Strategy to handle missing values, either 'drop' or 'fill_forward'
+
+        Returns:
+        - bool: True if data retrieval and initial processing are successful.
         """
         # Type Checks
         if isinstance(tickers, list):
@@ -70,13 +86,25 @@ class DataClient(DatabaseClient):
         
         return True
     
-    def _check_duplicates(self, data: pd.DataFrame):
+    def _check_duplicates(self, data: pd.DataFrame) -> None:
+        """
+        Checks for duplicate entries in the data based on timestamps and symbols.
+
+        Parameters:
+        - data (pd.DataFrame): The data to check for duplicates.
+        """
         duplicates = data.duplicated(subset=['timestamp', 'symbol'], keep=False)
         if duplicates.any():
             print("Duplicates found:")
             print(data[duplicates])
 
-    def _validate_timestamp_format(self, timestamp:str):
+    def _validate_timestamp_format(self, timestamp: str) -> None:
+        """
+        Validates the format of the timestamp string for querying data.
+
+        Parameters:
+        - timestamp (str): The timestamp string to validate.
+        """
         # Timestamp format check for ISO 8601
         try:
             # This attempts to parse the timestamp according to the ISO 8601 format.
@@ -86,7 +114,14 @@ class DataClient(DatabaseClient):
         except TypeError:
             raise TypeError("'timestamp' must be of type str.")
 
-    def _handle_null_values(self, data:pd.DataFrame, missing_values_strategy: str = "fill_forward"):
+    def _handle_null_values(self, data: pd.DataFrame, missing_values_strategy: str = "fill_forward") -> pd.DataFrame:
+        """
+        Handles missing values in the data according to the specified strategy.
+
+        Parameters:
+        - data (pd.DataFrame): The data with potential missing values.
+        - missing_values_strategy (str): The strategy to handle missing values, either 'drop' or 'fill_forward'.
+        """
        
         if not isinstance(missing_values_strategy, str) or missing_values_strategy not in ['fill_forward', 'drop']:
             raise ValueError("'missing_value_strategy' must either 'fill_forward' or 'drop' of type str.")
@@ -104,8 +139,13 @@ class DataClient(DatabaseClient):
 
         return data.stack(level='symbol', future_stack=True).reset_index()
 
-    def _process_bardata(self, data:pd.DataFrame):
-        """ Transform the data provide by the database into the needed format for the backtest. """
+    def _process_bardata(self, data: pd.DataFrame) -> pd.DataFrame:
+        """
+        Processes raw bar data into a format suitable for the trading simulation.
+
+        Parameters:
+        - data (pd.DataFrame): The raw market data.
+        """
 
         # Convert the 'timestamp' column from datetime to Unix time (seconds since epoch)
         data['timestamp'] = data['timestamp'].astype(np.uint64)
@@ -118,11 +158,13 @@ class DataClient(DatabaseClient):
         # Sorting the DataFrame by the 'timestamp' column in ascending order
         return  data.sort_values(by='timestamp', ascending=True).reset_index(drop=True)
 
-    def data_stream(self):
+    def data_stream(self) -> bool:
         """
-        Simulates a market data listener, iterates through the unique dates, callign the setMarketData for each date until finished.
+        Simulates a market data stream by iterating through unique timestamps and posting market data to the order book.
+
+        Returns:
+        - bool: False when all data has been streamed, True otherwise.
         """
-        from dateutil import parser
         self.current_date_index += 1
 
         if self.current_date_index >= len(self.unique_timestamps):
@@ -143,13 +185,18 @@ class DataClient(DatabaseClient):
         self._set_market_data()
         return True
     
-    def _get_latest_data(self):
-        """ Return the next most recent bar data for all symbols. """
+    def _get_latest_data(self) -> pd.DataFrame:
+        """
+        Retrieves the most recent bar data for all symbols.
+
+        Returns:
+        - pd.DataFrame: The latest bar data.
+        """
         return self.data[self.data['timestamp'] == self.next_date]
 
     def _set_market_data(self):
         """
-        Sets the MarketDataEvent into the main event queue.
+        Posts the latest market data to the order book for trading simulation.
         """
         latest_data_batch = self._get_latest_data()
         result_dict = {}

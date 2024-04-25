@@ -62,7 +62,10 @@ class TestContractManager(unittest.TestCase):
 
         # Test contract not already validated and is correclty validated
         with patch.object(self.contract_manager.app, 'reqContractDetails', side_effect=self.change_is_valid_contract_true) as mock_method:
+            # test
             response = self.contract_manager.validate_contract(contract) # returns bool
+            
+            # validate
             self.assertEqual(response,True)
             self.mock_logger.info.assert_called_once_with(f"Contract {contract.symbol} validated successfully.") # check logger call
             self.assertEqual(self.contract_manager.validated_contracts[contract.symbol], contract) # check contract added to valdiated contracts log
@@ -74,7 +77,10 @@ class TestContractManager(unittest.TestCase):
         
         # Test contract not already validated and is not correclty validated
         with patch.object(self.contract_manager.app, 'reqContractDetails', side_effect=self.change_is_valid_contract_false) as mock_method:
+            # test
             response = self.contract_manager.validate_contract(contract) # returns bool
+            
+            # validate
             self.assertEqual(response,False)
             self.mock_logger.warning.assert_called_once_with(f"Contract {contract.symbol} validation failed.") # check logger call
             self.assertEqual(self.contract_manager.validated_contracts, {}) # not contract should be in valdiated contract log
@@ -86,6 +92,8 @@ class TestContractManager(unittest.TestCase):
         self.contract_manager.validated_contracts[contract.symbol] = contract # add contract to validated contract log
         # Test
         response = self.contract_manager.validate_contract(contract)  # returns bool
+        
+        # validate
         self.assertEqual(response,True) # should return contract is valid
         self.mock_logger.info.assert_called_once_with(f"Contract {contract.symbol} is already validated.") # check logger called
 
@@ -95,6 +103,8 @@ class TestContractManager(unittest.TestCase):
         self.contract_manager.validated_contracts[contract.symbol] = contract   # add contract to validated contract log
         # Test 
         response = self.contract_manager._is_contract_validated(contract)
+        
+        # validate
         self.assertTrue(response) # should be true b/c in the validated contracts
 
     def test_is_contract_validate_invalid(self):
@@ -102,6 +112,8 @@ class TestContractManager(unittest.TestCase):
         contract.symbol = 'AAPL'
         # Test
         response = self.contract_manager._is_contract_validated(contract)
+        
+        # validate
         self.assertFalse(response) # should be false because not in valdiated contracts
 
     # Type Check

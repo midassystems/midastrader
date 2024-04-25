@@ -83,12 +83,10 @@ class TestTestStrategy(unittest.TestCase):
 
     # Type Validation
     def test_on_market_data_invalid_event(self):
-        # Test invalid event type
         with self.assertRaisesRegex(TypeError, "'event' must be of type Market Event instance." ):
             self.test_strategy.on_market_data("Not_market_event")
 
     def test_create_signal_event_invalid_trade_instructions(self):
-        # Test failure to create signal event
         with self.assertRaisesRegex(RuntimeError, "Failed to create or queue SignalEvent due to input error"):
             self.test_strategy.set_signal([], self.valid_trade_capital, self.timestamp)
 

@@ -1,21 +1,18 @@
 import unittest
-from unittest.mock import Mock, patch
-from contextlib import ExitStack
-from ibapi.contract import Contract
-from datetime import datetime, timezone
-from pandas.testing import assert_frame_equal
-import pandas as pd
 import numpy as np
+import pandas as pd
+from contextlib import ExitStack
+from unittest.mock import Mock, patch
+from pandas.testing import assert_frame_equal
 
 from engine.command.parameters import Parameters
-from engine.performance.regression import RegressionAnalysis
 from engine.performance.backtest.manager import BacktestPerformanceManager
 from engine.events import MarketEvent, OrderEvent, SignalEvent, ExecutionEvent
 
-from shared.trade import Trade, ExecutionDetails
 from shared.signal import TradeInstruction
-from shared.orders import OrderType, Action
 from shared.portfolio import  EquityDetails
+from shared.orders import OrderType, Action
+from shared.trade import Trade, ExecutionDetails
 from shared.market_data import MarketData, BarData, QuoteData, MarketDataType
 
 #TODO: edge cases
@@ -93,8 +90,10 @@ class TestPerformanceManager(unittest.TestCase):
                 action=  Action.SHORT.value,
                 fees= 70 # because not actually a trade
         )       
-
+        # test
         self.performance_manager.update_trades(trade)
+
+        # validate
         self.assertEqual(self.performance_manager.trades[0], trade)
         self.mock_logger.info.assert_called_once()
     
@@ -111,8 +110,10 @@ class TestPerformanceManager(unittest.TestCase):
                 fees= 70 # because not actually a trade
         )  
         self.performance_manager.trades.append(trade)
-
+        # test
         self.performance_manager.update_trades(trade)
+        
+        # validate
         self.assertEqual(self.performance_manager.trades[0], trade)
         self.assertEqual(len(self.performance_manager.trades), 1)
         self.assertFalse(self.mock_logger.info.called)
@@ -129,7 +130,10 @@ class TestPerformanceManager(unittest.TestCase):
                 action=  Action.SHORT.value,
                 fees= 70 # because not actually a trade
         ) 
+        # test
         self.performance_manager.update_trades(trade)
+        
+        # validate
         self.mock_logger.info.assert_called_once_with('\nTrades Updated: \nTimestamp: 1975-03-25T17:20:00+00:00\n  Trade ID: 2\n  Leg ID: 2\n  Ticker: HEJ4\n  Quantity: -10\n  Price: 50\n  Cost: -500\n  Action: SHORT\n  Fees: 70\n')
 
     def test_update_signals_valid(self):        
@@ -148,8 +152,11 @@ class TestPerformanceManager(unittest.TestCase):
         self.valid_trade_instructions = [self.valid_trade1,self.valid_trade2]
                         
         signal_event = SignalEvent(np.uint64(1651500000), 10000,self.valid_trade_instructions)
-
+        
+        # test
         self.performance_manager.update_signals(signal_event)
+        
+        # validate
         self.assertEqual(self.performance_manager.signals[0], signal_event.to_dict())
         self.mock_logger.info.assert_called_once()
     
@@ -169,8 +176,10 @@ class TestPerformanceManager(unittest.TestCase):
         self.valid_trade_instructions = [self.valid_trade1,self.valid_trade2]
                         
         signal_event = SignalEvent(np.uint64(1651500000), 10000,self.valid_trade_instructions)
-        
+        # test
         self.performance_manager.update_signals(signal_event)
+
+        # validate
         self.mock_logger.info.assert_called_once_with("\nSignals Updated:  {'timestamp': 1651500000, 'trade_instructions': [{'ticker': 'AAPL', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 5, 'weight': 0.5}, {'ticker': 'TSLA', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 6, 'weight': 0.5}]} \n")
 
     def test_update_equity_new_valid(self):
@@ -178,9 +187,10 @@ class TestPerformanceManager(unittest.TestCase):
                     timestamp= 165500000,
                     equity_value = 10000000.99
                 )
-        
+        # test
         self.performance_manager.update_equity(equity)
-
+        
+        # validate
         self.assertEqual(self.performance_manager.equity_value[0], equity)
         self.mock_logger.info.assert_called_once_with((f"\nEquity Updated: {equity}"))
     
@@ -190,8 +200,10 @@ class TestPerformanceManager(unittest.TestCase):
                     equity_value = 10000000.99
                 )
         self.performance_manager.equity_value.append(equity)
-
+        # test
         self.performance_manager.update_equity(equity)
+
+        # validate
         self.assertEqual(len(self.performance_manager.equity_value), 1)
         self.assertFalse(self.mock_logger.info.called)
 
@@ -204,14 +216,13 @@ class TestPerformanceManager(unittest.TestCase):
             ExecutionDetails(timestamp=1641081600000000000, trade_id=2, leg_id=1, symbol='HEJ4', quantity=10, price=18, cost=-180, fees=10,  action=Action.COVER.value)
         ]
 
-        # Call the method
+        # Test
         aggregated_df = self.performance_manager._aggregate_trades()
 
-        # Check if the result is a DataFrame
-        self.assertIsInstance(aggregated_df, pd.DataFrame, "Result should be a pandas DataFrame")
+        # Validate
+        self.assertIsInstance(aggregated_df, pd.DataFrame, "Result should be a pandas DataFrame") # Check if the result is a DataFrame
         
-        # Check if the DataFrame is not empty
-        self.assertFalse(aggregated_df.empty, "Resulting DataFrame should not be empty")
+        self.assertFalse(aggregated_df.empty, "Resulting DataFrame should not be empty") # Check if the DataFrame is not empty
 
         # Validate the expected columns are present
         expected_columns = ['trade_id', 'start_date', 'end_date', 'entry_value', 'exit_value', 'pnl', 'gain/loss']
@@ -234,11 +245,6 @@ class TestPerformanceManager(unittest.TestCase):
             EquityDetails(timestamp=1641168000000000000, equity_value=1005.0)
         ]
         
-        # Test 
-        df_input = pd.DataFrame(self.equity_curve)
-        df_input= self.performance_manager._timestamps_to_datetime(df_input) # this happens in the calculate_statistics method
-        df = self.performance_manager._standardize_to_granularity(df_input, 'equity_value')
-
         # Expected Data
         data = {
                 'timestamp': pd.to_datetime(['2022-01-01', '2022-01-02', '2022-01-03']),
@@ -247,6 +253,11 @@ class TestPerformanceManager(unittest.TestCase):
         expected_df = pd.DataFrame(data)
         expected_df.set_index('timestamp', inplace=True)
         expected_df.index.freq = 'D'  # Explicitly setting frequency to daily
+
+        # Test 
+        df_input = pd.DataFrame(self.equity_curve)
+        df_input= self.performance_manager._timestamps_to_datetime(df_input) # this happens in the calculate_statistics method
+        df = self.performance_manager._standardize_to_granularity(df_input)
 
         # Validate
         self.assertIsInstance(df, pd.DataFrame, "Equity values should be a dataframe.")
@@ -264,11 +275,6 @@ class TestPerformanceManager(unittest.TestCase):
             EquityDetails(timestamp= 1641243600000000000, equity_value= 1010.0)
         ]
         
-        # Test 
-        df_input = pd.DataFrame(self.equity_curve)
-        df_input= self.performance_manager._timestamps_to_datetime(df_input) # this happens in the calculate_statistics method
-        df = self.performance_manager._standardize_to_granularity(df_input, 'equity_value')
-
         # Expected Data
         data = {
                 'timestamp': pd.to_datetime(['2022-01-01', '2022-01-02', '2022-01-03']),
@@ -277,6 +283,11 @@ class TestPerformanceManager(unittest.TestCase):
         expected_df = pd.DataFrame(data)
         expected_df.set_index('timestamp', inplace=True)
         expected_df.index.freq = 'D'  # Explicitly setting frequency to daily
+
+        # Test 
+        df_input = pd.DataFrame(self.equity_curve)
+        df_input= self.performance_manager._timestamps_to_datetime(df_input) # this happens in the calculate_statistics method
+        df = self.performance_manager._standardize_to_granularity(df_input)
         
         # Validate
         self.assertIsInstance(df, pd.DataFrame, "Equity values should be a dataframe.")
@@ -311,11 +322,11 @@ class TestPerformanceManager(unittest.TestCase):
         self.assertAlmostEqual(df.iloc[1]['period_return'], expected_daily_returns[1])
         
 
-        # Validat Cumulative Returns
+        # Validate Cumulative Returns
         expected_cumulative_return = round((1030 - 1000) / 1000, 5)
         self.assertAlmostEqual(round(df.iloc[-1]['cumulative_return'],5), expected_cumulative_return, places=4,msg="Cumulative return calculation does not match expected value")
 
-        # Test Drawdown
+        # validate Drawdown
         equity_value = [1000, 1010, 1005, 1030]
         rolling_max = np.maximum.accumulate(equity_value)  # Calculate the rolling maximum
         expected_drawdowns = (equity_value - rolling_max) / rolling_max  # Calculate drawdowns in decimal format
@@ -351,20 +362,15 @@ class TestPerformanceManager(unittest.TestCase):
         ]
 
         # Mock the get_benchmark_data method to return the mock benchmark data
-        self.mock_db_client.get_benchmark_data.return_value = self.mock_benchmark_data
-        # regresson_analysis = RegressionAnalysis(self.performance_manager.equity_value, self.mock_benchmark_data )
-
+        self.mock_db_client.get_bar_data.return_value = self.mock_benchmark_data
 
         # Test 
         self.performance_manager.calculate_statistics()
 
-        # Validation
-        # timeseries_stats 
+        # Validate timeseries_stats 
         expected_columns = ['equity_value', 'period_return', 'cumulative_return', 'drawdown','daily_strategy_return', 'daily_benchmark_return']
         for column in expected_columns:
             self.assertIn(column, self.performance_manager.timeseries_stats.columns)
-
-        # self.assertFalse(self.performance_manager.timeseries_stats[expected_columns].isnull().values.any())
 
          # Validate that static_stats has non-null values and contains expected keys
         expected_static_keys = ['net_profit', 'total_fees', 'total_return', 'ending_equity', 'max_drawdown', 'total_trades',"num_winning_trades", 
@@ -417,6 +423,7 @@ class TestPerformanceManager(unittest.TestCase):
 
         for trade in self.trades:
             self.performance_manager.update_trades(trade)
+
         # Equity Curve
         self.performance_manager.equity_value = [
             EquityDetails(timestamp=np.uint64(1641047400000000000), equity_value=1000.0),  # Initial equity
@@ -438,13 +445,14 @@ class TestPerformanceManager(unittest.TestCase):
         ]
 
         # Mock the get_benchmark_data method to return the mock benchmark data
-        self.mock_db_client.get_benchmark_data.return_value = self.mock_benchmark_data
+        self.mock_db_client.get_bar_data.return_value = self.mock_benchmark_data
         self.performance_manager.calculate_statistics()
 
         # Test 
-        self.performance_manager.save_backtest()
+        self.performance_manager.save()
         backtest = self.performance_manager.backtest
 
+        # validate
         self.assertEqual(backtest.parameters, self.mock_parameters.to_dict())
         self.assertEqual(backtest.signal_data, [signal_event.to_dict()])
         self.assertEqual(backtest.trade_data , [trade.to_dict() for trade in self.performance_manager.trades])

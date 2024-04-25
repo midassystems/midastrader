@@ -27,6 +27,7 @@ class TestSignalEvent(unittest.TestCase):
                         
     # Basic Validation
     def test_valid_construction(self):
+        # test
         signal = SignalEvent(self.valid_timestamp, self.valid_trade_capital, self.valid_trade_instructions)
 
         # Validate timestamp

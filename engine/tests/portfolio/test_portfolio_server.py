@@ -8,7 +8,8 @@ from engine.portfolio import PortfolioServer
 
 from shared.portfolio import Position, AccountDetails, ActiveOrder
 from shared.symbol import Future, Equity, Currency, Venue, Industry, ContractUnits
-#TODO: edge cases, integration
+
+#TODO: edge cases
 
 class TestPortfolioServer(unittest.TestCase):
     def setUp(self) -> None:

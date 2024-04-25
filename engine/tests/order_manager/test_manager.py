@@ -141,7 +141,7 @@ class TestOrderManager(unittest.TestCase):
                                                       current_price=current_price, 
                                                       quantity_multiplier=quantity_multiplier,
                                                       price_multiplier=price_multiplier)
-        
+        # Validation
         self.assertEqual(abs(quantity),order_allocation / (current_price * price_multiplier * quantity_multiplier))
 
         # Test Sell Quantity

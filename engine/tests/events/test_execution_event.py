@@ -9,7 +9,6 @@ from engine.events import ExecutionEvent
 
 from shared.orders import Action
 from shared.trade import ExecutionDetails
-from shared.signal import TradeInstruction
 
 # TOOO : edge cases
 class TestExecutionEvent(unittest.TestCase):
@@ -32,11 +31,12 @@ class TestExecutionEvent(unittest.TestCase):
     
     # Basic Validation
     def test_valid_construction(self):
+        # test
         exec = ExecutionEvent(timestamp=self.valid_timetamp,
                                trade_details=self.valid_trade_details,
                                action=self.valid_action,
                                contract=self.valid_contract)
-        
+        # validation
         self.assertEqual(exec.timestamp, self.valid_timetamp)
         self.assertEqual(exec.action, self.valid_action)
         self.assertEqual(exec.contract, self.valid_contract)

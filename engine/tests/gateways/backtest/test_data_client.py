@@ -185,8 +185,9 @@ class TestDataClient(unittest.TestCase):
         self.data_client.data = self.valid_processed_data
         self.data_client.unique_timestamps = self.valid_unique_timestamps
 
-        # Call the method under test
+        #test
         while self.data_client.data_stream():
+            # validate
             self.assertTrue(self.mock_order_book.update_market_data.called) 
             called_with_arg = self.mock_order_book.update_market_data.call_args[1]
 

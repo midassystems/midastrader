@@ -2,19 +2,16 @@ import unittest
 import numpy as np
 import pandas as pd
 from contextlib import ExitStack
-from ibapi.contract import Contract
 from unittest.mock import Mock, patch
-from datetime import datetime, timezone
-from pandas.testing import assert_frame_equal
 
 from engine.command.parameters import Parameters
 from engine.performance import BasePerformanceManager
 from engine.events import MarketEvent, OrderEvent, SignalEvent, ExecutionEvent, SignalEvent
 
-from shared.signal import  TradeInstruction
 from shared.orders import Action, OrderType
-from shared.portfolio import AccountDetails, EquityDetails
+from shared.signal import  TradeInstruction
 from shared.trade import ExecutionDetails, Trade
+from shared.portfolio import AccountDetails, EquityDetails
 from shared.market_data import MarketData, BarData, QuoteData,  MarketDataType
 
 #TODO: edge cases
@@ -91,8 +88,10 @@ class TestBasePerformanceManager(unittest.TestCase):
                 action=  Action.SHORT.value,
                 fees= 70 # because not actually a trade
         )       
-
+        # test
         self.performance_manager.update_trades(trade)
+
+        # validate
         self.assertEqual(self.performance_manager.trades[0], trade)
         self.mock_logger.info.assert_called_once()
     
@@ -109,8 +108,11 @@ class TestBasePerformanceManager(unittest.TestCase):
                 fees= 70 # because not actually a trade
         )  
         self.performance_manager.trades.append(trade)
-
+        
+        # test
         self.performance_manager.update_trades(trade)
+
+        # validate
         self.assertEqual(self.performance_manager.trades[0], trade)
         self.assertEqual(len(self.performance_manager.trades), 1)
         self.assertFalse(self.mock_logger.info.called)
@@ -127,7 +129,10 @@ class TestBasePerformanceManager(unittest.TestCase):
                 action=  Action.SHORT.value,
                 fees= 70 # because not actually a trade
         ) 
+        # test
         self.performance_manager.update_trades(trade)
+
+        # validate
         self.mock_logger.info.assert_called_once_with('\nTrades Updated:\n  Timestamp: 1975-03-25T17:20:00+00:00\n  Trade ID: 2\n  Leg ID: 2\n  Ticker: HEJ4\n  Quantity: -10\n  Price: 50\n  Cost: -500\n  Action: SHORT\n  Fees: 70\n')
 
     def test_update_signals_valid(self):        
@@ -146,8 +151,11 @@ class TestBasePerformanceManager(unittest.TestCase):
         self.valid_trade_instructions = [self.valid_trade1,self.valid_trade2]
                         
         signal_event = SignalEvent(np.uint64(1651500000), 10000,self.valid_trade_instructions)
-
+        
+        # test
         self.performance_manager.update_signals(signal_event)
+        
+        # validate
         self.assertEqual(self.performance_manager.signals[0], signal_event.to_dict())
         self.mock_logger.info.assert_called_once()
     
@@ -168,7 +176,10 @@ class TestBasePerformanceManager(unittest.TestCase):
                         
         signal_event = SignalEvent(np.uint64(1651500000), 10000,self.valid_trade_instructions)
         
+        # test
         self.performance_manager.update_signals(signal_event)
+
+        # validate
         self.mock_logger.info.assert_called_once_with("\nSignals Updated:  {'timestamp': 1651500000, 'trade_instructions': [{'ticker': 'AAPL', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 5, 'weight': 0.5}, {'ticker': 'TSLA', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 6, 'weight': 0.5}]} \n")
 
     def test_update_equity_new_valid(self):
@@ -177,8 +188,10 @@ class TestBasePerformanceManager(unittest.TestCase):
                     equity_value = 10000000.99
                 )
         
+        # test
         self.performance_manager.update_equity(equity)
 
+        # validate
         self.assertEqual(self.performance_manager.equity_value[0], equity)
         self.mock_logger.info.assert_called_once_with((f"\nEquity Updated: {equity}"))
     
@@ -188,8 +201,11 @@ class TestBasePerformanceManager(unittest.TestCase):
                     equity_value = 10000000.99
                 )
         self.performance_manager.equity_value.append(equity)
-
+        
+        # test
         self.performance_manager.update_equity(equity)
+
+        # validate
         self.assertEqual(len(self.performance_manager.equity_value), 1)
         self.assertFalse(self.mock_logger.info.called)
 
