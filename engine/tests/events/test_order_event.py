@@ -18,13 +18,14 @@ class TestOrderEvent(unittest.TestCase):
 
     # Basic Validation                
     def test_basic_validation(self):
+        # test
         event = OrderEvent(timestamp=self.valid_timestamp,
                            trade_id=self.valid_trade_id,
                            leg_id=self.valid_leg_id,
                            action=self.valid_action,
                            order=self.valid_order,
                            contract=self.valid_contract)
-        
+        # validate
         self.assertEqual(event.timestamp, self.valid_timestamp)
         self.assertEqual(event.order, self.valid_order)
         self.assertEqual(event.contract, self.valid_contract)

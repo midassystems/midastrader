@@ -3,15 +3,37 @@ from .data_client import DataClient
 from ibapi.contract import Contract
 
 class ContractManager:
-    def __init__(self, client_instance: DataClient, logger:logging.Logger):
+    """
+    Class for managing contract validation with Interactive Brokers.
+
+    Attributes:
+    - client (DataClient): An instance of DataClient used for communication with the IB API.
+    - logger (logging.Logger): An instance of Logger for logging messages.
+    - validated_contracts (dict): A dictionary to store validated contracts.
+    """
+    def __init__(self, client_instance: DataClient, logger: logging.Logger):
+        """
+        Initialize the ContractManager instance.
+
+        Parameters:
+        - client_instance (DataClient): An instance of DataClient for communication with the IB API.
+        - logger (logging.Logger): An instance of Logger for logging messages.
+        """
         self.logger = logger
         self.client = client_instance
         self.app = self.client.app
         self.validated_contracts = {}  # Dictionary to store validated contracts
 
     def validate_contract(self, contract: Contract) -> bool:
-        """Validate a contract with IB."""
+        """
+        Validate a contract with Interactive Brokers.
 
+        Parameters:
+        - contract (Contract): The contract to be validated.
+
+        Returns:
+        - bool: True if the contract is successfully validated, False otherwise.
+        """
         if not isinstance(contract, Contract):
             raise ValueError("'contract' must be of type Contract instance.")
         
@@ -39,5 +61,13 @@ class ContractManager:
         return self.app.is_valid_contract
 
     def _is_contract_validated(self, contract: Contract) -> bool:
-        """Check if a contract has already been validated."""
+        """
+        Check if a contract has already been validated.
+
+        Parameters:
+        - contract (Contract): The contract to check for validation.
+
+        Returns:
+        - bool: True if the contract has already been validated, False otherwise.
+        """
         return contract.symbol in self.validated_contracts

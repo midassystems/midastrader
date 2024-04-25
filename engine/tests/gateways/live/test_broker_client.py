@@ -36,29 +36,39 @@ class TestBrokerClient(unittest.TestCase):
         id = 10
         
         self.broker_client.app.next_valid_order_id = id
+        
+        # test
         current_id = self.broker_client._get_valid_id()
 
+        # validate
         self.assertEqual(current_id, id)
         self.assertEqual(self.broker_client.app.next_valid_order_id, id+1)
 
     def test_is_connected(self):
-        # isConnected checks app's connection status
+        # test
         self.broker_client.app.isConnected.return_value = True
+
+        # validate
         self.assertTrue(self.broker_client.is_connected())
         self.broker_client.app.isConnected.assert_called_once()
 
     def test_connect(self):
         # Ensure connect method starts a thread and waits for connection events
         with patch('threading.Thread.start', return_value=None) as mock_thread_start:
+            # test
             self.broker_client.connect()
+
+            # validate
             mock_thread_start.assert_called_once()
             self.mock_logger.info.assert_called_with('Waiting For Broker Connection...')
             self.broker_client.app.connected_event.wait.assert_called_once()
             self.broker_client.app.valid_id_event.wait.assert_called_once()
 
     def test_disconnect(self):
-        # Disconnect simply calls app.disconnect
+        # test
         self.broker_client.disconnect()
+        
+        # validate
         self.broker_client.app.disconnect.assert_called_once()
 
     def test_on_order_valid(self):
@@ -77,7 +87,10 @@ class TestBrokerClient(unittest.TestCase):
                            contract=self.valid_contract)
         
         with patch.object(self.broker_client, 'handle_order') as mock_method:
+            # test
             self.broker_client.on_order(event)
+            
+            # validate
             mock_method.assert_called_once_with(self.valid_contract, self.valid_order.order) 
 
     def test_handle_order(self):
@@ -87,7 +100,10 @@ class TestBrokerClient(unittest.TestCase):
         self.broker_client.app.next_valid_order_id = id
 
         with patch.object(self.broker_client.app, 'placeOrder') as mock_method:
+            # test
             self.broker_client.handle_order(self.valid_contract, self.valid_order)
+            
+            # validate
             mock_method.assert_called_once_with(orderId=id, contract=self.valid_contract, order=self.valid_order)
             self.assertEqual(self.broker_client.app.next_valid_order_id, id+1)
     
@@ -97,7 +113,10 @@ class TestBrokerClient(unittest.TestCase):
         expected_tags_string = "Timestamp,FullAvailableFunds,FullInitMarginReq,NetLiquidation,UnrealizedPnL,FullMaintMarginReq,ExcessLiquidity,Currency,BuyingPower,FuturesPNL,TotalCashBalance"
 
         with patch.object(self.broker_client.app, 'reqAccountSummary') as mock_method:
+            # test
             self.broker_client.request_account_summary()
+            
+            # validate
             mock_method.assert_called_once_with(10, "All",expected_tags_string)
 
     # Type Validation

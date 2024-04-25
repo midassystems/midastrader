@@ -1,13 +1,10 @@
 import random
 import unittest
 import pandas as pd
+from decouple import config
 from contextlib import ExitStack
 from unittest.mock import Mock, patch
 from pandas.testing import assert_frame_equal
-from decouple import config
-
-from client import DatabaseClient
-
 
 from engine.observer import EventType
 from engine.order_book import OrderBook
@@ -19,9 +16,10 @@ from engine.command import Config, Mode, Parameters
 from engine.performance.live import LivePerformanceManager
 from engine.performance.backtest import BacktestPerformanceManager
 
-from shared.utils.logger import SystemLogger
+from client import DatabaseClient
+
 from shared.market_data import MarketDataType
-from shared.symbol import Future, Equity, Currency, Venue, Industry, ContractUnits, Currency
+from shared.symbol import Future, Currency, Venue, Industry, ContractUnits, Currency
 
 DATABASE_KEY = config('LOCAL_API_KEY')
 DATABASE_URL = config('LOCAL_URL')

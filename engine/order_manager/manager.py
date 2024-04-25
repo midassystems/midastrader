@@ -13,13 +13,19 @@ from shared.symbol import Symbol, Future, Equity
 from shared.orders import LimitOrder, MarketOrder, StopLoss, Action, OrderType, BaseOrder
 
 class OrderManager:
-    def __init__(self, symbols_map: Dict[str, Symbol], event_queue: Queue, order_book:OrderBook, portfolio_server: PortfolioServer, logger:logging.Logger):
+    """
+    Manages order execution based on trading signals, interfacing with a portfolio server and order book.
+    """
+    def __init__(self, symbols_map: Dict[str, Symbol], event_queue: Queue, order_book: OrderBook, portfolio_server: PortfolioServer, logger: logging.Logger):
         """
-        Initialize the strategy with necessary parameters and components.
-
+        Initialize the OrderManager with necessary components for managing orders.
+        
         Parameters:
-            symbols_map (Dict[str, Contract]): Mapping of symbol strings to Contract objects.
-            event_queue (Queue): Event queue for sending events to other parts of the system.
+        - symbols_map (Dict[str, Symbol]): Mapping of symbol strings to Symbol objects.
+        - event_queue (Queue): Event queue for sending events to other parts of the system.
+        - order_book (OrderBook): Reference to the order book for price lookups.
+        - portfolio_server (PortfolioServer): Reference to the portfolio server for managing account and positions.
+        - logger (logging.Logger): Logger for logging messages.
         """
         self._event_queue = event_queue 
         self.portfolio_server = portfolio_server
@@ -29,8 +35,11 @@ class OrderManager:
         self.symbols_map = symbols_map
 
     def on_signal(self, event: SignalEvent):
-        """ 
-        Signal listener.
+        """
+        Handle received signal events by initiating trade actions if applicable.
+        
+        Parameters:
+        - event (SignalEvent): The signal event containing trade instructions.
         """
         if not isinstance(event, SignalEvent):
             raise TypeError("'event' must be of type SignalEvent instance.")
@@ -50,20 +59,15 @@ class OrderManager:
         else:
             self._handle_signal(timestamp,trade_capital, trade_instructions)
 
-    def _handle_signal(self, timestamp:int, trade_capital: Union[int,float], trade_instructions:List[TradeInstruction]):
+    def _handle_signal(self, timestamp: int, trade_capital: Union[int,float], trade_instructions: List[TradeInstruction])  -> None:
         """
-        Converts trade instructions into OrderEvents based on capital and positions.
+        Process trade instructions to generate orders, checking if sufficient capital is available.
 
         Parameters:
-            trade_instructions: List of trade instructions.
-            market_data: Market data for the trades.
-            current_capital: Current available capital.
-            positions: Current open positions.
-
-        Returns:
-            List[OrderEvent]: The corresponding order events if there is enough capital, otherwise an empty list.
+        - timestamp (int): The time at which the signal was generated.
+        - trade_capital (Union[int, float]): The amount of capital allocated for trading.
+        - trade_instructions (List[TradeInstruction]): List of trading instructions to be processed.
         """
-
         # Create and Validate Orders
         orders = []
         total_capital_required = 0
@@ -97,13 +101,43 @@ class OrderManager:
         else:
             self.logger.info("Not enough capital to execute all orders")
 
-    def _future_order_value(self, quantity:float, ticker:str):
+    def _future_order_value(self, quantity: float, ticker: str) -> float:
+        """
+        Calculate the required margin for a future order based on quantity.
+
+        Parameters:
+        - quantity (float): The quantity of the future order.
+        - ticker (str): The ticker symbol for the future.
+
+        Returns:
+        - float: The calculated margin requirement for the future order.
+        """
         return abs(quantity) * self.symbols_map[ticker].initialMargin
     
-    def _equity_order_value(self, quantity:float, ticker:str):
+    def _equity_order_value(self, quantity: float, ticker: str) -> float:
+        """
+        Calculate the total value of an equity order based on quantity and current market price.
+
+        Parameters:
+        - quantity (float): The quantity of the equity order.
+        - ticker (str): The ticker symbol for the equity.
+
+        Returns:
+        - float: The total value of the equity order.
+        """
         return abs(quantity) * self.order_book.current_price(ticker)
 
-    def _order_details(self, trade_instruction:TradeInstruction, position_allocation:float):
+    def _order_details(self, trade_instruction: TradeInstruction, position_allocation: float) -> BaseOrder:
+        """
+        Generate order details based on trade instructions and capital allocation.
+
+        Parameters:
+        - trade_instruction (TradeInstruction): The specific trade instruction.
+        - position_allocation (float): The capital allocated to this particular trade.
+
+        Returns:
+        - BaseOrder: The generated order object.
+        """
         ticker = trade_instruction.ticker
         action = trade_instruction.action
         weight = trade_instruction.weight
@@ -122,7 +156,21 @@ class OrderManager:
 
         return self._create_order(trade_instruction.order_type,action,quantity)
     
-    def _order_quantity(self, action:Action,ticker:str, order_allocation:float, current_price:float, price_multiplier: float , quantity_multiplier: int):
+    def _order_quantity(self, action: Action,ticker: str, order_allocation: float, current_price: float, price_multiplier: float , quantity_multiplier: int) -> float:
+        """
+        Calculate the order quantity based on allocation, price, and multipliers.
+
+        Parameters:
+        - action (Action): The trading action (LONG, SHORT, SELL, COVER).
+        - ticker (str): The ticker symbol for the order.
+        - order_allocation (float): The capital allocated for this order.
+        - current_price (float): The current price of the ticker.
+        - price_multiplier (float): The price adjustment factor for the ticker.
+        - quantity_multiplier (int): The quantity adjustment factor for the ticker.
+
+        Returns:
+        - float: The calculated quantity for the order.
+        """
         # Adjust current price based on the price multiplier
         adjusted_price = current_price * price_multiplier
 
@@ -135,7 +183,20 @@ class OrderManager:
             # quantity *= 1 if action == Action.COVER else -1
         return quantity
     
-    def _create_order(self, order_type: OrderType, action : Action, quantity: float, limit_price: float=None, aux_price:float=None):
+    def _create_order(self, order_type: OrderType, action : Action, quantity: float, limit_price: float=None, aux_price: float=None) -> float:
+        """
+        Create an order object based on specified parameters.
+
+        Parameters:
+        - order_type (OrderType): The type of order to create (MARKET, LIMIT, STOPLOSS).
+        - action (Action): The action to be taken (BUY, SELL, etc.).
+        - quantity (float): The quantity of the order.
+        - limit_price (float, optional): The limit price for limit orders.
+        - aux_price (float, optional): The auxiliary price for stop-loss orders.
+
+        Returns:
+        - BaseOrder: The created order object, ready for execution.
+        """
         try:
             if order_type == OrderType.MARKET:
                 return MarketOrder(action=action, quantity=quantity)
@@ -148,12 +209,17 @@ class OrderManager:
         except (ValueError, TypeError) as e:
             raise RuntimeError(f"Failed to create or queue SignalEvent due to input error: {e}") from e
     
-    def _set_order(self, timestamp:int, trade_id:int, leg_id:int, action: Action, contract: Contract, order: BaseOrder):
+    def _set_order(self, timestamp: int, trade_id: int, leg_id: int, action: Action, contract: Contract, order: BaseOrder) -> None:
         """
-        Create and queue an OrderEvent.
+        Queue an OrderEvent based on the order details.
 
         Parameters:
-            order_detail: Details of the order to be created and queued.
+        - timestamp (int): The timestamp when the order was initiated.
+        - trade_id (int): The trade identifier.
+        - leg_id (int): The leg identifier of the trade.
+        - action (Action): The action of the trade (BUY, SELL, etc.).
+        - contract (Contract): The contract involved in the order.
+        - order (BaseOrder): The order to be executed.
         """
         try:
             order_event = OrderEvent(timestamp=timestamp, trade_id=trade_id, leg_id=leg_id, action=action, contract=contract, order=order)

@@ -1,4 +1,3 @@
-import json 
 import logging
 import numpy as np
 import pandas as pd
@@ -10,25 +9,48 @@ from ..base_manager import BasePerformanceManager
 
 from shared.trade import Trade
 from shared.backtest import Backtest
-from shared.portfolio import EquityDetails, AccountDetails
 
 
 class BacktestPerformanceManager(BasePerformanceManager):
-    def __init__(self, database: DatabaseClient, logger: logging.Logger, params, granularity: str="D") -> None:
+    """
+    Manages and tracks the performance of trading strategies during backtesting, 
+    including detailed statistical analysis and performance metrics.
+    """
+    def __init__(self, database: DatabaseClient, logger: logging.Logger, params, granularity: str="D"):
+        """
+        Initializes the performance manager specifically for backtesting purposes with the ability to
+        perform granular analysis and logging of trading performance.
+
+        Parameters:
+        - database (DatabaseClient): Client for database operations related to performance data.
+        - logger (logging.Logger): Logger for recording activity and debugging.
+        - params (Parameters): Configuration parameters for the performance manager.
+        - granularity (str): The granularity of the data aggregation ('D' for daily, 'H' for hourly, etc.).
+        """
         super().__init__(database, logger, params)
-        # self.backtest = Backtest(database)
         self.static_stats : List[Dict] =  []
         self.regression_stats : List[Dict] = []
         self.timeseries_stats : pd.DataFrame = ()
         self.granularity = granularity  # 'D' for daily, 'H' for hourly, etc.
 
-    def update_trades(self, trade: Trade):
-        # trade_dict = trade.to_dict()
+    def update_trades(self, trade: Trade) -> None:
+        """
+        Adds and logs a new trade to the list of trades if it's not already present.
+
+        Parameters:
+        - trade (Trade): The trade object to be added.
+        """
         if trade not in self.trades:
             self.trades.append(trade)
             self.logger.info(f"\nTrades Updated: \n{self._output_trades()}")
             
     def _aggregate_trades(self) -> pd.DataFrame:
+        """
+        Aggregates trade data into a structured DataFrame for analysis.
+
+        Returns:
+        - pd.DataFrame: Aggregated trade statistics including entry and exit values, fees, and pnl.
+        """
         if not self.trades:
             return pd.DataFrame()  # Return an empty DataFrame for consistency
         
@@ -56,18 +78,30 @@ class BacktestPerformanceManager(BasePerformanceManager):
 
         return aggregated
 
-    def _timestamps_to_datetime(self, data: pd.DataFrame):
+    def _timestamps_to_datetime(self, data: pd.DataFrame) -> pd.DataFrame:
         """
-        Convert the 'timestamp' from Unix nanoseconds to datetime and set as index.
+        Converts the 'timestamp' column from Unix nanoseconds to a datetime object and sets it as the index of the DataFrame.
+
+        Parameters:
+        - data (pd.DataFrame): DataFrame containing a 'timestamp' column in Unix nanoseconds.
+
+        Returns:
+        - pd.DataFrame: The modified DataFrame with 'timestamp' converted to datetime and set as index.
         """
         data['timestamp'] = pd.to_datetime(data['timestamp'], unit='ns')
         data.set_index('timestamp', inplace=True)
         return data
 
-    def _standardize_to_granularity(self, data: pd.DataFrame, value_column: str):
+    def _standardize_to_granularity(self, data: pd.DataFrame) -> pd.DataFrame:
         """
-        Standardizes input DataFrame to the specified granularity and calculates returns.
-        Assumes 'timestamp' in data is Unix nanoseconds.
+        Resamples the DataFrame to the specified granularity (e.g., daily, hourly) based on the 'timestamp' index,
+        taking the last value of the specified period. This method is typically used to standardize time series data for further analysis.
+
+        Parameters:
+        - data (pd.DataFrame): DataFrame with a datetime index.
+
+        Returns:
+        - pd.DataFrame: The resampled DataFrame according to the specified granularity.
         """
         # Resample to the specified granularity, taking the last value of the period
         period_data = data.resample(self.granularity).last()
@@ -77,8 +111,16 @@ class BacktestPerformanceManager(BasePerformanceManager):
 
         return period_data
 
-    def _calculate_return_and_drawdown(self, data: pd.DataFrame):
-        
+    def _calculate_return_and_drawdown(self, data: pd.DataFrame) -> pd.DataFrame:
+        """
+        Calculates the period returns, cumulative returns, and drawdowns for a given equity curve.
+
+        Parameters:
+        - data (pd.DataFrame): DataFrame containing the equity values with a datetime index.
+
+        Returns:
+        - pd.DataFrame: The DataFrame enhanced with columns for period returns, cumulative returns, and drawdowns.
+        """
         equity_curve = data['equity_value'].to_numpy()
 
         # Adjust daily_return to add a placeholder at the beginning
@@ -96,8 +138,17 @@ class BacktestPerformanceManager(BasePerformanceManager):
         return data
     
     def calculate_statistics(self, risk_free_rate: float= 0.04):
+        """
+        Calculates and logs a variety of statistical measures based on the backtest results, including
+        regression analysis against a benchmark and time series statistics of returns.
+
+        Parameters:
+        - risk_free_rate (float): The risk-free rate to be used in performance calculations.
+        """
         # Get Benchmark Data
-        benchmark_data = self.database.get_benchmark_data(self.params.benchmark, self.params.test_start, self.params.test_end)
+        data = self.database.get_bar_data(self.params.benchmark, self.params.test_start, self.params.test_end)
+        benchmark_data = [{'timestamp': item['timestamp'], 'close': item['close']} for item in data]
+        # benchmark_data = self.database.get_benchmark_data(self.params.benchmark, self.params.test_start, self.params.test_end)
         benchmark_df = pd.DataFrame(benchmark_data)
         print(benchmark_df)
         benchmark_df["close"] = benchmark_df["close"].astype(float)
@@ -110,7 +161,7 @@ class BacktestPerformanceManager(BasePerformanceManager):
         # Normalize Equity Curve
         raw_equity_df = pd.DataFrame(self.equity_value)
         raw_equity_df = self._timestamps_to_datetime(raw_equity_df)
-        standardized_equity_df = self._standardize_to_granularity(raw_equity_df.copy(), "equity_value")
+        standardized_equity_df = self._standardize_to_granularity(raw_equity_df.copy())
         raw_equity_df=raw_equity_df.reset_index()
 
         # Regression Analysis 
@@ -164,7 +215,11 @@ class BacktestPerformanceManager(BasePerformanceManager):
         except TypeError as e:
             raise TypeError(f"Error while calculcating statistics. {e}")
 
-    def save_backtest(self) -> Backtest:
+    def save(self) -> None:
+        """
+        Saves the collected performance data including the backtest configuration, trades, and signals
+        to a database or other storage mechanism.
+        """
         # Create Backtest Object
         self.backtest = Backtest(parameters=self.params.to_dict(), 
                                  static_stats=self.static_stats,

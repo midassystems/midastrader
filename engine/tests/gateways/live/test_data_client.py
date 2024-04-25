@@ -31,6 +31,7 @@ class TestDataClient(unittest.TestCase):
     # Basic Validation
     def test_get_valid_id(self):
         id = 10
+
         # test 
         self.data_client.app.next_valid_order_id = id # mock next valid id
         current_id = self.data_client._get_valid_id()
@@ -40,14 +41,20 @@ class TestDataClient(unittest.TestCase):
 
     def test_is_connected(self):
         # isConnected checks app's connection status
+        # test
         self.data_client.app.isConnected.return_value = True
+        
+        # validate
         self.assertTrue(self.data_client.is_connected())
         self.data_client.app.isConnected.assert_called_once()
 
     def test_connect(self):
         # Ensure connect method starts a thread and waits for connection events
         with patch('threading.Thread.start', return_value=None) as mock_thread_start:
+            # test
             self.data_client.connect()
+            
+            # validate
             mock_thread_start.assert_called_once()
             self.mock_logger.info.assert_called_with('Waiting For Data Connection...')
             self.data_client.app.connected_event.wait.assert_called_once()
@@ -55,7 +62,10 @@ class TestDataClient(unittest.TestCase):
 
     def test_disconnect(self):
         # Disconnect simply calls app.disconnect
+        # test
         self.data_client.disconnect()
+        
+        # validate
         self.data_client.app.disconnect.assert_called_once()
 
     def test_get_data_bar(self):
@@ -63,7 +73,10 @@ class TestDataClient(unittest.TestCase):
         data_type = MarketDataType.BAR
 
         with patch.object(self.data_client, 'stream_5_sec_bars') as mock_method:
+            # test
             self.data_client.get_data(data_type, contract)
+            
+            # validate
             mock_method.assert_called_once_with(contract)
 
     def test_get_data_quote(self):
@@ -71,7 +84,10 @@ class TestDataClient(unittest.TestCase):
         data_type = MarketDataType.QUOTE
 
         with patch.object(self.data_client, 'stream_quote_data') as mock_method:
+            # test
             self.data_client.get_data(data_type, contract)
+            
+            # validate
             mock_method.assert_called_once_with(contract)
     
     def test_stream_5_sec_bars(self):
@@ -79,7 +95,10 @@ class TestDataClient(unittest.TestCase):
         contract.symbol = 'AAPL'
 
         with patch.object(self.data_client, '_get_valid_id', return_value= 123) as mock_method:
+            # test
             self.data_client.stream_5_sec_bars(contract=contract)
+            
+            # validate
             self.data_client.app.reqRealTimeBars.assert_called_once_with(reqId=123, contract=contract, barSize=5, whatToShow='TRADES', useRTH=False, realTimeBarsOptions=[])
             self.assertEqual(self.data_client.app.reqId_to_symbol_map[123], "AAPL")
             self.mock_logger.info.assert_called_once()
@@ -89,7 +108,10 @@ class TestDataClient(unittest.TestCase):
         contract.symbol = 'AAPL'
         self.data_client.app.reqId_to_symbol_map = {321: contract.symbol}
         with patch.object(self.data_client, '_get_valid_id', return_value= 123) as mock_method:
+            # test
             self.data_client.stream_5_sec_bars(contract=contract)
+            
+            # validate
             self.mock_logger.error.assert_called_once_with(f"Data stream already established for {contract}.")
             self.assertFalse(self.data_client.app.reqRealTimeBars.called)
 
@@ -98,7 +120,10 @@ class TestDataClient(unittest.TestCase):
         contract.symbol = 'AAPL'
 
         with patch.object(self.data_client, '_get_valid_id', return_value= 123) as mock_method:
+            # test
             self.data_client.stream_quote_data(contract=contract)
+            
+            # validate
             self.data_client.app.reqMktData.assert_called_once_with(reqId=123, contract=contract,genericTickList="", snapshot=False, regulatorySnapshot=False, mktDataOptions=[])
             self.assertEqual(self.data_client.app.reqId_to_symbol_map[123], "AAPL")
             self.mock_logger.info.assert_called_once()
@@ -109,7 +134,10 @@ class TestDataClient(unittest.TestCase):
         self.data_client.app.reqId_to_symbol_map = {321: contract.symbol}
 
         with patch.object(self.data_client, '_get_valid_id', return_value= 123) as mock_method:
+            # test
             self.data_client.stream_quote_data(contract=contract)
+            
+            # validate
             self.mock_logger.error.assert_called_once_with(f"Data stream already established for {contract}.")
             self.assertFalse(self.data_client.app.reqRealTimeBars.called)
 
@@ -118,8 +146,10 @@ class TestDataClient(unittest.TestCase):
         contract.symbol = 'AAPL'
 
         self.data_client.app.reqId_to_symbol_map = {321: contract.symbol}
-
+        # test
         self.data_client.cancel_all_bar_data()
+        
+        # validate
         self.assertEqual(self.data_client.app.reqId_to_symbol_map, {})
 
     def test_cancel_all_quote_data(self):
@@ -127,8 +157,11 @@ class TestDataClient(unittest.TestCase):
         contract.symbol = 'AAPL'
 
         self.data_client.app.reqId_to_symbol_map = {321: contract.symbol}
-
+        
+        # test
         self.data_client.cancel_all_quote_data()
+        
+        # validate
         self.assertEqual(self.data_client.app.reqId_to_symbol_map, {})
 
     # Type Validation

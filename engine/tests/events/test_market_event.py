@@ -24,9 +24,10 @@ class TestMarketEvent(unittest.TestCase):
 
     # Basic Validation
     def test_valid_construction(self):
-
+        # test
         event = MarketEvent(data=self.valid_data, timestamp=self.timestamp)
 
+        # validate
         self.assertEqual(event.data['AAPL'].timestamp, self.valid_bar.timestamp)
         self.assertEqual(event.data['AAPL'].open, self.valid_bar.open)
         self.assertEqual(event.data['AAPL'].high, self.valid_bar.high)

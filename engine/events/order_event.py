@@ -1,5 +1,4 @@
 import numpy as np
-from typing  import  Any, Union
 from ibapi.contract import Contract
 from dataclasses import dataclass, field
 
@@ -7,6 +6,21 @@ from shared.orders import BaseOrder, Action
 
 @dataclass
 class OrderEvent:
+    """
+    Represents an order-related event in a trading system, typically triggered when an order is placed, modified, or executed.
+
+    This class is essential for order management within the system, capturing all relevant details about an order at the time of the event. 
+    It helps in tracking the lifecycle of trades and ensuring the system responds appropriately to changes in order status.
+
+    Attributes:
+    - timestamp (np.uint64): The UNIX timestamp in nanoseconds when the order event occurred.
+    - trade_id (int): A unique identifier for the trade associated with this order.
+    - leg_id (int): Identifies the specific leg of a multi-leg order.
+    - action (Action): The type of action (e.g., BUY, SELL) associated with the order.
+    - contract (Contract): The financial contract associated with the order.
+    - order (BaseOrder): The order object detailing specifics like order type and quantity.
+    - type (str): Automatically set to 'ORDER', denoting the event type.
+    """
     timestamp: np.uint64
     trade_id: int
     leg_id: int

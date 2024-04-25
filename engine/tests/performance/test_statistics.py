@@ -19,8 +19,13 @@ class TestPerformancStatistics(unittest.TestCase):
     
     # Net Profit
     def test_net_profit(self):
-        expected_net_profit = 30  # Expected result based on the sample trade log
+        # Expected result based on the sample trade log
+        expected_net_profit = 30  
+        
+        # test
         net_profit = PerformanceStatistics.net_profit(self.trade_log)
+        
+        # validate
         self.assertEqual(net_profit, expected_net_profit)
 
     def test_net_profit_type_check(self):        
@@ -35,12 +40,19 @@ class TestPerformancStatistics(unittest.TestCase):
     def test_net_profit_null_handling(self):
         # Test with empty DataFrame
         trade_log = pd.DataFrame({'pnl': []})
+        
+        # validate
         self.assertEqual(PerformanceStatistics.net_profit(trade_log), 0)
 
     # Daily Return
     def test_period_return(self):
+        # expected
         expected_daily_returns = np.array([0.05, -0.019, 0.0679, -0.0182])
+        
+        # test
         daily_returns = PerformanceStatistics.period_return(self.equity_curve)
+        
+        # validate
         np.testing.assert_array_almost_equal(daily_returns, expected_daily_returns, decimal=4)
 
     def test_period_return_type_check(self):
@@ -51,14 +63,20 @@ class TestPerformancStatistics(unittest.TestCase):
         # Test with empty input
         list = []
         equity_curve = np.array(list)
+        # test
         result = PerformanceStatistics.period_return(equity_curve)
+
+        # validate
         self.assertIsInstance(result, np.ndarray)
         self.assertEqual(len(result), 1)  # Expecting an array with a single zero
 
     # Cumulative Return
     def test_cumulative_return(self):
+        # expected
         expected_cumulative_returns = np.array([0.05, 0.03, 0.10, 0.08])
+        # test
         cumulative_returns = PerformanceStatistics.cumulative_return(self.equity_curve)
+        # validate
         np.testing.assert_array_almost_equal(cumulative_returns, expected_cumulative_returns, decimal=4)
         
     def test_cumulative_return_type_check(self):
@@ -69,14 +87,20 @@ class TestPerformancStatistics(unittest.TestCase):
         # Test with empty input
         list = []
         equity_curve = np.array(list)
+        # test
         result = PerformanceStatistics.cumulative_return(equity_curve)
+        # validate
         self.assertIsInstance(result, np.ndarray)
         self.assertEqual(len(result), 1)  # Expecting an array with a single zero
 
     # Total Return
     def test_total_return(self):
         expected_total_return = 0.08  # Expected result based on the sample equity curve
+        
+        # test
         total_return = PerformanceStatistics.total_return(self.equity_curve)
+        
+        # validate
         self.assertEqual(total_return, expected_total_return)
 
     def test_total_return_type_check(self):
@@ -87,13 +111,18 @@ class TestPerformancStatistics(unittest.TestCase):
         # Test with empty input
         list = []
         equity_curve = np.array(list)
+        # test
         result = PerformanceStatistics.total_return(equity_curve)
+        
+        # validate
         self.assertEqual(result, 0)  # Expecting an array with a single zero
 
     # Drawdown
     def test_drawdown(self):
         expected_drawdowns = np.array([0, 0, -0.01914, 0, -0.01818])
+        # test
         drawdowns = PerformanceStatistics.drawdown(self.equity_curve)
+        # validate
         np.testing.assert_array_almost_equal(drawdowns, expected_drawdowns, decimal=4)
 
     def test_drawdown_type_check(self):
@@ -104,13 +133,17 @@ class TestPerformancStatistics(unittest.TestCase):
         # Test with empty input
         list = []
         equity_curve = np.array(list)
+        # test
         result = PerformanceStatistics.drawdown(equity_curve)
+        # validate
         self.assertIsInstance(result, np.ndarray)
         self.assertEqual(len(result), 1)  # Expecting an array with a single zero
 
     def test_max_drawdown(self):
         expected_max_drawdown = -0.019  # Expected result based on the sample equity curve
+        # test
         max_drawdown = PerformanceStatistics.max_drawdown(self.equity_curve)
+        # validate
         self.assertEqual(max_drawdown, expected_max_drawdown)
 
     def test_max_drawdown_type_check(self):
@@ -121,7 +154,9 @@ class TestPerformancStatistics(unittest.TestCase):
         # Test with empty input
         list = []
         equity_curve = np.array(list)
+        # test
         result = PerformanceStatistics.drawdown(equity_curve)
+        # validate
         self.assertIsInstance(result, np.ndarray)
         self.assertEqual(result, 0)  # Expecting an array with a single zero
 
@@ -129,7 +164,9 @@ class TestPerformancStatistics(unittest.TestCase):
     def test_annual_standard_deviation(self):
         # Calculate expected annual standard deviation manually or adjust according to your data
         expected_annual_std_dev = np.std(self.equity_curve, ddof=1) * np.sqrt(252)
+        # test
         annual_std_dev = PerformanceStatistics.annual_standard_deviation(self.equity_curve)
+        # validate
         self.assertAlmostEqual(annual_std_dev, expected_annual_std_dev, places=4)
 
     def test_annual_standard_deviation_type_check(self):
@@ -140,20 +177,26 @@ class TestPerformancStatistics(unittest.TestCase):
         # Test with empty input
         list = []
         equity_curve = np.array(list)
+        # test
         result = PerformanceStatistics.annual_standard_deviation(equity_curve)
+        # validate
         self.assertIsInstance(result, np.ndarray)
         self.assertEqual(result, 0)  # Expecting an array with a single zero
 
     # Total Trades
     def test_total_trades(self):
         expected_total_trades = 6
+        # test
         total_trades = PerformanceStatistics.total_trades(self.trade_log)
+        # validate
         self.assertEqual(total_trades, expected_total_trades)
 
     # Total Winning Trades
     def test_total_winning_trades(self):
         expected_winning_trades = 3
+        # test
         total_winning_trades = PerformanceStatistics.total_winning_trades(self.trade_log)
+        # validate
         self.assertEqual(total_winning_trades, expected_winning_trades)
 
     def test_total_winning_trades_type_check(self):        
@@ -168,12 +211,15 @@ class TestPerformancStatistics(unittest.TestCase):
     def test_total_winning_trades_null_handling(self):
         # Test with empty DataFrame
         trade_log = pd.DataFrame({'pnl': []})
+        # validate
         self.assertEqual(PerformanceStatistics.total_winning_trades(trade_log), 0)
     
     # Total Losing Trades
     def test_total_losing_trades(self):
         expected_losing_trades = 3
+        # test
         total_losing_trades = PerformanceStatistics.total_losing_trades(self.trade_log)
+        # validate
         self.assertEqual(total_losing_trades, expected_losing_trades)
 
     def test_total_losing_trades_type_check(self):        
@@ -193,7 +239,9 @@ class TestPerformancStatistics(unittest.TestCase):
     # Total Avg Win Percent
     def test_avg_win_return_rate(self):
         expected_avg_win = 0.108333  # Based on the provided gain/loss values
+        # test
         avg_win_return_rate = PerformanceStatistics.avg_win_return_rate(self.trade_log)
+        # validate
         self.assertAlmostEqual(avg_win_return_rate, expected_avg_win, places=4)
 
     def test_avg_win_return_rate_type_check(self):        
@@ -208,12 +256,15 @@ class TestPerformancStatistics(unittest.TestCase):
     def test_avg_win_return_rate_null_handling(self):
         # Test with empty DataFrame
         trade_log = pd.DataFrame({'pnl': []})
+        # validate
         self.assertEqual(PerformanceStatistics.avg_win_return_rate(trade_log), 0)
     
     # Total avg_loss_return_rate
     def test_avg_loss_return_rate(self):
         expected_avg_loss = -0.10333  # Based on the provided gain/loss values
+        # test
         avg_loss_return_rate = PerformanceStatistics.avg_loss_return_rate(self.trade_log)
+        # validate
         self.assertAlmostEqual(avg_loss_return_rate, expected_avg_loss, places=4)
 
     def test_avg_loss_return_rate_type_check(self):        
@@ -228,12 +279,15 @@ class TestPerformancStatistics(unittest.TestCase):
     def test_avg_loss_return_rate_null_handling(self):
         # Test with empty DataFrame
         trade_log = pd.DataFrame({'pnl': []})
+        # validate
         self.assertEqual(PerformanceStatistics.avg_loss_return_rate(trade_log), 0)
 
     # Percent Profitable
     def test_profitability_ratio(self):
         expected_profitability_ratio = 0.50  # 3 winning trades out of 6 total trades
+        # test
         profitability_ratio = PerformanceStatistics.profitability_ratio(self.trade_log)
+        # validate
         self.assertEqual(profitability_ratio, expected_profitability_ratio)
 
     def test_profitability_ratio_type_check(self):        
@@ -248,12 +302,15 @@ class TestPerformancStatistics(unittest.TestCase):
     def test_profitability_ratio_null_handling(self):
         # Test with empty DataFrame
         trade_log = pd.DataFrame({'pnl': []})
+        # valdiate
         self.assertEqual(PerformanceStatistics.profitability_ratio(trade_log), 0)
 
     # Avg Trade Profit
     def test_avg_trade_profit(self):
         expected_avg_trade_profit = 5  # (20-10+15-5+30-20) / 6
+        # test
         average_trade_profit = PerformanceStatistics.avg_trade_profit(self.trade_log)
+        # validate
         self.assertEqual(average_trade_profit, expected_avg_trade_profit)
 
     def test_avg_trade_profit_type_check(self):        
@@ -268,12 +325,15 @@ class TestPerformancStatistics(unittest.TestCase):
     def test_avg_trade_profit_null_handling(self):
         # Test with empty DataFrame
         trade_log = pd.DataFrame({'pnl': []})
+        # validate
         self.assertEqual(PerformanceStatistics.avg_trade_profit(trade_log), 0)
 
     # Profit Factor
     def test_profit_factor(self):
         expected_profit_factor = 1.8571 # (20+15+30) / abs(-10-5-20)
+        # test
         profit_factor = PerformanceStatistics.profit_factor(self.trade_log)
+        # validate
         self.assertEqual(profit_factor, expected_profit_factor)
 
     def test_profit_factor_type_check(self):        
@@ -288,12 +348,15 @@ class TestPerformancStatistics(unittest.TestCase):
     def test_profit_factor_null_handling(self):
         # Test with empty DataFrame
         trade_log = pd.DataFrame({'pnl': []})
+        # validate
         self.assertEqual(PerformanceStatistics.profit_factor(trade_log), 0)
 
     # Profit & Loss Ratio
     def test_profit_and_loss_ratio(self):
         expected_pnl_ratio = 1.8571  # abs(mean([20,15,30]) / mean([-10,-5,-20]))
+        # test
         profit_and_loss_ratio = PerformanceStatistics.profit_and_loss_ratio(self.trade_log)
+        # validate
         self.assertEqual(profit_and_loss_ratio, expected_pnl_ratio)
 
     def test_profit_and_loss_ratio_type_check(self):        
@@ -308,6 +371,7 @@ class TestPerformancStatistics(unittest.TestCase):
     def test_profit_and_loss_ratio_null_handling(self):
         # Test with empty DataFrame
         trade_log = pd.DataFrame({'pnl': []})
+        # validate
         self.assertEqual(PerformanceStatistics.profit_and_loss_ratio(trade_log), 0)
 
    # Sortino Ratio
@@ -322,7 +386,10 @@ class TestPerformancStatistics(unittest.TestCase):
         else:
             expected_sortino_ratio = 0.0
 
+        # test
         sortino_ratio = PerformanceStatistics.sortino_ratio(self.trade_log)
+        
+        # validate
         self.assertAlmostEqual(sortino_ratio, expected_sortino_ratio, places=4)
 
     def test_sortino_ratio_type_check(self):        
@@ -346,7 +413,10 @@ class TestPerformancStatistics(unittest.TestCase):
         excess_returns = daily_returns - risk_free_rate_daily # Excess returns calculation
         expected_sharpe_ratio = np.mean(excess_returns) / np.std(excess_returns, ddof=1) if np.std(excess_returns, ddof=1) != 0 else 0 # Expected Sharpe ratio calculation
 
+        # test
         sharpe_ratio = PerformanceStatistics.sharpe_ratio(self.equity_curve)
+        
+        # validate
         self.assertAlmostEqual(sharpe_ratio, expected_sharpe_ratio, places=3)
 
     def test_sharpe_ratio_type_check(self):
@@ -357,7 +427,11 @@ class TestPerformancStatistics(unittest.TestCase):
         # Test with empty input
         list = []
         equity_curve = np.array(list)
+        
+        # test
         result = PerformanceStatistics.sharpe_ratio(equity_curve)
+        
+        # validate
         self.assertIsInstance(result, np.ndarray)
         self.assertEqual(result, 0)  # Expecting an array with a single zero
 

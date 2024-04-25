@@ -8,7 +8,15 @@ from shared.market_data import MarketData, MarketDataType, BarData, QuoteData
 
 
 class OrderBook(Subject):
+    """Manages market data updates and notifies observers about market changes."""
     def __init__(self, data_type: MarketDataType, event_queue: Queue):
+        """
+        Initializes the order book with a specific market data type and an event queue.
+
+        Parameters:
+        - data_type (MarketDataType): The type of data the order book will handle.
+        - event_queue (Queue): The event queue to post market events to.
+        """
         super().__init__()
 
         if not isinstance(data_type, MarketDataType):
@@ -19,40 +27,55 @@ class OrderBook(Subject):
         self.last_updated = None
         self.data_type = data_type
 
-    def update_market_data(self, data: Dict[str, Union[BarData, QuoteData]], timestamp: int):
+    def update_market_data(self, data: Dict[str, Union[BarData, QuoteData]], timestamp: int) -> None:
         """
-        Process market data and generate trading signals.
+        Update the market data in the order book and notify observers of market events.
 
         Parameters:
-            data (Dict): The market data.
-            timestamp (str): The timestamp of the data.
+        - data (Dict[str, Union[BarData, QuoteData]]): The market data to be updated.
+        - timestamp (int): The timestamp when the data was updated.
         """
         for ticker, market_data in data.items():
             if isinstance(market_data, BarData):
                 self._insert_bar(ticker, market_data)
             elif isinstance(market_data, QuoteData):
-                self._insert_or_update_quote(ticker, market_data, timestamp)
+                self._insert_or_update_quote(ticker, market_data)
 
         self.last_updated = timestamp
         self.event_queue.put(MarketEvent(timestamp=timestamp, data=data))
         self.notify(EventType.MARKET_EVENT)  # update database
         
-    def _insert_bar(self, ticker: str, data: MarketData):
+    def _insert_bar(self, ticker: str, data: MarketData) -> None:
         """
-        Insert or update the data for a ticker along with the timestamp.
+        Inserts or updates bar data for a specific ticker.
 
         Parameters:
-            ticker (str): The ticker symbol.
-            data (dict): The data to be stored for the ticker.
-            timestamp (str): The timestamp when the data was received.
+        - ticker (str): The ticker symbol.
+        - data (BarData): The bar data to insert or update.
         """
         # Directly insert or update BarData
         self.book[ticker] = data
 
-    def _insert_or_update_quote(self, ticker: str, quote_data: QuoteData, timestamp: int):
+    def _insert_or_update_quote(self, ticker: str, quote_data: QuoteData) -> None:
+        """
+        Inserts or updates quote data for a specific ticker.
+
+        Parameters:
+        - ticker (str): The ticker symbol.
+        - quote_data (QuoteData): The quote data to insert or update.
+        """
         self.book[ticker] = quote_data  # For keeping only the most recent quote:
 
-    def current_price(self, ticker: str):
+    def current_price(self, ticker: str) -> float:
+        """
+        Retrieves the current price for a given ticker.
+
+        Parameters:
+        - ticker (str): The ticker symbol.
+
+        Returns:
+        - float or None: The current price if available, else None.
+        """
         if ticker in self.book:
             data = self.book[ticker]
             if self.data_type.value == MarketDataType.BAR.value:
@@ -63,6 +86,12 @@ class OrderBook(Subject):
             return None  # Ticker not found
 
     def current_prices(self) -> dict:
+        """
+        Retrieves the current prices for all tickers in the book.
+
+        Returns:
+            dict: A dictionary of ticker symbols to their current prices.
+        """
         prices = {}
         for key, data in self.book.items():
             if self.data_type.value == MarketDataType.BAR.value:

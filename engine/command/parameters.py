@@ -3,11 +3,35 @@ from typing import List, Literal
 from dataclasses import dataclass, field
 
 from shared.symbol import Symbol
+from shared.utils.unix import iso_to_unix
 from shared.market_data import MarketDataType
-from shared.utils.unix import iso_to_unix, unix_to_iso
 
 @dataclass
 class Parameters:
+    """
+    Holds all configuration parameters necessary for setting up and running a trading strategy.
+
+    This class stores detailed settings such as capital allocation, market data type, and time periods for testing and training.
+    It also performs validation to ensure all parameters are correctly specified and logically consistent.
+
+    Attributes:
+    - strategy_name (str): The name of the trading strategy.
+    - capital (int): The amount of capital allocated for the strategy.Only impacts backtest.
+    - data_type (MarketDataType): The type of market data used by the strategy (e.g., BAR, QUOTE).
+    - test_start (str): Start date of the testing period in 'YYYY-MM-DD' format.
+    - test_end (str): End date of the testing period in 'YYYY-MM-DD' format.
+    - missing_values_strategy (Literal['drop', 'fill_forward']): Strategy for handling missing data in the dataset.
+    - symbols (List[Symbol]): List of symbols (financial instruments) involved in the trading strategy.
+    - train_start (str, optional): Start date of the training period in 'YYYY-MM-DD' format.
+    - train_end (str, optional): End date of the training period in 'YYYY-MM-DD' format.
+    - benchmark (List[str], optional): List of benchmark ticker symbols for performance comparison.
+    - tickers (List[str]): List of ticker symbols derived from the symbols attribute.
+
+    Methods:
+    - to_dict(): Converts the parameters instance into a dictionary with key-value pairs, suitable for serialization or passing to other components. 
+        Converts date strings to UNIX timestamps where applicable.
+
+    """
     strategy_name: str
     capital: int
     data_type: MarketDataType

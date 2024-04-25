@@ -26,31 +26,43 @@ class TestBrokerApp(unittest.TestCase):
     # Basic Validation
     def test_200_error_valid(self):
         # Simulate an error code for contract not found
+        # test
         self.broker_app.error(reqId=-1, errorCode=200, errorString="Contract not found")
         
+        # validate
         self.mock_logger.critical.assert_called_once_with("200 : Contract not found") # Verify critical log is called with expected message
         self.assertFalse(self.broker_app.is_valid_contract) # Verify is_valid_contract is set to False
         self.assertTrue(self.broker_app.validate_contract_event.is_set()) # Verify validate_contract_event is set
 
     def test_connectAck_valid(self):
+        # test
         self.broker_app.connectAck()
+        
+        # validate
         self.mock_logger.info.assert_called_once_with('Established Broker Connection') # Verify critical log is called with expected message
         self.assertFalse(self.broker_app.is_valid_contract) # Verify is_valid_contract is set to False
         self.assertTrue(self.broker_app.connected_event.is_set()) # Verify validate_contract_event is set
 
     def test_connection_closed(self):
+        # test
         self.broker_app.connectionClosed()
+        
+        # validate
         self.mock_logger.info.assert_called_once_with('Closed Broker Connection.')
 
     def test_nextvalidId_valid(self):
         id = 10
+        
+        # test
         self.broker_app.nextValidId(id)
         
+        # validate
         self.assertEqual(self.broker_app.next_valid_order_id, id)
         self.mock_logger.info.assert_called_once_with(f"Next Valid Id {id}")
         self.assertTrue(self.broker_app.valid_id_event.is_set()) 
 
     def test_contractDetails(self):
+        # test
         self.broker_app.contractDetails(10, None)
         self.assertTrue(self.broker_app.is_valid_contract)
 
@@ -239,11 +251,16 @@ class TestBrokerApp(unittest.TestCase):
                                     status= order_state.status)
 
         with patch.object(self.mock_portfolio_server, 'update_orders') as mock_update_orders:
+            # test
             self.broker_app.openOrder(order_id, contract, order, order_state)
+            
+            # validate
             mock_update_orders.assert_called_once_with(valid_order)
 
     def test_openOrderEnd(self):
+        # test
         self.broker_app.openOrderEnd()
+        # validate
         self.mock_logger.info.assert_called_once_with(f"Initial Open Orders Received.")
         self.broker_app.open_orders_event.is_set()
 
@@ -274,7 +291,9 @@ class TestBrokerApp(unittest.TestCase):
         )
 
         with patch.object(self.mock_portfolio_server, 'update_orders') as mock_method:
+            # test
             self.broker_app.orderStatus(orderId, status, filled, remaining, avgFillPrice, permId, parentId, lastFillPrice, clientId, whyHeld, mktCapPrice)
+            # validate
             self.mock_logger.info.assert_called_once_with(f"Received order status update for orderId {orderId}: {status}")
             mock_method.assert_called_once_with(order_data)
 
@@ -349,9 +368,11 @@ class TestBrokerApp(unittest.TestCase):
         }
 
         with patch.object(self.performance_manager, 'update_trades') as mock_method:
+            # test 
             self.broker_app.execDetails(reqId, contract, execution)
+            # validate
             mock_method.assert_called_once_with(execution.execId ,execution_data)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":# validate
     unittest.main()

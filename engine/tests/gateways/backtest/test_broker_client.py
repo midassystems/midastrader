@@ -35,7 +35,9 @@ class TestBrokerClient(unittest.TestCase):
         
         # Test
         with patch.object(self.mock_dummy_broker, 'placeOrder') as mock_method:
+            # test
             self.broker_client.handle_order(timestamp, trade_id, leg_id, action, contract, order)
+            # validate
             mock_method.assert_called_once() # check placeOrder called on a valid order event
 
     def test_on_order(self):
@@ -55,7 +57,9 @@ class TestBrokerClient(unittest.TestCase):
         
         # Test Valid Order handle_order shoudl be called
         with patch.object(self.broker_client, 'handle_order') as mock_method:
+            # test
             self.broker_client.on_order(event)
+            # validate
             mock_method.assert_called_once() 
         
     def test_update_positions_valid(self):
@@ -82,8 +86,10 @@ class TestBrokerClient(unittest.TestCase):
 
         # Test portfolio server update postions shoudl be called on postion updates
         with patch.object(self.mock_portfolio_server, 'update_positions') as mock_method:
-            self.broker_client.update_positions() # test 
-            mock_method.assert_called_once()  # check called
+            # test
+            self.broker_client.update_positions()
+            # validate
+            mock_method.assert_called_once()
 
     def test_update_trades_valid(self):
         aapl_contract = Contract()
@@ -109,8 +115,10 @@ class TestBrokerClient(unittest.TestCase):
 
         # Test performance manager update trades called on new trade
         with patch.object(self.mock_performance_manager, 'update_trades') as update_trades:
-            self.broker_client.update_trades() # test
-            update_trades.assert_called_once() # check call
+            # test
+            self.broker_client.update_trades() 
+            # validate
+            update_trades.assert_called_once()
 
     def test_update_account_valid(self):
         account = AccountDetails(Timestamp=165000000, 
@@ -121,23 +129,25 @@ class TestBrokerClient(unittest.TestCase):
         
 
         self.mock_dummy_broker.return_account.return_value = account # mock account
-        # Test portfolio server account updated on account changes
+
         with patch.object(self.mock_portfolio_server, 'update_account_details') as mock_update_account_details:
-            self.broker_client.update_account() # test
-            mock_update_account_details.assert_called_once_with(account) # check update
+            # test
+            self.broker_client.update_account() 
+
+            # validate
+            mock_update_account_details.assert_called_once_with(account) 
         
     def test_update_equity_value_valid(self):
-        equity = EquityDetails(
-                    timestamp= 123456,
-                    equity_value =100000
-                    )
-        # Test 
+        equity = EquityDetails(timestamp= 123456, equity_value =100000)
         with ExitStack() as stack:
             mock_m1 = stack.enter_context(patch.object(self.mock_dummy_broker,'_update_account_equity_value')) # broker shoudl update equity
             mock_m2 = stack.enter_context(patch.object(self.mock_dummy_broker,'return_equity_value', return_value = equity)) # return equity from broker to broker client 
             mock_m3 = stack.enter_context(patch.object(self.mock_performance_manager,'update_equity')) # call performance manager to update equity log
             
+            # test
             self.broker_client.update_equity_value()
+            
+            # validate
             mock_m1.assert_called_once() 
             mock_m2.assert_called_once()
             mock_m3.assert_called_once_with(equity)
@@ -177,8 +187,10 @@ class TestBrokerClient(unittest.TestCase):
             mock_m3 = stack.enter_context(patch.object(self.broker_client,'update_equity_value'))
             mock_m4 = stack.enter_context(patch.object(self.broker_client,'update_trades'))
 
+            # test
             self.broker_client.on_execution(exec)
 
+            # validate
             mock_m1.assert_called_once()
             mock_m2.assert_called_once()
             mock_m3.assert_called_once()

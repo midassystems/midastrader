@@ -4,9 +4,9 @@ from datetime import datetime
 
 from engine.command import Parameters
 
+from shared.utils import iso_to_unix
 from shared.market_data import MarketDataType
 from shared.symbol import Equity, Future, Currency, Venue, Symbol, Industry,ContractUnits
-from shared.utils import iso_to_unix, unix_to_iso
 
 
 #TODO: Edge cases
@@ -62,6 +62,7 @@ class TestParameters(unittest.TestCase):
         
     # Basic Validation
     def test_construction(self):
+        # test
         params = Parameters(strategy_name=self.valid_strategy_name,
                             capital=self.valid_capital,
                             data_type=self.valid_data_type,
@@ -72,7 +73,7 @@ class TestParameters(unittest.TestCase):
                             test_end=self.valid_test_end,
                             symbols=self.valid_symbols,
                             benchmark=self.valid_benchmark)
-                            
+        # validate
         self.assertEqual(params.strategy_name, self.valid_strategy_name)
         self.assertEqual(params.capital, self.valid_capital)
         self.assertEqual(params.data_type, self.valid_data_type)
@@ -88,13 +89,14 @@ class TestParameters(unittest.TestCase):
         self.assertEqual(params.tickers,tickers)
 
     def test_construction_defaults(self):
+        # test
         params = Parameters(strategy_name=self.valid_strategy_name,
                     capital=self.valid_capital,
                     data_type=self.valid_data_type,
                     test_start=self.valid_test_start,
                     test_end=self.valid_test_end,
                     symbols=self.valid_symbols)
-                            
+        # validate              
         self.assertEqual(params.strategy_name, self.valid_strategy_name)
         self.assertEqual(params.capital, self.valid_capital)
         self.assertEqual(params.data_type, self.valid_data_type)
@@ -120,9 +122,10 @@ class TestParameters(unittest.TestCase):
                     test_end=self.valid_test_end,
                     symbols=self.valid_symbols,
                     benchmark=self.valid_benchmark)
-        
+        # test
         params_dict = params.to_dict()
 
+        # validate
         self.assertEqual(params_dict["strategy_name"], self.valid_strategy_name)
         self.assertEqual(params_dict["capital"], self.valid_capital)
         self.assertEqual(params_dict["data_type"], self.valid_data_type.value)

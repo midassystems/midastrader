@@ -1,10 +1,19 @@
 import numpy as np
-from datetime import datetime
 from dataclasses import dataclass, field
-from typing  import  Dict, Any, Union, TypedDict
 
 @dataclass
 class EODEvent:
+    """
+    Represents an End-of-Day (EOD) event in a trading system, used to trigger end-of-day processing such as 
+    mark-to-market evaluations and summary calculations.
+
+    This event is crucial in futures trading and other financial markets where end-of-day calculations are 
+    necessary to adjust strategies, update risk assessments, and prepare for the next trading day.
+
+    Attributes:
+    - timestamp (np.uint64): The UNIX timestamp marking the exact end-of-day moment, in nanoseconds.
+    - type (str): Automatically set to 'End-of-day' to signify the type of event.
+    """
     timestamp: np.uint64
     type: str = field(init=False, default='End-of-day')
 

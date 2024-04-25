@@ -62,22 +62,30 @@ class TestDummyClient(unittest.TestCase):
         current_price = 10
 
         action = Action.LONG
+        # test
         adjusted_price = self.dummy_broker._slippage_adjust_price(tick_size, current_price, action)
+        # validate
         self.assertIsInstance(adjusted_price, (float,int))
         self.assertEqual(adjusted_price, current_price + (tick_size * self.valid_slippage_factor))
 
         action = Action.COVER
+        # test
         adjusted_price = self.dummy_broker._slippage_adjust_price(tick_size, current_price, action)
+        # validate
         self.assertIsInstance(adjusted_price, (float,int))
         self.assertEqual(adjusted_price, current_price + (tick_size * self.valid_slippage_factor))
 
         action = Action.SHORT
+        # test
         adjusted_price = self.dummy_broker._slippage_adjust_price(tick_size, current_price, action)
+        # validate
         self.assertIsInstance(adjusted_price, (float,int))
         self.assertEqual(adjusted_price, current_price - (tick_size * self.valid_slippage_factor))
 
         action = Action.SELL
+        # test
         adjusted_price = self.dummy_broker._slippage_adjust_price(tick_size, current_price, action)
+        # validate
         self.assertIsInstance(adjusted_price, (float,int))
         self.assertEqual(adjusted_price, current_price - (tick_size * self.valid_slippage_factor))
 
@@ -86,8 +94,10 @@ class TestDummyClient(unittest.TestCase):
         contract.symbol = 'HEJ4'
         quantity = 90
 
+        # test
         commission = self.dummy_broker._calculate_commission_fees(contract, quantity)
-        
+
+        # validate
         self.assertIsInstance(commission, (float,int))
         self.assertEqual(commission, self.valid_symbols_map['HEJ4'].fees * quantity)
 
@@ -99,9 +109,11 @@ class TestDummyClient(unittest.TestCase):
         self.mock_order_book.current_price.return_value = 100
         expected = self.mock_order_book.current_price.return_value + (self.valid_symbols_map['HEJ4'].tick_size * self.valid_slippage_factor)
 
+        # test
         with patch.object(self.dummy_broker, '_slippage_adjust_price', return_value = expected):
             fill_price = self.dummy_broker._fill_price(contract, action)
 
+        # validate
         self.assertIsInstance(fill_price, (float, int))
         self.assertEqual(fill_price, expected)
 
@@ -113,9 +125,11 @@ class TestDummyClient(unittest.TestCase):
         self.mock_order_book.current_price.return_value = 100
         expected = self.mock_order_book.current_price.return_value + (1 * self.valid_slippage_factor)
 
+        # test
         with patch.object(self.dummy_broker, '_slippage_adjust_price', return_value = expected):
             fill_price = self.dummy_broker._fill_price(contract, action)
 
+        # validate
         self.assertIsInstance(fill_price, (float, int))
         self.assertEqual(fill_price, expected)
 
@@ -140,10 +154,14 @@ class TestDummyClient(unittest.TestCase):
         exit_action = Action.COVER
         exit_quantity = 100
         exit_price = 45
+        
+        # test
         trade_pnl = self.dummy_broker._calculate_trade_pnl(self.dummy_broker.positions[contract], exit_price, exit_quantity)
-
+        
+        # expected
         expected_pnl =  (exit_price - entry_price) * price_multiplier * exit_quantity * quantity_multiplier * -1
-
+        
+        # validate
         self.assertEqual(trade_pnl, expected_pnl)
 
     def test_calculate_trade_pnl_LONG(self):
@@ -167,10 +185,13 @@ class TestDummyClient(unittest.TestCase):
         exit_action = Action.SELL
         exit_quantity = -100
         exit_price = 45
+        # test
         trade_pnl = self.dummy_broker._calculate_trade_pnl(self.dummy_broker.positions[contract], exit_price, exit_quantity)
 
+        # validate
         expected_pnl =  (exit_price - entry_price) * price_multiplier * exit_quantity * quantity_multiplier * -1
-
+        
+        # expected
         self.assertEqual(trade_pnl, expected_pnl)
 
     def test_calculate_trade_pnl_partial_exit(self):
@@ -195,10 +216,14 @@ class TestDummyClient(unittest.TestCase):
         exit_action = Action.SELL
         exit_quantity = -50
         exit_price = 45
+        
+        # test
         trade_pnl = self.dummy_broker._calculate_trade_pnl(self.dummy_broker.positions[contract],exit_price, exit_quantity)
-
+        
+        # expected
         expected_pnl =  (exit_price - entry_price) * price_multiplier * exit_quantity * quantity_multiplier * -1
-
+        
+        # validate
         self.assertEqual(trade_pnl, expected_pnl)
 
     def test_update_account_futures_new_position(self):
@@ -574,8 +599,10 @@ class TestDummyClient(unittest.TestCase):
                 initial_margin = self.valid_symbols_map[ticker].initialMargin, 
                 unrealizedPnL=0
         )
-
+        # test
         self.dummy_broker._update_positions(contract,action,quantity, fill_price)
+
+        # validate
         self.assertEqual(self.dummy_broker.positions[contract], valid_position)
 
     def test_update_positions_full_exit_OLD(self):
@@ -604,8 +631,11 @@ class TestDummyClient(unittest.TestCase):
         exit_action = Action.COVER
         exit_quantity = 100
         exit_price = 90
-
+        
+        # test
         self.dummy_broker._update_positions(contract,exit_action,exit_quantity, exit_price)
+        
+        # validate
         self.assertEqual(self.dummy_broker.positions, {}) # position should be removed
 
     def test_update_positions_add_to_OLD(self):
@@ -674,6 +704,8 @@ class TestDummyClient(unittest.TestCase):
 
         # Test
         self.dummy_broker._update_positions(contract, new_action, new_quantity, new_price)
+
+        # validate
         self.assertEqual(self.dummy_broker.positions[contract]['action'], 'BUY')
         self.assertEqual(self.dummy_broker.positions[contract]['quantity'], new_quantity + old_quantity)
         self.assertEqual(self.dummy_broker.positions[contract]['avg_cost'], new_price)
@@ -706,6 +738,8 @@ class TestDummyClient(unittest.TestCase):
 
         # Test
         position_value = self.dummy_broker._future_position_value(valid_position,current_price)
+        
+        # validate
         expected_value = (current_price - entry_price)  * price_multiplier * quantity * quantity_multiplier
         self.assertEqual(position_value, expected_value)
 
@@ -734,6 +768,8 @@ class TestDummyClient(unittest.TestCase):
         
         # Test
         position_value = self.dummy_broker._equity_position_value(valid_position,current_price)
+        
+        # validate
         expected_value = current_price * price_multiplier * quantity * quantity_multiplier
         self.assertEqual(position_value, expected_value)
 
@@ -802,8 +838,12 @@ class TestDummyClient(unittest.TestCase):
     def test_update_equity_value(self):
         self.mock_order_book.last_updated = 1651500000
         portfolio_value = 1000000
+
         with patch.object(self.dummy_broker, '_calculate_portfolio_value', return_value = portfolio_value) as mock_method:
+            # test
             self.dummy_broker._update_account_equity_value()
+            
+            # validate
             self.assertTrue(mock_method)
             expected_value = self.dummy_broker.account['FullAvailableFunds'] + portfolio_value
             self.assertEqual(self.dummy_broker.account['Timestamp'],self.mock_order_book.last_updated)
@@ -834,8 +874,11 @@ class TestDummyClient(unittest.TestCase):
             action = action.value,
             fees = round(fees,4)
         )
-
+        
+        # test
         trade = self.dummy_broker._update_trades(timestamp, trade_id, leg_id, contract, quantity, action, fill_price, fees)
+        
+        # validate
         self.assertEqual(self.dummy_broker.last_trade[contract],valid_trade)
 
     def test_set_execution(self):
@@ -854,9 +897,10 @@ class TestDummyClient(unittest.TestCase):
             action = action.value,
             fees = round(90.9 ,4)
         )
-        
+        # test
         self.dummy_broker._set_execution(timestamp,valid_trade_details, action, contract)
-
+        
+        # validate
         # Assert that event_queue.put() was called
         self.assertTrue(self.mock_event_queue.put.called, "The event_queue.put() method was not called.")
 
@@ -888,11 +932,13 @@ class TestDummyClient(unittest.TestCase):
         self.dummy_broker.positions[he_contract] = valid_position
         capital = self.dummy_broker.account['FullAvailableFunds']
 
-        # Test 
         self.mock_order_book.current_prices.return_value = {ticker: 100}
         pnl = 1000
         with patch.object(self.dummy_broker, '_future_position_value', return_value = pnl) as mock_position_value:
+            # test
             self.dummy_broker.mark_to_market()
+            
+            # validate
             self.assertEqual(self.dummy_broker.positions[he_contract]['unrealizedPnL'], pnl)
             self.assertEqual(self.dummy_broker.account['FullAvailableFunds'],capital + (pnl - unrealizedpnl))
 
@@ -975,9 +1021,11 @@ class TestDummyClient(unittest.TestCase):
 
         self.mock_order_book.book = {ticker1:Mock(timestamp= 1655000000), ticker2:Mock(timestamp= 1655000000) }
 
-        # Test
         with patch.object(self.dummy_broker, '_fill_price', return_value = 100) as mock_fill_price:
+            # test
             self.dummy_broker.liquidate_positions()
+            
+            # validate
             self.assertEqual(self.dummy_broker.last_trade[aapl_contract], ExecutionDetails(
                                                                             timestamp= 1655000000,
                                                                             trade_id= 1,
@@ -1015,9 +1063,10 @@ class TestDummyClient(unittest.TestCase):
             mock_update_account = stack.enter_context(patch.object(self.dummy_broker,'_update_account_futures'))
             mock_update_positions = stack.enter_context(patch.object(self.dummy_broker,'_update_positions'))
             mock_update_account_equity_value = stack.enter_context(patch.object(self.dummy_broker,'_update_account_equity_value'))
-
+            # test 
             self.dummy_broker._update_account(contract, entry_action, entry_quantity, entry_price, fees)
-
+            
+            # validate
             self.assertTrue(mock_update_account_equity_value.called)
             self.assertTrue(mock_update_account.called)
             self.assertTrue(mock_update_account_equity_value.called)
@@ -1035,9 +1084,11 @@ class TestDummyClient(unittest.TestCase):
             mock_update_account = stack.enter_context(patch.object(self.dummy_broker,'_update_account_equities'))
             mock_update_positions = stack.enter_context(patch.object(self.dummy_broker,'_update_positions'))
             mock_update_account_equity_value = stack.enter_context(patch.object(self.dummy_broker,'_update_account_equity_value'))
-
+            
+            # test
             self.dummy_broker._update_account(contract, entry_action, entry_quantity, entry_price, fees)
-
+            
+            # validate
             self.assertTrue(mock_update_account_equity_value.called)
             self.assertTrue(mock_update_account.called)
             self.assertTrue(mock_update_account_equity_value.called)
@@ -1057,9 +1108,11 @@ class TestDummyClient(unittest.TestCase):
             mock_update_account = stack.enter_context(patch.object(self.dummy_broker,'_update_account'))
             mock_update_trades = stack.enter_context(patch.object(self.dummy_broker,'_update_trades'))
             mock_set_execution = stack.enter_context(patch.object(self.dummy_broker,'_set_execution'))
-
+            
+            # test
             self.dummy_broker.placeOrder(timestamp, trade_id, leg_id, action, contract, order)
 
+            # validate
             self.assertTrue(mock_fill_price.called)
             self.assertTrue(mock_update_account.called)
             self.assertTrue(mock_calculate_commission_fees.called)
@@ -1071,6 +1124,7 @@ class TestDummyClient(unittest.TestCase):
         tick_size = 1
         current_price = 10
         action = 'LONG'
+
         with self.assertRaisesRegex(ValueError,"'action' must be of type Action enum."):
             self.dummy_broker._slippage_adjust_price(tick_size, current_price, action)
 
@@ -1078,8 +1132,11 @@ class TestDummyClient(unittest.TestCase):
         contract = Contract()
         contract.symbol = 'invalid'
         quantity = 90
-
+        
+        # test
         commission = self.dummy_broker._calculate_commission_fees(contract, quantity)
+        
+        # validate
         self.assertEqual(commission, 0)
         self.assertTrue(self.mock_logger.error.called, "Logger did not log error")
         
