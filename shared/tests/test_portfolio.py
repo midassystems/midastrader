@@ -1,5 +1,5 @@
-import unittest
 import random
+import unittest
 
 from shared.portfolio import Position
 
@@ -18,6 +18,7 @@ class TestPosition(unittest.TestCase):
     
     # Basic Validation
     def test_construction(self):
+        # test
         position = Position(action=self.valid_action,
                             avg_cost=self.valid_avg_cost,
                             quantity=self.valid_quantity,
@@ -26,10 +27,11 @@ class TestPosition(unittest.TestCase):
                             initial_margin=self.valid_initial_margin,
                             total_cost=self.valid_total_cost,
                             market_value=self.valid_market_value)
-    
+        # validate
         self.assertEqual(type(position), Position)
     
     def test_equality(self):
+        # test
         base_position = Position(action='BUY',
                     avg_cost=self.valid_avg_cost,
                     quantity=self.valid_quantity,
@@ -47,10 +49,11 @@ class TestPosition(unittest.TestCase):
                     initial_margin=self.valid_initial_margin,
                     total_cost=self.valid_total_cost,
                     market_value=self.valid_market_value)
-        
+        # validate
         self.assertTrue(new_position ==  base_position)
 
     def test_inequality_action(self):
+        # test
         base_position = Position(action='BUY',
                     avg_cost=self.valid_avg_cost,
                     quantity=self.valid_quantity,
@@ -68,10 +71,11 @@ class TestPosition(unittest.TestCase):
                     initial_margin=self.valid_initial_margin,
                     total_cost=self.valid_total_cost,
                     market_value=self.valid_market_value)
-
+        # validate
         self.assertFalse(new_position == base_position)
 
     def test_inequality_avg_cost(self):
+        # test
         base_position = Position(action='BUY',
                     avg_cost=10,
                     quantity=self.valid_quantity,
@@ -89,10 +93,11 @@ class TestPosition(unittest.TestCase):
                     initial_margin=self.valid_initial_margin,
                     total_cost=self.valid_total_cost,
                     market_value=self.valid_market_value)
-
+        # validate
         self.assertFalse(new_position == base_position)
 
     def test_inequality_quantity(self):
+        # test
         base_position = Position(action='BUY',
                     avg_cost=self.valid_avg_cost,
                     quantity=9,
@@ -110,10 +115,11 @@ class TestPosition(unittest.TestCase):
                     initial_margin=self.valid_initial_margin,
                     total_cost=self.valid_total_cost,
                     market_value=self.valid_market_value)
-
+        # validate
         self.assertFalse(new_position == base_position)
 
     def test_inequality_multiplier(self):
+        # test
         base_position = Position(action='BUY',
                     avg_cost=self.valid_avg_cost,
                     quantity=self.valid_quantity,
@@ -131,10 +137,11 @@ class TestPosition(unittest.TestCase):
                     price_multiplier=self.price_multiplier,
                     total_cost=self.valid_total_cost,
                     market_value=self.valid_market_value)
-
+        # validate
         self.assertFalse(new_position == base_position)
 
     def test_inequality_initial_margin(self):
+        # test
         base_position = Position(action='BUY',
                     avg_cost=self.valid_avg_cost,
                     quantity=self.valid_quantity,
@@ -152,10 +159,11 @@ class TestPosition(unittest.TestCase):
                     initial_margin=8657,
                     total_cost=self.valid_total_cost,
                     market_value=self.valid_market_value)
-
+        # validate
         self.assertFalse(new_position == base_position)
 
     def test_inequality_total_cost(self):
+        # test
         base_position = Position(action='BUY',
                     avg_cost=self.valid_avg_cost,
                     quantity=self.valid_quantity,
@@ -173,7 +181,7 @@ class TestPosition(unittest.TestCase):
                     initial_margin=self.valid_initial_margin,
                     total_cost=9000,
                     market_value=self.valid_market_value)
-
+        # valdiate
         self.assertFalse(new_position == base_position)
 
     # Type/Constraint Validation

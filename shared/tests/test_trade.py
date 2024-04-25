@@ -18,6 +18,7 @@ class TestTrade(unittest.TestCase):
     
     # Basic Validation
     def test_valid_construction(self):
+        # test
         trade = Trade(trade_id=self.valid_trade_id,
                       leg_id=self.valid_leg_id,
                       timestamp=self.valid_timetamp,
@@ -27,7 +28,7 @@ class TestTrade(unittest.TestCase):
                       cost=self.valid_cost,
                       action=self.valid_action,
                       fees=self.valid_fees)
-        
+        # validate
         self.assertEqual(trade.trade_id, self.valid_trade_id)
         self.assertEqual(trade.leg_id, self.valid_leg_id)
         self.assertEqual(trade.timestamp, self.valid_timetamp)

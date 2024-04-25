@@ -1,4 +1,4 @@
-import  unittest
+import unittest
 from ibapi.order import Order
 
 from shared.orders import Action, OrderType, BaseOrder, MarketOrder, LimitOrder, StopLoss
@@ -69,10 +69,11 @@ class TestBaseOrder(unittest.TestCase):
         quantity = 10
         action = Action.LONG
 
+        # test
         base_order = BaseOrder(action=action,
                                 quantity=quantity,
                                 orderType=self.valid_order_type)
-        
+        # validate
         self.assertEqual(base_order.order.totalQuantity, abs(quantity)) # confirm Order quantity positive
         self.assertEqual(base_order.quantity, quantity) # confrim quantity property returned based on direction (positive)
 
@@ -80,10 +81,11 @@ class TestBaseOrder(unittest.TestCase):
         quantity = -110
         action = Action.SHORT
 
+        # test 
         base_order = BaseOrder(action=action,
                                 quantity=quantity,
                                 orderType=self.valid_order_type)
-        
+        # validate
         self.assertEqual(base_order.order.totalQuantity, abs(quantity)) # confirm Order quantity positive
         self.assertEqual(base_order.quantity, quantity) # confrim quantity property returned based on direction (negative)
 

@@ -15,9 +15,24 @@ class SystemLogger:
         self.output = output.lower()
         self.level = level
         self.logger = logging.getLogger(f'{self.strategy_name}_logger')
-        self.setup()
+        self._setup()
         
-    def setup(self):
+    def _setup(self):
+        """
+        Configures the logger with specified settings for file and/or terminal output.
+        
+        It performs the following tasks:
+        - Sets the logger's level to the provided verbosity level.
+        - Stops log messages from being propagated to the root logger.
+        - Constructs the directory path for log files based on the strategy name.
+        - Creates the directory if it does not exist, provided the output includes file logging.
+        - Sets up file and terminal handlers with appropriate formatting, creating log files or terminal logs as specified.
+
+        The method ensures that if handlers of the type `logging.FileHandler` or `logging.StreamHandler` already exist, they are removed to prevent duplicate logging.
+
+        Note:
+            This method is intended to be called internally by the `__init__` method during the initialization of a `SystemLogger` instance and should not be called directly.
+        """
         self.logger.setLevel(self.level)
         self.logger.propagate = False  # Prevents the log messages from being passed to the root logger
 

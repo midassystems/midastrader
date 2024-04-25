@@ -1,8 +1,8 @@
 # shared/market_data.py
-from abc import ABC
 import numpy as np
-import pandas as pd
+from abc import ABC
 from enum import Enum
+from typing import List
 from dataclasses import dataclass
 from decimal import Decimal, ROUND_HALF_UP
 
@@ -54,19 +54,6 @@ class BarData(MarketData):
             raise ValueError(f"'close' must be greater than zero")
         if self.volume < 0:
             raise ValueError(f"'volume' must be non-negative")
-        
-    # @classmethod
-    # def from_series(cls, series: pd.Series):
-    #     """Create an instance from a data series."""
-    #     return cls(
-    #         ticker=series
-    #         timestamp=series['timestamp'],
-    #         open=series['open'],
-    #         high=series['high'],
-    #         low=series['low'],
-    #         close=series['close'],
-    #         volume=series['volume'],
-    #     )
     
     def to_dict(self):
         return {
@@ -79,12 +66,20 @@ class BarData(MarketData):
             "volume": int(self.volume)
         }
     
-def dataframe_to_bardata(df):
-    # Convert the DataFrame to a list of BarData objects
+def dataframe_to_bardata(df) -> List[BarData]:
+    """
+    Converts a DataFrame containing OHLCV (Open, High, Low, Close, Volume) data into a list of BarData objects.
+
+    Parameters:
+    - df (pd.DataFrame): A pandas DataFrame with columns 'symbol', 'open', 'close', 'high', 'low', and 'volume'. The index of the DataFrame should represent the timestamp of the data.
+
+    Returns:
+    - list: A list of BarData objects containing the data from the DataFrame.
+    """
     bardata_list = [
         BarData(
             ticker=row['symbol'],
-            timestamp=np.uint64(row.name),  # Assuming row.name is the index and corresponds to 'ts_event'
+            timestamp=np.uint64(row.name),
             open=Decimal(row['open']),
             close=Decimal(row['close']),
             high=Decimal(row['high']),
@@ -94,9 +89,17 @@ def dataframe_to_bardata(df):
     ]
     return bardata_list
 
-def round_decimal(value):
-    return Decimal(value).quantize(Decimal('.0001'), rounding=ROUND_HALF_UP)
+def round_decimal(value) -> Decimal:
+    """
+    Rounds a numeric value to four decimal places using standard half-up rounding.
 
+    Parameters:
+    - value (float or str or Decimal): The numeric value to be rounded.
+
+    Returns:
+    - Decimal: The rounded value as a Decimal object, precise to four decimal places.
+    """
+    return Decimal(value).quantize(Decimal('.0001'), rounding=ROUND_HALF_UP)
 @dataclass
 class QuoteData(MarketData):
     ticker: str

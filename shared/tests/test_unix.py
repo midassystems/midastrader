@@ -5,7 +5,6 @@ from shared.utils.unix import iso_to_unix, unix_to_iso
 class TestConvertToUnix(unittest.TestCase):
     def test_iso_to_unix_tz_aware(self):
         iso_timestamp = "2024-02-07T12:00:00+00:00" 
-        
         # test
         unix_timestamp=iso_to_unix(iso_timestamp)
 
@@ -15,7 +14,6 @@ class TestConvertToUnix(unittest.TestCase):
 
     def test_iso_to_unix_tz_naive(self):
         iso_timestamp = "2023-02-07T12:00:00" 
-        
         # test
         unix_timestamp=iso_to_unix(iso_timestamp)
 
@@ -24,7 +22,6 @@ class TestConvertToUnix(unittest.TestCase):
 
     def test_unix_to_ios_UTC(self):
         unix_timestamp =  1679789200000000000
-        
         # test
         iso_timestamp=unix_to_iso(unix_timestamp)
 
@@ -33,7 +30,6 @@ class TestConvertToUnix(unittest.TestCase):
 
     def test_unix_to_ios_EST(self):
         unix_timestamp =  1679789200000000000
-        
         # test
         iso_timestamp=unix_to_iso(unix_timestamp, "US/Eastern")
 
