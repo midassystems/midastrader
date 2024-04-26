@@ -9,8 +9,9 @@ from client import DatabaseClient
 from research.data import DataProcessing
 from research.report import HTMLReportGenerator
 from research.backtester import VectorizedBacktest
-from research.analysis import RegressionAnalysis
-from research.backtester import PerformanceStatistics
+
+from shared.analysis import RegressionAnalysis
+from shared.analysis.statistics import PerformanceStatistics
 
 logging.basicConfig(level=logging.INFO)
 
@@ -44,7 +45,7 @@ def main():
     data.dropna(inplace=True)
 
     # Benchmark Data
-    benchmark_data = database.get_benchmark_data(benchmark, start_date, end_date)
+    benchmark_data = database.get_bar_data(benchmark, start_date, end_date)
     benchmark_df = pd.DataFrame(benchmark_data)
     # benchmark_df['timestamp'] = pd.to_datetime(benchmark_df['timestamp'], utc=True)
     benchmark_df['close'] = benchmark_df['close'].astype(float)

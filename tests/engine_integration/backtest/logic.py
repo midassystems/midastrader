@@ -1,10 +1,10 @@
 import logging
 import numpy as np
 import pandas as pd
-from decimal import Decimal
-from typing import Dict
 from queue import Queue
+from typing import Dict
 from enum import Enum, auto
+from decimal import Decimal
 from datetime import datetime
 from ibapi.contract import Contract
 
@@ -13,10 +13,10 @@ from engine.strategies import BaseStrategy
 from engine.portfolio import PortfolioServer
 
 from shared.symbol import Symbol
-from shared.orders import OrderType, Action
 from shared.signal import TradeInstruction
+from shared.orders import OrderType, Action
+from shared.analysis import TimeseriesTests
 
-from research.analysis import TimeseriesTests
 
 def convert_decimals_to_floats(df: pd.DataFrame):
     for column in df.columns:
