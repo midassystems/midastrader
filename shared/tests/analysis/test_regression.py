@@ -4,7 +4,7 @@ import pandas as pd
 from decimal import Decimal
 from contextlib import ExitStack
 from unittest.mock import MagicMock, patch
-from engine.performance.regression import RegressionAnalysis
+from shared.analysis.regression import RegressionAnalysis
 
 class RegressionAnalysisTests(unittest.TestCase):
     def setUp(self):
@@ -36,6 +36,7 @@ class RegressionAnalysisTests(unittest.TestCase):
         })
         self.analysis = RegressionAnalysis(self.strategy_data.copy(), self.benchmark_data.copy())
         self.analysis.model = self.mock_model
+
     # Basic Validation 
     def test_standardize_to_daily_values(self):
         expected_returns = [0.0200, 0.0196078431372549, -0.009615384615384616, 0.019417475728155338]  
@@ -97,10 +98,10 @@ class RegressionAnalysisTests(unittest.TestCase):
         # Assign the mock model to the analysis instance
         self.analysis.model = mock_model
         
-        # Validate the model
+        # test
         validation_results = self.analysis.validate_model()
         
-        # Assert validations are as expected for a successful scenario
+        # validate
         self.assertTrue(validation_results['Validation Checks']['Model is valid'])
         self.assertTrue(validation_results['Validation Checks']['R-squared above threshold'])
         self.assertTrue(validation_results['Validation Checks']['P-values significant'])
@@ -114,10 +115,10 @@ class RegressionAnalysisTests(unittest.TestCase):
         # Assign the mock model to the analysis instance
         self.analysis.model = mock_model
         
-        # Validate the model
+        # test
         validation_results = self.analysis.validate_model()
         
-        # Assert validations are as expected for a failure scenario
+        # validate
         self.assertFalse(validation_results['Validation Checks']['Model is valid'])
         self.assertFalse(validation_results['Validation Checks']['R-squared above threshold'])
         self.assertFalse(validation_results['Validation Checks']['P-values significant'])
@@ -125,7 +126,11 @@ class RegressionAnalysisTests(unittest.TestCase):
     def test_beta(self):
         # Assuming a regression model has already been fitted in setup
         expected_beta = self.mock_model.params[1]  # Mock expected beta value
+        
+        # test
         calculated_beta = self.analysis.beta()
+        
+        # validate
         self.assertAlmostEqual(calculated_beta, expected_beta, places=4)
 
     def test_alpha(self):
@@ -134,7 +139,7 @@ class RegressionAnalysisTests(unittest.TestCase):
         annualized_benchmark_return = np.mean(self.analysis.benchmark_returns) * 252
         expected_alpha = annualized_strategy_return - (self.analysis.risk_free_rate +  self.mock_model.params[1] * (annualized_benchmark_return - self.analysis.risk_free_rate))
 
-        # Calculated alpha from the method
+        # test
         calculated_alpha = self.analysis.alpha()
 
         # validate
@@ -151,24 +156,20 @@ class RegressionAnalysisTests(unittest.TestCase):
         self.assertTrue(alpha_results['Confidence Interval spans zero'])
 
     def test_analyze_beta(self):
-        # test 
         beta_results = self.analysis.analyze_beta()
 
-        # validate
         self.assertEqual(beta_results["Beta (Slope)"], 0.076941)
         self.assertEqual(beta_results["P-value"], 0.08)
         self.assertFalse(beta_results['Beta is significant'])
 
     def test_calculate_volatility_and_zscore(self):
-        # Expected Annualizing the daily volatility and mean return
-        annualized_volatility = self.analysis.strategy_returns.std() * np.sqrt(252)
-        annualized_mean_return = self.analysis.strategy_returns.mean() * 252
-
-        # test
         volatility_results = self.analysis.calculate_volatility_and_zscore_annualized()
         z_score_dict  = volatility_results["Z-Scores (Annualized)"]
         
-        # validate
+        # Annualizing the daily volatility and mean return
+        annualized_volatility = self.analysis.strategy_returns.std() * np.sqrt(252)
+        annualized_mean_return = self.analysis.strategy_returns.mean() * 252
+
         self.assertEqual(volatility_results['Annualized Volatility'], annualized_volatility)
         self.assertEqual(volatility_results["Annualized Mean Return"], annualized_mean_return)
         self.assertGreater(z_score_dict['Z-score for 1 SD move (annualized)'], 0)
@@ -176,26 +177,21 @@ class RegressionAnalysisTests(unittest.TestCase):
         self.assertGreater(z_score_dict['Z-score for 3 SD move (annualized)'], 0)
 
     def test_risk_decomposition(self):
-        # test
         risk_results = self.analysis.risk_decomposition()
 
-        # validate
         self.assertGreater(risk_results['Market Volatility'], 0)
         self.assertGreater(risk_results['Idiosyncratic Volatility'], 0)
         self.assertGreater(risk_results['Total Volatility'], 0)
 
     def test_performance_attribution(self):
-        # test
         perf_results = self.analysis.performance_attribution()
-        
-        # validate
+
         self.assertNotEqual(perf_results['Market Contribution'], 0)
         self.assertNotEqual(perf_results['Idiosyncratic Contribution'], 0)
         self.assertNotEqual(perf_results['Total Contribution'], 0)
 
     def test_calculate_sharpe_ratio(self):
         risk_free_rate = 0.01
-        # test
         sharpe_ratio_results = self.analysis.calculate_sharpe_ratio(risk_free_rate)
 
         # Basic checks for expected keys
@@ -208,12 +204,12 @@ class RegressionAnalysisTests(unittest.TestCase):
         self.assertEqual(sharpe_ratio_results["risk_free_rate"], risk_free_rate)
 
     def test_hedge_analysis(self):
-        # test
         hedge_results = self.analysis.hedge_analysis()
 
         # Basic checks for expected keys
         self.assertGreater(hedge_results["Portfolio Dollar Beta"], 0)
         self.assertGreater(hedge_results["Beta"], 0)
+
         self.assertIn("Market Hedge NMV", hedge_results)
     
     def test_compile_reults(self):

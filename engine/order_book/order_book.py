@@ -90,7 +90,7 @@ class OrderBook(Subject):
         Retrieves the current prices for all tickers in the book.
 
         Returns:
-            dict: A dictionary of ticker symbols to their current prices.
+        - dict: A dictionary of ticker symbols to their current prices.
         """
         prices = {}
         for key, data in self.book.items():

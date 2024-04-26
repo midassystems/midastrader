@@ -4,11 +4,11 @@ import pandas as pd
 from typing import List, Dict
 from client import DatabaseClient
 
-from ..regression import RegressionAnalysis
 from ..base_manager import BasePerformanceManager
 
 from shared.trade import Trade
 from shared.backtest import Backtest
+from shared.analysis.regression import RegressionAnalysis
 
 
 class BacktestPerformanceManager(BasePerformanceManager):

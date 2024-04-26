@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from unittest.mock import Mock, patch
 
-from engine.performance.statistics import PerformanceStatistics
+from shared.analysis.statistics import PerformanceStatistics
 
 # TODO: edge cases
 class TestPerformancStatistics(unittest.TestCase):    
