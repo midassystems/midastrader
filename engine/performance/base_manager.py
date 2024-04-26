@@ -1,14 +1,14 @@
 import logging
 from typing import List, Dict
 
-from client import DatabaseClient
-
 from engine.events import SignalEvent
 # from engine.command import Parameters
-from .statistics import PerformanceStatistics
+
+from client import DatabaseClient
 
 from shared.trade import Trade
 from shared.portfolio import EquityDetails, AccountDetails
+from shared.analysis.statistics import PerformanceStatistics
 
 
 class BasePerformanceManager(PerformanceStatistics):    
