@@ -50,11 +50,14 @@ class TestVectorizedBacktest(unittest.TestCase):
         self.vectorized_backtest._calculate_equity_curve = MagicMock()
         self.vectorized_backtest._calculate_metrics = MagicMock()
 
-        # Test that generate_signals is called with provided thresholds
+        # provided thresholds
         entry_threshold = 0.5
         exit_threshold = 0.2
+        
+        # test
         self.vectorized_backtest.run_backtest(entry_threshold, exit_threshold)
         
+        # validate
         self.mock_strategy.generate_signals.assert_called_once_with(entry_threshold, exit_threshold)
     
     def test_run_backtest_calls_subsequent_methods(self):
@@ -64,8 +67,10 @@ class TestVectorizedBacktest(unittest.TestCase):
         # Test that calculate_returns_and_equity and calculate_metrics are called
         entry_threshold = 0.5
         exit_threshold = 0.2
+        # test 
         self.vectorized_backtest.run_backtest(entry_threshold, exit_threshold)
-        
+
+        # validate
         self.vectorized_backtest._calculate_equity_curve.assert_called_once()
         self.vectorized_backtest._calculate_metrics.assert_called_once()
 
@@ -76,10 +81,10 @@ class TestVectorizedBacktest(unittest.TestCase):
         entry_threshold = 0.5
         exit_threshold = 0.2
         
-        # Run the backtest with the specified thresholds
+        # test
         self.vectorized_backtest.run_backtest(entry_threshold, exit_threshold)
         
-        # Verify generate_signals was called with the correct thresholds
+        # validate
         self.mock_strategy.generate_signals.assert_called_once_with(entry_threshold, exit_threshold)
         
         # Verify that calculate_returns_and_equity and calculate_metrics are called
@@ -173,20 +178,20 @@ class TestVectorizedBacktest(unittest.TestCase):
         with self.assertRaises(Exception) as context:
             self.vectorized_backtest.setup()
             
-        # Optionally, check the message of the exception
+        # validate
         self.assertTrue("Mock preparation error" in str(context.exception))
 
     def test_run_backtest_edge_cases(self):
         self.vectorized_backtest._calculate_equity_curve = MagicMock()
         self.vectorized_backtest._calculate_metrics = MagicMock()
 
-        # Example edge case: very high thresholds
+        # test
         self.vectorized_backtest.run_backtest(100, 100)
+    
+        # valdiate
         self.mock_strategy.generate_signals.assert_called_once_with(100, 100)
 
-        # Reset mock to test another edge case
-        self.mock_strategy.generate_signals.reset_mock()
-        # Example edge case: negative thresholds
+        self.mock_strategy.generate_signals.reset_mock()# Reset mock to test another edge case 
         self.vectorized_backtest.run_backtest(-1, -1)
         self.mock_strategy.generate_signals.assert_called_once_with(-1, -1)
 
