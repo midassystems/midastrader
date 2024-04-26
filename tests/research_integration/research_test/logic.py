@@ -4,8 +4,7 @@ from typing import Dict
 from enum import Enum, auto
 
 from research.strategy import BaseStrategy
-from research.data import DataProcessing
-from research.analysis import TimeseriesTests
+from shared.analysis import TimeseriesTests
 
 class Signal(Enum):
     """ Long and short are treated as entry actions and short/cover are treated as exit actions. """

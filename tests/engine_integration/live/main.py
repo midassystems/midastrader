@@ -1,5 +1,4 @@
 # main.py
-import logging
 from .config import CointegrationzscoreConfig
 from engine.command import EventController, Mode
 
