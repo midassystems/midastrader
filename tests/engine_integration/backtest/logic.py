@@ -8,14 +8,14 @@ from decimal import Decimal
 from datetime import datetime
 from ibapi.contract import Contract
 
-from engine.order_book import OrderBook
-from engine.strategies import BaseStrategy
-from engine.portfolio import PortfolioServer
+from midas.engine.order_book import OrderBook
+from midas.engine.strategies import BaseStrategy
+from midas.engine.portfolio import PortfolioServer
 
-from shared.symbol import Symbol
-from shared.signal import TradeInstruction
-from shared.orders import OrderType, Action
-from shared.analysis import TimeseriesTests
+from midas.shared.symbol import Symbol
+from midas.shared.signal import TradeInstruction
+from midas.shared.orders import OrderType, Action
+from midas.shared.analysis import TimeseriesTests
 
 
 def convert_decimals_to_floats(df: pd.DataFrame):
@@ -107,7 +107,7 @@ class Cointegrationzscore(BaseStrategy):
         results = {
             'adf_test': TimeseriesTests.adf_test(self.historical_spread),
             'pp_test': TimeseriesTests.phillips_perron_test(self.historical_spread),
-            'hurst_exponent': TimeseriesTests.hurst_exponent(self.historical_spread),
+            # 'hurst_exponent': TimeseriesTests.hurst_exponent(self.historical_spread),
             'half_life': None,  # This will be calculated and added below
         }
         
@@ -123,7 +123,7 @@ class Cointegrationzscore(BaseStrategy):
         # Log the results 
         self.logger.info(TimeseriesTests.display_adf_results({'spread': results['adf_test']}, False))
         self.logger.info(TimeseriesTests.display_pp_results({'spread': results['pp_test']}, False))
-        self.logger.info(f"\nHurst Exponent: {results['hurst_exponent']}")
+        # self.logger.info(f"\nHurst Exponent: {results['hurst_exponent']}")
         # self.logger.info(f"\nHalf-Life: {results['half_life']}")
 
     def _update_spread(self, new_data: pd.DataFrame):

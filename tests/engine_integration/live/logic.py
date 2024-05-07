@@ -6,14 +6,14 @@ from typing import Dict
 from decimal import Decimal
 from enum import Enum, auto
 
-from engine.order_book import OrderBook
-from engine.strategies import BaseStrategy
-from engine.portfolio import PortfolioServer
+from midas.engine.order_book import OrderBook
+from midas.engine.strategies import BaseStrategy
+from midas.engine.portfolio import PortfolioServer
 
-from shared.symbol import Symbol
-from shared.signal import TradeInstruction
-from shared.orders import OrderType, Action
-from shared.analysis import TimeseriesTests
+from midas.shared.symbol import Symbol
+from midas.shared.signal import TradeInstruction
+from midas.shared.orders import OrderType, Action
+from midas.shared.analysis import TimeseriesTests
 
 
 def convert_decimals_to_floats(df: pd.DataFrame):

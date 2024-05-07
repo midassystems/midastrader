@@ -4,14 +4,14 @@ from decouple import config
 import pandas as pd
 
 from .logic import Cointegrationzscore
-from client import DatabaseClient
+from midas.client import DatabaseClient
 
-from research.data import DataProcessing
-from research.report import HTMLReportGenerator
-from research.backtester import VectorizedBacktest
+from midas.research.data import DataProcessing
+from midas.research.report import HTMLReportGenerator
+from midas.research.backtester import VectorizedBacktest
 
-from shared.analysis import RegressionAnalysis
-from shared.analysis.statistics import PerformanceStatistics
+from midas.shared.analysis import RegressionAnalysis
+from midas.shared.analysis.statistics import PerformanceStatistics
 
 logging.basicConfig(level=logging.INFO)
 
@@ -24,7 +24,7 @@ def main():
 
     # Step 1 : Set-Up
     # Parameters
-    start_date="2024-01-01T12:00:00"
+    start_date="2024-01-10T12:00:00"
     end_date="2024-03-20T12:10:00"
 
     tickers = ['HE.n.0', 'ZC.n.0']

@@ -2,9 +2,9 @@
 import logging
 from .logic import Cointegrationzscore
 
-from shared.market_data import MarketDataType
-from engine.command import Config, Mode, Parameters
-from shared.symbol import Equity, Future, Currency, Venue, Symbol, ContractUnits, Industry
+from midas.shared.market_data import MarketDataType
+from midas.engine.command import Config, Mode, Parameters
+from midas.shared.symbol import Equity, Future, Currency, Venue, Symbol, ContractUnits, Industry
 
 class CointegrationzscoreConfig(Config):
     def __init__(self, mode: Mode, logger_output="file", logger_level=logging.INFO):  
@@ -13,9 +13,9 @@ class CointegrationzscoreConfig(Config):
         params = Parameters(
             strategy_name="cointegrationzscore", # must match the directory name
             missing_values_strategy="drop",
-            train_start="2024-01-01",
-            train_end="2024-01-20",
-            test_start="2024-01-21",
+            train_start="2024-01-10",
+            train_end="2024-02-20",
+            test_start="2024-02-21",
             test_end="2024-03-10",
             capital=100000,
             data_type = MarketDataType.BAR,
