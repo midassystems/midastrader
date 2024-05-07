@@ -1,6 +1,6 @@
 # main.py
 from .config import CointegrationzscoreConfig
-from engine.command import EventController, Mode
+from midas.engine.command import EventController, Mode
 
 def main():
     # Set the mode (LIVE or BACKTEST)

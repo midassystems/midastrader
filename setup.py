@@ -5,7 +5,7 @@ with open('requirements.txt') as f:
     requirements = f.read().splitlines()
 
 setup(
-    name='midas_python',  # Your package name
+    name='midas',  # Your package name
     version='0.1.0',  # Version number
     author='Anthony Baxter', 
     author_email='anthony_baxter819@gmail.com',  

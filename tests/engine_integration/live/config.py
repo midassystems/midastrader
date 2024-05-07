@@ -2,10 +2,10 @@
 import logging
 from .logic import Cointegrationzscore
 
-from engine.command import Config, Mode, Parameters
+from midas.engine.command import Config, Mode, Parameters
 
-from shared.market_data import MarketDataType
-from shared.symbol import Equity, Future, Currency, Venue, Symbol, ContractUnits, Industry
+from midas.shared.market_data import MarketDataType
+from midas.shared.symbol import Equity, Future, Currency, Venue, Symbol, ContractUnits, Industry
 
 class CointegrationzscoreConfig(Config):
     def __init__(self, mode: Mode, logger_output="file", logger_level=logging.INFO):  

@@ -3,8 +3,8 @@ import pandas as pd
 from typing import Dict
 from enum import Enum, auto
 
-from research.strategy import BaseStrategy
-from shared.analysis import TimeseriesTests
+from midas.research.strategy import BaseStrategy
+from midas.shared.analysis import TimeseriesTests
 
 class Signal(Enum):
     """ Long and short are treated as entry actions and short/cover are treated as exit actions. """
