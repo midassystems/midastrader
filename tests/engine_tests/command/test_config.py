@@ -85,7 +85,7 @@ class TestConfig(unittest.TestCase):
         
         with ExitStack() as stack:
             mock_setup = stack.enter_context(patch.object(Config, 'setup'))
-            self.config = Config(11, mode, self.params, logger_output='terminal')
+            self.config = Config(11, mode, self.params,DATABASE_KEY, DATABASE_URL, logger_output='terminal')
             self.config.live_data_client = Mock()
             self.config.broker_client = Mock()
             
@@ -104,7 +104,7 @@ class TestConfig(unittest.TestCase):
         with ExitStack() as stack:
             mock_setup = stack.enter_context(patch.object(Config, 'setup'))
             mock_connect_live = stack.enter_context(patch.object(Config, '_connect_live_clients'))
-            self.config = Config(111, mode, self.params)
+            self.config = Config(111, mode, self.params, DATABASE_KEY, DATABASE_URL)
             self.config.portfolio_server = Mock() 
             self.config.performance_manager = Mock() 
             self.config.order_book = Mock() 
@@ -126,7 +126,7 @@ class TestConfig(unittest.TestCase):
         
         with ExitStack() as stack:
             mock_setup = stack.enter_context(patch.object(Config, 'setup'))
-            self.config = Config(123,mode, self.params)
+            self.config = Config(123,mode, self.params, DATABASE_KEY, DATABASE_URL)
             self.config.portfolio_server = Mock() 
             self.config.performance_manager = Mock() 
             self.config.order_book = Mock()
@@ -147,7 +147,7 @@ class TestConfig(unittest.TestCase):
         with ExitStack() as stack:
             mock_setup = stack.enter_context(patch.object(Config, 'setup'))
             mock_set_live_environment = stack.enter_context(patch.object(Config, '_set_live_environment'))
-            self.config = Config(session_id, mode, self.params)
+            self.config = Config(session_id, mode, self.params, DATABASE_KEY, DATABASE_URL)
 
             # Test
             self.config._initialize_components()
@@ -167,7 +167,7 @@ class TestConfig(unittest.TestCase):
         with ExitStack() as stack:
             mock_setup = stack.enter_context(patch.object(Config, 'setup'))
             mock_set_live_environment = stack.enter_context(patch.object(Config, '_set_live_environment'))
-            self.config = Config(session_id, mode, self.params, BaseRiskModel)
+            self.config = Config(session_id, mode, self.params, DATABASE_KEY, DATABASE_URL, BaseRiskModel)
 
             # Test
             self.config._initialize_components()
@@ -186,7 +186,7 @@ class TestConfig(unittest.TestCase):
             mock_setup = stack.enter_context(patch.object(Config, 'setup'))
             mock_set_live_environment = stack.enter_context(patch.object(Config, '_set_live_environment'))
             mock_initialize_observer_patterns = stack.enter_context(patch.object(Config, '_initialize_observer_patterns'))
-            self.config = Config(165, mode, self.params)
+            self.config = Config(165, mode, self.params, DATABASE_KEY, DATABASE_URL)
 
             # Test
             self.config._initialize_components()
@@ -204,7 +204,7 @@ class TestConfig(unittest.TestCase):
         with ExitStack() as stack:
             mock_setup = stack.enter_context(patch.object(Config, 'setup'))
             mock_set_backtest_environment = stack.enter_context(patch.object(Config, '_set_backtest_environment'))
-            self.config = Config(1345, mode, self.params)
+            self.config = Config(1345, mode, self.params, DATABASE_KEY, DATABASE_URL)
 
             # Test
             self.config._initialize_components()
@@ -220,7 +220,7 @@ class TestConfig(unittest.TestCase):
         
         with ExitStack() as stack:
             mock_setup = stack.enter_context(patch.object(Config, 'setup'))
-            self.config = Config(10897, mode, self.params)
+            self.config = Config(10897, mode, self.params, DATABASE_KEY, DATABASE_URL)
 
             for symbol in self.valid_symbols:
                 # Test
@@ -235,7 +235,7 @@ class TestConfig(unittest.TestCase):
         
         with ExitStack() as stack:
             mock_setup = stack.enter_context(patch.object(Config, 'setup'))
-            self.config = Config(1786, mode, self.params)
+            self.config = Config(1786, mode, self.params, DATABASE_KEY, DATABASE_URL)
             self.config.contract_handler = Mock()
 
             for symbol in self.valid_symbols:
@@ -281,7 +281,7 @@ class TestConfig(unittest.TestCase):
 
         with ExitStack() as stack:
             mock_setup = stack.enter_context(patch.object(Config, 'setup'))
-            self.config = Config(1, mode, self.params)
+            self.config = Config(1, mode, self.params, DATABASE_KEY, DATABASE_URL)
             self.config.hist_data_client = Mock()
             self.config.contract_handler = Mock()
             self.config.hist_data_client.data = valid_processed_data
@@ -330,7 +330,7 @@ class TestConfig(unittest.TestCase):
 
         with ExitStack() as stack:
             mock_setup = stack.enter_context(patch.object(Config, 'setup'))
-            self.config = Config(1, mode, self.params)
+            self.config = Config(1, mode, self.params, DATABASE_KEY, DATABASE_URL)
             self.config.hist_data_client = Mock()
             self.config.contract_handler = Mock()
             self.config.hist_data_client.data = valid_processed_data
@@ -350,7 +350,7 @@ class TestConfig(unittest.TestCase):
         
         with ExitStack() as stack:
             mock_setup = stack.enter_context(patch.object(Config, 'setup'))
-            self.config = Config(1, mode, self.params)
+            self.config = Config(1, mode, self.params, DATABASE_KEY, DATABASE_URL)
             self.config.hist_data_client = Mock()
             self.config.logger = Mock()
             self.config.hist_data_client.get_data.return_value = True # mock a response indicating data return with no errors
@@ -366,7 +366,7 @@ class TestConfig(unittest.TestCase):
         
         with ExitStack() as stack:
             mock_setup = stack.enter_context(patch.object(Config, 'setup'))
-            self.config = Config(1, mode, self.params)
+            self.config = Config(1, mode, self.params, DATABASE_KEY, DATABASE_URL)
             self.config.hist_data_client = Mock()
             self.config.logger = Mock()
             self.config.hist_data_client.get_data.return_value = None # mock a response indicating problem with data retrieval
@@ -380,7 +380,7 @@ class TestConfig(unittest.TestCase):
         
         with ExitStack() as stack:
             mock_setup = stack.enter_context(patch.object(Config, 'setup'))
-            self.config = Config(1, mode, self.params)
+            self.config = Config(1, mode, self.params, DATABASE_KEY, DATABASE_URL)
             self.config.live_data_client = Mock()
             self.config.contract_handler = Mock()
             
@@ -400,7 +400,7 @@ class TestConfig(unittest.TestCase):
         
         with ExitStack() as stack:
             mock_setup = stack.enter_context(patch.object(Config, 'setup'))
-            self.config = Config(1, mode, self.params)
+            self.config = Config(1, mode, self.params, DATABASE_KEY, DATABASE_URL)
             self.config.live_data_client = Mock()
             self.config.contract_handler = Mock()
             self.config.live_data_client.get_data.side_effect = ValueError() # mock error with the live data call
@@ -434,7 +434,7 @@ class TestConfig(unittest.TestCase):
         
         with ExitStack() as stack:
             mock_setup = stack.enter_context(patch.object(Config, 'setup'))
-            self.config = Config(1, mode, self.params)
+            self.config = Config(1, mode, self.params, DATABASE_KEY, DATABASE_URL)
             self.config.symbols_map = {}
             self.config.train_data = Mock()
             self.config.portfolio_server= Mock()
@@ -451,7 +451,7 @@ class TestConfig(unittest.TestCase):
         
         with ExitStack() as stack:
             mock_setup = stack.enter_context(patch.object(Config, 'setup'))
-            self.config = Config(1, mode, self.params)
+            self.config = Config(1, mode, self.params, DATABASE_KEY, DATABASE_URL)
 
             # Test
             with self.assertRaisesRegex(RuntimeError, "Error creating strategy instance."): # error raised if strategy not a subclass of BaseStrategy
@@ -467,7 +467,7 @@ class TestConfig(unittest.TestCase):
             mock_load_live_data = stack.enter_context(patch.object(Config, 'load_live_data'))
             
             # Test (Config.setup is called in constructor)
-            self.config = Config(1, mode, self.params)
+            self.config = Config(1, mode, self.params, DATABASE_KEY, DATABASE_URL)
                 
             # Validation
             mock_init_components.assert_called_once() # check _initialize_components method called
@@ -485,7 +485,7 @@ class TestConfig(unittest.TestCase):
             mock_load_backtest_data = stack.enter_context(patch.object(Config, 'load_backtest_data'))
             
             # Test (Config.setup is called in constructor)
-            self.config = Config(1, mode, self.params)
+            self.config = Config(1, mode, self.params, DATABASE_KEY, DATABASE_URL)
                 
             # Validation
             mock_init_components.assert_called_once() # check _initialize_components method called
@@ -502,7 +502,7 @@ class TestConfig(unittest.TestCase):
 
             # Test
             with self.assertRaisesRegex(ValueError, f"'mode' must be of type Mode enum."): # check error raised if Mode enum not passed in construction
-                self.config = Config(1, mode, self.params)
+                self.config = Config(1, mode, self.params, DATABASE_KEY, DATABASE_URL)
 
     def test_initialize_components_invalid_params(self):
         mode = Mode.BACKTEST
@@ -512,14 +512,14 @@ class TestConfig(unittest.TestCase):
 
             # Test
             with self.assertRaisesRegex(ValueError, "'params' must be of type Parameters instance."): # check error raised if Parameters instance not passed at construction
-                self.config = Config(1, mode, "self.params")
+                self.config = Config(1, mode, "self.params", DATABASE_KEY, DATABASE_URL)
 
     def test_set_strategy_invalid_type(self):
         mode = Mode.BACKTEST
         
         with ExitStack() as stack:
             mock_setup = stack.enter_context(patch.object(Config, 'setup'))
-            self.config = Config(1, mode, self.params)
+            self.config = Config(1, mode, self.params, DATABASE_KEY, DATABASE_URL)
 
             # Test
             with self.assertRaisesRegex(ValueError, "'strategy' must be a class and a subclass of BaseStrategy."): # check error raised if not subclass of BaseStrategy passed

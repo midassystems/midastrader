@@ -19,8 +19,8 @@ from midas.client import DatabaseClient
 from midas.shared.symbol import Symbol
 from midas.shared.utils.logger import SystemLogger
 
-DATABASE_KEY = config('LOCAL_API_KEY')
-DATABASE_URL = config('LOCAL_URL')
+# DATABASE_KEY = config('MIDAS_API_KEY')
+# DATABASE_URL = config('MIDAS_URL')
 
 class Mode(Enum):
     LIVE = "LIVE"
@@ -60,7 +60,7 @@ class Config:
     Raises:
     - ValueError: If the `mode` or `params` are not of the expected type.
     """
-    def __init__(self, session_id: int,mode: Mode, params: Parameters, risk_model: BaseRiskModel = None, logger_output="file", logger_level=logging.INFO):
+    def __init__(self, session_id: int,mode: Mode, params: Parameters, database_key: str, database_url: str, risk_model: BaseRiskModel = None, logger_output="file", logger_level=logging.INFO):
         if not isinstance(mode, Mode):
             raise ValueError(f"'mode' must be of type Mode enum.")
         
@@ -71,7 +71,7 @@ class Config:
         self.mode = mode
         self.params = params
         self.event_queue = queue.Queue()
-        self.database = DatabaseClient(DATABASE_KEY, DATABASE_URL)
+        self.database = DatabaseClient(database_key, database_url)
         self.logger = SystemLogger(params.strategy_name, output=logger_output, level=logger_level).logger
 
         # Handlers
@@ -269,7 +269,7 @@ class Config:
         """
         # If live the dataclient from teh backtest need to get historical dat
         if not self.hist_data_client:
-            from engine.gateways.backtest import (DataClient)
+            from midas.engine.gateways.backtest import (DataClient)
             self.hist_data_client = DataClient(self.event_queue, self.database, self.order_book)
 
         # Get historical data
