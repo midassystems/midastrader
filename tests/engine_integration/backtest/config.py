@@ -1,14 +1,18 @@
 #config.py
 import logging
+from decouple import config
 from .logic import Cointegrationzscore
 
 from midas.shared.market_data import MarketDataType
 from midas.engine.command import Config, Mode, Parameters
 from midas.shared.symbol import Equity, Future, Currency, Venue, Symbol, ContractUnits, Industry
 
+
+DATABASE_KEY = config('LOCAL_API_KEY')
+DATABASE_URL = config('LOCAL_URL')
 class CointegrationzscoreConfig(Config):
     def __init__(self, mode: Mode, logger_output="file", logger_level=logging.INFO):  
-        session_id = 10011
+        session_id = 10012
 
         params = Parameters(
             strategy_name="cointegrationzscore", # must match the directory name
@@ -59,5 +63,5 @@ class CointegrationzscoreConfig(Config):
             benchmark=["^GSPC"]
         )  
     
-        super().__init__(session_id, mode, params, None, logger_output, logger_level)
+        super().__init__(session_id, mode, params, DATABASE_KEY, DATABASE_URL, None, logger_output, logger_level)
         self.set_strategy(Cointegrationzscore)
