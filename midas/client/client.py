@@ -670,7 +670,7 @@ class DatabaseClient:
         # Convert data to dict
         data = [item.to_dict() for item in bulk_data]
 
-        batch_size = 400
+        batch_size = 1000 # 900 
         total_batches = len(data) // batch_size + (1 if len(data) % batch_size > 0 else 0)
         all_responses = []
 
@@ -706,7 +706,7 @@ class DatabaseClient:
         - start_date (str): Start date expected in ISO 8601.
         - end_date (str): End date expected in ISO 8601.
         """
-        batch_size = 50
+        batch_size = 1000
 
         # Convert ISO formatted start and end dates to Unix timestamps
         start_unix = iso_to_unix(start_date)
