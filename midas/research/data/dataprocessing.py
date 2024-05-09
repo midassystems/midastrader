@@ -1,7 +1,6 @@
 import logging
 import pandas as pd
 from typing import List
-from decouple import config
 from datetime import datetime
 
 from midas.client import DatabaseClient
@@ -115,13 +114,12 @@ class DataProcessing:
         if missing_values_strategy == 'drop':
             data.dropna(inplace=True)
         elif missing_values_strategy == 'fill_forward':
-            # Check if the first row contains NaN values
+            # Drop all rows up to the first non-null row
             if data.iloc[0].isnull().any():
-            # Since there's no value to forward fill from, raise an error
-                raise ValueError("Cannot forward fill as the first row contains NaN values. Consider using another imputation method or manually handling these cases.")
-            
+                first_complete_index = data.dropna().index[0]
+                data = data.loc[first_complete_index:]
             data.ffill(inplace=True)
-
+            
         return data.stack(level='symbol', future_stack=True).reset_index()
 
     def _process_bardata(self, data: pd.DataFrame) -> pd.DataFrame:
