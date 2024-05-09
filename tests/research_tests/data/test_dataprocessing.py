@@ -246,13 +246,27 @@ class TestDataProcessing(unittest.TestCase):
                                   {"id":49262,"timestamp":"1651510800000000000","symbol":"ZC.n.0","open":"794.5000","close":"801.5000","high":"803.0000","low":"794.2500","volume":8135},
                                   {"id":49263,"timestamp":"1651510800000000000","symbol":"HE.n.0","open":"104.7500","close":"105.0500","high":"105.2750","low":"103.9500","volume":3057},
         ]
+
+        expected_df = pd.DataFrame([
+                                    {"timestamp":"1651503600000000000","symbol":"HE.n.0","open":"103.8500","close":"105.8500","high":"106.6750","low":"103.7750","volume":3489},
+                                    {"timestamp":"1651503600000000000","symbol":"ZC.n.0","open":"797.5000","close":"798.2500","high":"800.5000","low":"795.7500","volume":7173},
+                                    {"timestamp":"1651507200000000000","symbol":"HE.n.0","open":"105.7750","close":"104.7000","high":"105.9500","low":"104.2750","volume":2146},
+                                    {"timestamp":"1651507200000000000","symbol":"ZC.n.0","open":"798.5000","close":"794.2500","high":"800.2500","low":"794.0000","volume":9443},
+                                    {"timestamp":"1651510800000000000","symbol":"HE.n.0","open":"104.7500","close":"105.0500","high":"105.2750","low":"103.9500","volume":3057},
+                                    {"timestamp":"1651510800000000000","symbol":"ZC.n.0","open":"794.5000","close":"801.5000","high":"803.0000","low":"794.2500","volume":8135},
+        ])
+
+        expected_df['volume'] = expected_df['volume'].astype('float64')
+        expected_df = expected_df.sort_values(by=['timestamp', 'symbol']).reset_index(drop=True)
         
         # Test 
-        with self.assertRaisesRegex(ValueError, "Cannot forward fill as the first row contains NaN values. Consider using another imputation method or manually handling these cases."):    
-            df = pd.DataFrame(response_missing_data)
-            df.drop(columns=['id'], inplace=True)
-            result = self.data_processor._handle_null_values(data=df, missing_values_strategy='fill_forward')
+        # with self.assertRaisesRegex(ValueError, "Cannot forward fill as the first row contains NaN values. Consider using another imputation method or manually handling these cases."):    
+        df = pd.DataFrame(response_missing_data)
+        df.drop(columns=['id'], inplace=True)
+        result = self.data_processor._handle_null_values(data=df, missing_values_strategy='fill_forward')
 
+        # Validation
+        assert_frame_equal(result, expected_df, check_dtype=True)
 
 if __name__ =="__main__":
     unittest.main()
