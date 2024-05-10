@@ -141,351 +141,516 @@ class TestTimeseriesTests(unittest.TestCase):
         self.random_walk_series = TimeseriesTests.generate_random_walk_series(n=2000, start_value=0, step_std=1)
 
     # Basic Validation
-    # def test_generate_mean_reverting_series_basic(self):
-    #     n = 2000
-    #     mu = 0
-    #     theta = 0.1  # Adjust if needed
-    #     sigma = 0.2  # Adjust if needed
-    #     series = TimeseriesTests.generate_mean_reverting_series(n=n, mu=mu, theta=theta, sigma=sigma, start_value=1)
-    #     self.assertEqual(len(series), n)
-    #     self.assertEqual(series[0], 1)
-    #     self.assertTrue(isinstance(series, np.ndarray))
+    def test_generate_mean_reverting_series_basic(self):
+        n = 2000
+        mu = 0
+        theta = 0.1  # Adjust if needed
+        sigma = 0.2  # Adjust if needed
+        series = TimeseriesTests.generate_mean_reverting_series(n=n, mu=mu, theta=theta, sigma=sigma, start_value=1)
+        self.assertEqual(len(series), n)
+        self.assertEqual(series[0], 1)
+        self.assertTrue(isinstance(series, np.ndarray))
         
-    #     series_mean = np.mean(series)
-    #     self.assertTrue(np.abs(series_mean - mu) < 0.05) # threshold for difference between actual mean and long-term mean
+        series_mean = np.mean(series)
+        self.assertTrue(np.abs(series_mean - mu) < 0.05) # threshold for difference between actual mean and long-term mean
 
-    # def test_generate_trending_series_basic(self):
-    #     n = 2000
-    #     series = TimeseriesTests.generate_trending_series(n=2000, start_value=0, trend=0.1, step_std=1)
-    #     self.assertEqual(len(series), 2000)
-    #     self.assertEqual(series[0], 0)
-    #     self.assertTrue(isinstance(series, np.ndarray))
+    def test_generate_trending_series_basic(self):
+        n = 2000
+        series = TimeseriesTests.generate_trending_series(n=2000, start_value=0, trend=0.1, step_std=1)
+        self.assertEqual(len(series), 2000)
+        self.assertEqual(series[0], 0)
+        self.assertTrue(isinstance(series, np.ndarray))
 
-    #     # Perform linear regression
-    #     X = np.arange(len(series)).reshape(-1, 1)  # Time steps as independent variable
-    #     y = series  # Series values as dependent variable
-    #     slope, intercept, r_value, p_value, std_err = stats.linregress(X.ravel(), y)
+        # Perform linear regression
+        X = np.arange(len(series)).reshape(-1, 1)  # Time steps as independent variable
+        y = series  # Series values as dependent variable
+        slope, intercept, r_value, p_value, std_err = stats.linregress(X.ravel(), y)
 
-    #     # Verify the trend direction and significance
-    #     self.assertGreater(slope, 0)  # Check if slope is significantly greater than 0
-    #     self.assertLess(p_value, 0.05)  # Check if the slope is statistically significant
+        # Verify the trend direction and significance
+        self.assertGreater(slope, 0)  # Check if slope is significantly greater than 0
+        self.assertLess(p_value, 0.05)  # Check if the slope is statistically significant
 
-    # def test_generate_random_walk_series_basic(self):
-    #     n=2000
-    #     series = TimeseriesTests.generate_random_walk_series(n=n, start_value=0, step_std=1)
-    #     self.assertEqual(len(series), n)
-    #     self.assertEqual(series[0], 0)
-    #     self.assertTrue(isinstance(series, np.ndarray))
+    def test_generate_random_walk_series_basic(self):
+        n=2000
+        series = TimeseriesTests.generate_random_walk_series(n=n, start_value=0, step_std=1)
+        self.assertEqual(len(series), n)
+        self.assertEqual(series[0], 0)
+        self.assertTrue(isinstance(series, np.ndarray))
 
-    #     # Test for no clear trend using Augmented Dickey-Fuller
-    #     adf_result = adfuller(series)
-    #     self.assertTrue(adf_result[1] > 0.05)  # P-value should be low to reject null hypothesis of a unit root
+        # Test for no clear trend using Augmented Dickey-Fuller
+        adf_result = adfuller(series)
+        self.assertTrue(adf_result[1] > 0.05)  # P-value should be low to reject null hypothesis of a unit root
 
-    #     # Test for independence using autocorrelation at lag 1
-    #     autocorrelation = pd.Series(series).autocorr(lag=1)
+        # Test for independence using autocorrelation at lag 1
+        autocorrelation = pd.Series(series).autocorr(lag=1)
 
-    #     # Expect autocorrelation for a random walk to be significant but not perfect
-    #     self.assertTrue(0.9 < autocorrelation <= 1)
+        # Expect autocorrelation for a random walk to be significant but not perfect
+        self.assertTrue(0.9 < autocorrelation <= 1)
 
-    # def test_split_data_default_ratio(self):
-    #     train, test = TimeseriesTests.split_data(self.sample_dataframe)
-    #     # Default split ratio is 0.8
-    #     expected_train_length = int(len(self.sample_dataframe) * 0.8)
-    #     expected_test_length = len(self.sample_dataframe) - expected_train_length
-    #     self.assertEqual(len(train), expected_train_length)
-    #     self.assertEqual(len(test), expected_test_length)
+    def test_split_data_default_ratio(self):
+        train, test = TimeseriesTests.split_data(self.sample_dataframe)
+        # Default split ratio is 0.8
+        expected_train_length = int(len(self.sample_dataframe) * 0.8)
+        expected_test_length = len(self.sample_dataframe) - expected_train_length
+        self.assertEqual(len(train), expected_train_length)
+        self.assertEqual(len(test), expected_test_length)
 
-    # def test_lag_series_default(self):
-    #     # Test with the default lag of 1
-    #     lagged_series = TimeseriesTests.lag_series(self.sample_series).reset_index(drop=True)
-    #     expected_series = self.sample_series[:-1].reset_index(drop=True)
-    #     self.assertTrue((lagged_series.values == expected_series.values).all())
+    def test_lag_series_default(self):
+        # Test with the default lag of 1
+        lagged_series = TimeseriesTests.lag_series(self.sample_series).reset_index(drop=True)
+        expected_series = self.sample_series[:-1].reset_index(drop=True)
+        self.assertTrue((lagged_series.values == expected_series.values).all())
 
-    # def test_lag_series_custom_lag(self):
-    #     # Test with a custom lag of 5
-    #     lag = 5
-    #     lagged_series = TimeseriesTests.lag_series(self.sample_series, lag=lag)
-    #     self.assertEqual(len(lagged_series), len(self.sample_series) - lag)
-    #     self.assertTrue((lagged_series.values == self.sample_series[:-lag].values).all())
+    def test_lag_series_custom_lag(self):
+        # Test with a custom lag of 5
+        lag = 5
+        lagged_series = TimeseriesTests.lag_series(self.sample_series, lag=lag)
+        self.assertEqual(len(lagged_series), len(self.sample_series) - lag)
+        self.assertTrue((lagged_series.values == self.sample_series[:-lag].values).all())
 
-    # def test_split_data_custom_ratio(self):
-    #     custom_ratio = 0.7
-    #     train, test = TimeseriesTests.split_data(self.sample_dataframe, train_ratio=custom_ratio)
-    #     expected_train_length = int(len(self.sample_dataframe) * custom_ratio)
-    #     expected_test_length = len(self.sample_dataframe) - expected_train_length
-    #     self.assertEqual(len(train), expected_train_length)
-    #     self.assertEqual(len(test), expected_test_length)
+    def test_split_data_custom_ratio(self):
+        custom_ratio = 0.7
+        train, test = TimeseriesTests.split_data(self.sample_dataframe, train_ratio=custom_ratio)
+        expected_train_length = int(len(self.sample_dataframe) * custom_ratio)
+        expected_test_length = len(self.sample_dataframe) - expected_train_length
+        self.assertEqual(len(train), expected_train_length)
+        self.assertEqual(len(test), expected_test_length)
 
-    # def test_split_data_data_integrity(self):
-    #     train, test = TimeseriesTests.split_data(self.sample_dataframe)
-    #     # Check if concatenated train and test sets equal the original data
-    #     pd.testing.assert_frame_equal(pd.concat([train, test]).reset_index(drop=True), self.sample_dataframe)
+    def test_split_data_data_integrity(self):
+        train, test = TimeseriesTests.split_data(self.sample_dataframe)
+        # Check if concatenated train and test sets equal the original data
+        pd.testing.assert_frame_equal(pd.concat([train, test]).reset_index(drop=True), self.sample_dataframe)
 
-    # def test_adf_mean_reverting(self):
-    #     result = TimeseriesTests.adf_test(self.mean_reverting_series)
-    #     # Expect mean-reverting series to be potentially stationary
-    #     self.assertEqual(result['Stationarity'], 'Stationary')
+    def test_adf_mean_reverting(self):
+        result = TimeseriesTests.adf_test(self.mean_reverting_series)
+        # Expect mean-reverting series to be potentially stationary
+        self.assertEqual(result['Stationarity'], 'Stationary')
 
-    # def test_adf_trending(self):
-    #     result = TimeseriesTests.adf_test(self.trending_series)
-    #     # Expect trending series to be non-stationary
-    #     self.assertEqual(result['Stationarity'], 'Non-Stationary')
+    def test_adf_trending(self):
+        result = TimeseriesTests.adf_test(self.trending_series)
+        # Expect trending series to be non-stationary
+        self.assertEqual(result['Stationarity'], 'Non-Stationary')
 
-    # def test_adf_random_walk(self):
-    #     n=2000
-    #     series = TimeseriesTests.generate_random_walk_series(n=n, start_value=0, step_std=1)
-    #     result = TimeseriesTests.adf_test(series)
+    def test_adf_random_walk(self):
+        n=2000
+        series = TimeseriesTests.generate_random_walk_series(n=n, start_value=0, step_std=1)
+        result = TimeseriesTests.adf_test(series)
 
-    #     # Expect random walk series to be non-stationary
-    #     self.assertEqual(result['Stationarity'], 'Non-Stationary')
+        # Expect random walk series to be non-stationary
+        self.assertEqual(result['Stationarity'], 'Non-Stationary')
 
-    # def test_kpss_mean_reverting(self):
-    #     result = TimeseriesTests.kpss_test(self.mean_reverting_series)
-    #     # Expect mean-reverting series to be potentially stationary
-    #     self.assertEqual(result['Stationarity'], 'Stationary')
+    def test_rolling_adf(self):
+        # Parameters
+        window = 20
+        trend = 'c'
+        series=self.mean_reverting_series
 
-    # def test_kpss_trending(self):
-    #     result = TimeseriesTests.kpss_test(self.trending_series)
-    #     # Expect trending series to be non-stationary
-    #     self.assertEqual(result['Stationarity'], 'Non-Stationary')
+        # test
+        rolling_adf_stats = TimeseriesTests.rolling_adf(series, window, trend)
+       
+        # validate
+        self.assertIsInstance(rolling_adf_stats, pd.Series, "Output is not a pandas Series")
+        self.assertEqual(len(rolling_adf_stats), len(series), "Output Series length mismatch")
+        self.assertTrue(rolling_adf_stats[window-1:].isnull().sum() == 0, "NaNs present in fully populated rolling window outputs")
+        self.assertTrue(rolling_adf_stats[:window-1].isnull().all(), "Non-NaN values present in initial positions where window is not fully populated")
 
-    # def test_kpss_random_walk(self):
-    #     n=2000
-    #     series = TimeseriesTests.generate_random_walk_series(n=n, start_value=0, step_std=1)
-    #     result = TimeseriesTests.kpss_test(series)
+    def test_display_rolling_adf_results(self):
+        # Parameters
+        window = 20
+        trend = 'c'
+        series=self.mean_reverting_series
+        rolling_adf_results = TimeseriesTests.rolling_adf(series, window, trend)
 
-    #     # Expect random walk series to be non-stationary
-    #     self.assertEqual(result['Stationarity'], 'Non-Stationary')
+        # test
+        fig = TimeseriesTests.display_rolling_adf_results(pd.Series(series), rolling_adf_results)
+        
+        # validate
+        self.assertIsInstance(fig, plt.Figure)
 
-    # def test_phillips_perron_mean_reverting(self):
-    #     result = TimeseriesTests.phillips_perron_test(self.mean_reverting_series)
-    #     # Expect mean-reverting series to be potentially stationary
-    #     self.assertEqual(result['Stationarity'], 'Stationary')
+    def test_monte_carlo_simulation(self):
+        # Define parameters for the simulation
+        n_simulations = 10
+        series_length = 100
+        mean = 0
+        std_dev = 1
+        trend = 'c'
+        confidence_interval = '5%'
+        significance_level = 0.05
 
-    # def test_phillips_perron_trending(self):
-    #     result = TimeseriesTests.phillips_perron_test(self.trending_series, trend='ct')
-    #     # Expect trending series to be non-stationary
-    #     self.assertEqual(result['Stationarity'], 'Non-Stationary')
+        # Call the monte_carlo_simulation method
+        adf_stats, p_values = TimeseriesTests.monte_carlo_simulation(n_simulations, series_length, mean, std_dev, trend, confidence_interval, significance_level)
 
-    # def test_phillips_perron_random_walk(self):
-    #     series = pd.Series(TimeseriesTests.generate_random_walk_series(n=2000, start_value=0, step_std=1))
-    #     result = TimeseriesTests.phillips_perron_test(series)
-    #     # Expect random walk series to be non-stationary
-    #     self.assertEqual(result['Stationarity'], 'Non-Stationary')
+        # Validation checks
+        self.assertIsInstance(adf_stats, list, "ADF stats output is not a list")
+        self.assertIsInstance(p_values, list, "P-values output is not a list")
+        self.assertEqual(len(adf_stats), n_simulations, "Length of ADF stats list does not match number of simulations")
+        self.assertEqual(len(p_values), n_simulations, "Length of p-values list does not match number of simulations")
+        self.assertTrue(all(isinstance(stat, float) for stat in adf_stats), "Not all ADF stats are floats")
+        self.assertTrue(all(isinstance(p, float) for p in p_values), "Not all p-values are floats")
+        self.assertTrue(all(-np.inf < stat < np.inf for stat in adf_stats), "ADF stats contain invalid values")
+        self.assertTrue(all(0 <= p <= 1 for p in p_values), "P-values are out of the expected range [0, 1]")
 
-    # def test_seasonal_stationary(self):
-    #     """Test that the method identifies a seasonal stationary series as stationary."""
-    #     series = generate_seasonal_stationary_series()
-    #     result = TimeseriesTests.seasonal_adf_test(series, seasonal_periods=12)
-    #     self.assertEqual(result['Stationarity'], 'Stationary', "Failed to identify a seasonal stationary series as stationary")
+    def test_display_monte_carlo_simulation(self):
+        # Define parameters for the simulation
+        n_simulations = 10
+        series_length = 100
+        mean = 0
+        std_dev = 1
+        trend = 'c'
+        confidence_interval = '5%'
+        significance_level = 0.05
+        series=self.mean_reverting_series
 
-    # def test_non_seasonal_stationary(self):
-    #     """Test that the method identifies a non-stationary series as non-stationary."""
-    #     series = generate_seasonal_non_stationary_series()
-    #     result = TimeseriesTests.seasonal_adf_test(series, seasonal_periods=12)
-    #     self.assertEqual(result['Stationarity'], 'Non-Stationary', "Failed to identify a non-stationary series as non-stationary")
+        # Call the monte_carlo_simulation method
+        adf_stats, p_values = TimeseriesTests.monte_carlo_simulation(n_simulations, series_length, mean, std_dev, trend, confidence_interval, significance_level)
+
+        # test
+        fig =TimeseriesTests.display_monte_carlo_simulation(adf_stats, series)
+      
+        # validate
+        self.assertIsInstance(fig, plt.Figure)
+
+    def test_fit_arima(self):
+        # Create a synthetic time series
+        np.random.seed(42)
+        data = np.random.randn(100)
+        series = pd.Series(data)
+        
+        # Define ARIMA order
+        order = (1, 0, 0)
+
+        # Call the fit_arima method
+        model_fit, residuals = TimeseriesTests.fit_arima(series, order)
+
+        # Validation checks
+        self.assertIsInstance(residuals, pd.Series, "Residuals output is not a pandas Series")
+        self.assertEqual(len(residuals), len(series), "Residuals length does not match input series length")
+        self.assertFalse(residuals.isnull().any(), "Residuals contain NaN values")
+
+    def test_plot_acf_pacf(self):
+        # Create a synthetic time series
+        np.random.seed(42)
+        data = np.random.randn(100)
+        series = pd.Series(data)
+        
+        # Define ARIMA order
+        order = (1, 0, 0)
+        model_fit, residuals = TimeseriesTests.fit_arima(series, order)
+
+        # test
+        fig = TimeseriesTests.plot_acf_pacf(residuals, lags=40)
+
+        # validate
+        self.assertIsInstance(fig, plt.Figure)
+
+    def test_kpss_mean_reverting(self):
+        result = TimeseriesTests.kpss_test(self.mean_reverting_series)
+        # Expect mean-reverting series to be potentially stationary
+        self.assertEqual(result['Stationarity'], 'Stationary')
+
+    def test_kpss_trending(self):
+        result = TimeseriesTests.kpss_test(self.trending_series)
+        # Expect trending series to be non-stationary
+        self.assertEqual(result['Stationarity'], 'Non-Stationary')
+
+    def test_kpss_random_walk(self):
+        n=2000
+        series = TimeseriesTests.generate_random_walk_series(n=n, start_value=0, step_std=1)
+        result = TimeseriesTests.kpss_test(series)
+
+        # Expect random walk series to be non-stationary
+        self.assertEqual(result['Stationarity'], 'Non-Stationary')
+
+    def test_phillips_perron_mean_reverting(self):
+        result = TimeseriesTests.phillips_perron_test(self.mean_reverting_series)
+        # Expect mean-reverting series to be potentially stationary
+        self.assertEqual(result['Stationarity'], 'Stationary')
+
+    def test_phillips_perron_trending(self):
+        result = TimeseriesTests.phillips_perron_test(self.trending_series, trend='ct')
+        # Expect trending series to be non-stationary
+        self.assertEqual(result['Stationarity'], 'Non-Stationary')
+
+    def test_phillips_perron_random_walk(self):
+        series = pd.Series(TimeseriesTests.generate_random_walk_series(n=2000, start_value=0, step_std=1))
+        result = TimeseriesTests.phillips_perron_test(series)
+        # Expect random walk series to be non-stationary
+        self.assertEqual(result['Stationarity'], 'Non-Stationary')
+
+    def test_seasonal_stationary(self):
+        """Test that the method identifies a seasonal stationary series as stationary."""
+        series = generate_seasonal_stationary_series()
+        result = TimeseriesTests.seasonal_adf_test(series, seasonal_periods=12)
+        self.assertEqual(result['Stationarity'], 'Stationary', "Failed to identify a seasonal stationary series as stationary")
+
+    def test_non_seasonal_stationary(self):
+        """Test that the method identifies a non-stationary series as non-stationary."""
+        series = generate_seasonal_non_stationary_series()
+        result = TimeseriesTests.seasonal_adf_test(series, seasonal_periods=12)
+        self.assertEqual(result['Stationarity'], 'Non-Stationary', "Failed to identify a non-stationary series as non-stationary")
    
-    # def test_johansen_test_cointegration(self):
-    #     """Test the Johansen test can detect cointegration in a synthetic dataset."""
-    #     data = generate_cointegrated_series()
-    #     # test
-    #     _, num_cointegrations = TimeseriesTests.johansen_test(data)
-    #     # validation
-    #     self.assertGreater(num_cointegrations,0)
+    def test_johansen_test_cointegration(self):
+        """Test the Johansen test can detect cointegration in a synthetic dataset."""
+        data = generate_cointegrated_series()
+        # test
+        _, num_cointegrations = TimeseriesTests.johansen_test(data)
+        # validation
+        self.assertGreater(num_cointegrations,0)
 
-    # def test_johansen_test_no_cointegration(self):
-    #     """Test the Johansen test does not falsely detect cointegration."""
-    #     data = generate_non_cointegrated_series()
-    #     # Test
-    #     _, num_cointegrations = TimeseriesTests.johansen_test(data)
-    #     # Validation
-    #     self.assertEqual(num_cointegrations, 0)
+    def test_johansen_test_no_cointegration(self):
+        """Test the Johansen test does not falsely detect cointegration."""
+        data = generate_non_cointegrated_series()
+        # Test
+        _, num_cointegrations = TimeseriesTests.johansen_test(data)
+        # Validation
+        self.assertEqual(num_cointegrations, 0)
     
-    # def test_select_lag_known_optimal_lag(self):
-    #     """Test that the select_lag_length function identifies the expected optimal lag."""
-    #     data = generate_random_time_series(lag=4)
-    #     data.plot(figsize=(10, 6))
-    #     plt.title('Time Series Data')
-    #     plt.xlabel('Time')
-    #     plt.ylabel('Value')
-    #     plt.show()
+    def test_select_lag_known_optimal_lag(self):
+        """Test that the select_lag_length function identifies the expected optimal lag."""
+        data = generate_random_time_series(lag=4)
+        expected_lag = 4
 
-    #     # Assuming we know the optimal lag for the synthetic data is around 2
-    #     # This assumption needs to be adjusted based on how you generate your test data
-    #     expected_lag = 4
-    #     selected_lag = TimeseriesTests.select_lag_length(data, maxlags=10, criterion='bic')
-    #     self.assertEqual(selected_lag, expected_lag, f"Expected optimal lag of {expected_lag}, but got {selected_lag}.")
+        # test
+        selected_lag = TimeseriesTests.select_lag_length(data, maxlags=10, criterion='bic')
 
-    # def test_lag_selection_criteria(self):
-    #     """Test the select_lag_length function with different information criteria."""
-    #     data = generate_random_time_series()
-    #     for criterion in ['aic', 'bic', 'hqic', 'fpe']:
-    #         with self.subTest(criterion=criterion):
-    #             selected_lag = TimeseriesTests.select_lag_length(data, maxlags=10, criterion=criterion)
-    #             self.assertIsInstance(selected_lag, int, f"Selected lag should be an integer for criterion {criterion}.")
-    #             self.assertTrue(1 <= selected_lag <= 10, f"Selected lag should be within the specified range for criterion {criterion}.")
+        # validate
+        self.assertEqual(selected_lag, expected_lag, f"Expected optimal lag of {expected_lag}, but got {selected_lag}.")
 
-    # def test_select_coint_rank_no_cointegration(self):
-    #     """Test cointegration rank selection on non-cointegrated data."""
-    #     data = generate_non_cointegrated_series()
-    #     result = TimeseriesTests.select_coint_rank(data, k_ar_diff=1)
-    #     self.assertEqual(result['Cointegration Rank'], 0, "Failed to correctly identify no cointegration.")
+    def test_lag_selection_criteria(self):
+        """Test the select_lag_length function with different information criteria."""
+        data = generate_random_time_series()
+        for criterion in ['aic', 'bic', 'hqic', 'fpe']:
+            with self.subTest(criterion=criterion):
+                selected_lag = TimeseriesTests.select_lag_length(data, maxlags=10, criterion=criterion)
+                self.assertIsInstance(selected_lag, int, f"Selected lag should be an integer for criterion {criterion}.")
+                self.assertTrue(1 <= selected_lag <= 10, f"Selected lag should be within the specified range for criterion {criterion}.")
 
-    # def test_select_coint_rank_potential_cointegration(self):
-    #     """Test cointegration rank selection on potentially cointegrated data."""
-    #     data = generate_cointegrated_series()
-    #     result = TimeseriesTests.select_coint_rank(data, k_ar_diff=1)
-    #     # Here, we expect some level of cointegration due to the common trend
-    #     self.assertGreaterEqual(result['Cointegration Rank'], 1, "Failed to identify potential cointegration.")
+    def test_select_coint_rank_no_cointegration(self):
+        """Test cointegration rank selection on non-cointegrated data."""
+        data = generate_non_cointegrated_series()
+        result = TimeseriesTests.select_coint_rank(data, k_ar_diff=1)
+        self.assertEqual(result['Cointegration Rank'], 0, "Failed to correctly identify no cointegration.")
 
-    # def test_durbin_watson_no_autocorrelation(self):
-    #     residuals = generate_residuals('none')
-    #     result = TimeseriesTests.durbin_watson(residuals)
-    #     self.assertIn('Absent', result['Residuals']['Autocorrelation'])
+    def test_select_coint_rank_potential_cointegration(self):
+        """Test cointegration rank selection on potentially cointegrated data."""
+        data = generate_cointegrated_series()
+        result = TimeseriesTests.select_coint_rank(data, k_ar_diff=1)
+        # Here, we expect some level of cointegration due to the common trend
+        self.assertGreaterEqual(result['Cointegration Rank'], 1, "Failed to identify potential cointegration.")
 
-    # def test_durbin_watson_positive_autocorrelation(self):
-    #     residuals = generate_residuals('positive')
-    #     result = TimeseriesTests.durbin_watson(residuals)
-    #     self.assertIn('Positive', result['Residuals']['Autocorrelation'])
+    def test_durbin_watson_no_autocorrelation(self):
+        residuals = generate_residuals('none')
+        result = TimeseriesTests.durbin_watson(residuals)
+        self.assertIn('Absent', result['Residuals']['Autocorrelation'])
 
-    # def test_durbin_watson_negative_autocorrelation(self):
-    #     residuals = generate_residuals('negative')
-    #     result = TimeseriesTests.durbin_watson(residuals)
-    #     self.assertIn('Negative', result['Residuals']['Autocorrelation'])
+    def test_durbin_watson_positive_autocorrelation(self):
+        residuals = generate_residuals('positive')
+        result = TimeseriesTests.durbin_watson(residuals)
+        self.assertIn('Positive', result['Residuals']['Autocorrelation'])
 
-    # def test_ljung_box_no_autocorrelation(self):
-    #     residuals = generate_residuals('none')
-    #     result = TimeseriesTests.ljung_box(residuals, lags=10)
-    #     self.assertEqual(result['Residuals']['Autocorrelation'], 'Absent', "Failed to correctly identify absence of autocorrelation")
+    def test_durbin_watson_negative_autocorrelation(self):
+        residuals = generate_residuals('negative')
+        result = TimeseriesTests.durbin_watson(residuals)
+        self.assertIn('Negative', result['Residuals']['Autocorrelation'])
 
-    # def test_ljung_box_positive_autocorrelation(self):
-    #     residuals = generate_residuals('positive')
-    #     result = TimeseriesTests.ljung_box(residuals, lags=10)
-    #     self.assertEqual(result['Residuals']['Autocorrelation'], 'Present', "Failed to correctly identify presence of autocorrelation")
+    def test_ljung_box_no_autocorrelation(self):
+        residuals = generate_residuals('none')
+        result = TimeseriesTests.ljung_box(residuals, lags=10)
+        self.assertEqual(result['Residuals']['Autocorrelation'], 'Absent', "Failed to correctly identify absence of autocorrelation")
 
-    # def test_shapiro_wilk_normal_distribution(self):
-    #     # Generate a normally distributed dataset
-    #     data = pd.Series(np.random.normal(loc=0, scale=1, size=100))
-    #     result = TimeseriesTests.shapiro_wilk(data)
-    #     self.assertEqual(result['Normality'], 'Normal', "Failed to correctly identify a normal distribution")
+    def test_ljung_box_positive_autocorrelation(self):
+        residuals = generate_residuals('positive')
+        result = TimeseriesTests.ljung_box(residuals, lags=10)
+        self.assertEqual(result['Residuals']['Autocorrelation'], 'Present', "Failed to correctly identify presence of autocorrelation")
 
-    # def test_shapiro_wilk_non_normal_distribution(self):
-    #     # Generate a uniformly distributed dataset
-    #     data = pd.Series(np.random.uniform(low=-1, high=1, size=100))
-    #     result = TimeseriesTests.shapiro_wilk(data)
-    #     self.assertEqual(result['Normality'], 'Not Normal', "Failed to correctly identify a non-normal distribution")
+    def test_shapiro_wilk_normal_distribution(self):
+        # Generate a normally distributed dataset
+        data = pd.Series(np.random.normal(loc=0, scale=1, size=100))
+        result = TimeseriesTests.shapiro_wilk(data)
+        self.assertEqual(result['Normality'], 'Normal', "Failed to correctly identify a normal distribution")
 
-    # def test_breusch_pagan_no_heteroscedasticity(self):
-    #     # Simulate data with no heteroscedasticity
-    #     np.random.seed(42)
-    #     x = np.random.normal(size=(100, 2))
-    #     y = 2 + 3 * x[:, 0] + 4 * x[:, 1] + np.random.normal(size=100)
-    #     result = TimeseriesTests.breusch_pagan(x, y)
-    #     self.assertEqual(result['Heteroscedasticity'], 'Absent', "Failed to correctly identify absence of heteroscedasticity")
+    def test_shapiro_wilk_non_normal_distribution(self):
+        # Generate a uniformly distributed dataset
+        data = pd.Series(np.random.uniform(low=-1, high=1, size=100))
+        result = TimeseriesTests.shapiro_wilk(data)
+        self.assertEqual(result['Normality'], 'Not Normal', "Failed to correctly identify a non-normal distribution")
 
-    # def test_breusch_pagan_heteroscedasticity(self):
-    #     # Simulate data with heteroscedasticity
-    #     np.random.seed(42)
-    #     x = np.random.normal(size=(100, 2))
+    def test_histogram_ndc(self):
+        # Create sample data
+        data = np.random.normal(loc=0, scale=1, size=1000)
 
-    #     # Heteroscedasticity introduced more strongly
-    #     y = 2 + 3 * x[:, 0] + 4 * x[:, 1] + np.random.normal(size=100) * (1 + x[:, 0])
-    #     result = TimeseriesTests.breusch_pagan(x, y)
-    #     self.assertEqual(result['Heteroscedasticity'], 'Present', "Failed to correctly identify presence of heteroscedasticity")
+        # test
+        fig = TimeseriesTests.histogram_ndc(data, bins='auto', title='Test Histogram with NDC')
 
-    # def test_white_homoscedasticity(self):
-    #     # Simulate data with homoscedastic residuals
-    #     np.random.seed(42)
-    #     x = np.random.normal(size=(100, 2))
-    #     y = 2 + 3 * x[:, 0] + 4 * x[:, 1] + np.random.normal(size=100)
-    #     result = TimeseriesTests.white_test(x, y)
-    #     self.assertEqual(result['Heteroscedasticity'], 'Absent', "Failed to correctly identify homoscedastic residuals")
+        # validate
+        self.assertIsInstance(fig, plt.Figure)
+        self.assertTrue(len(fig.axes[0].lines) >= 1)
+        self.assertTrue(len(fig.axes[0].patches) > 0)
 
-    # def test_white_heteroscedasticity(self):
-    #     # Simulate data with heteroscedastic residuals
-    #     np.random.seed(42)
-    #     x = np.random.normal(size=(100, 2))
-    #     y = 2 + 3 * x[:, 0] + 4 * x[:, 1] + np.random.normal(size=100) * (5 * abs(x[:, 0]))
-    #     result = TimeseriesTests.white_test(x, y)
-    #     self.assertEqual(result['Heteroscedasticity'], 'Present', "Failed to correctly identify heteroscedastic residuals")
+    def test_histogram_kde(self):
+        # Create sample data
+        data = np.random.normal(loc=0, scale=1, size=1000)
 
-    # def test_granger_causality_x_to_y(self):
-    #     data = generate_causal_data()
-    #     result = TimeseriesTests.granger_causality(data, max_lag=10, significance_level=0.05)
-    #     self.assertEqual(result[('x', 'y')]['Granger Causality'], 'Causality')
+        # test
+        fig = TimeseriesTests.histogram_kde(data, bins='auto', title='Test Histogram with KDE')
 
-    # def test_granger_causality_y_to_x(self):
-    #     data = generate_causal_data()
-    #     result = TimeseriesTests.granger_causality(data, max_lag=10, significance_level=0.05)
-    #     self.assertEqual(result[('y', 'x')]['Granger Causality'], 'Non-Causality')
+        # validate
+        self.assertIsInstance(fig, plt.Figure)
+        self.assertTrue(len(fig.axes[0].lines) > 0)
+        self.assertTrue(len(fig.axes[0].patches) > 0)
 
-    def test_hurst_exp_mean_reverting_series(self):
-        hurst = TimeseriesTests.hurst_exponent(self.mean_reverting_series)
-        self.assertLess(hurst, 0.5)
+    def test_qq_plot(self):
+        # Create sample data
+        data = np.random.normal(loc=0, scale=1, size=1000)
 
-    def test_hurst_exp_random_walk(self):
-        series = TimeseriesTests.generate_random_walk_series()
-        hurst = TimeseriesTests.hurst_exponent(series)
-        self.assertAlmostEqual(hurst, 0.5, delta=0.05)
+        # test
+        fig = TimeseriesTests.qq_plot(data, title='Test Q-Q Plot')
+
+        # validate
+        self.assertIsInstance(fig, plt.Figure)
+        self.assertTrue(len(fig.axes[0].lines) > 0)
+    
+    def test_breusch_pagan_no_heteroscedasticity(self):
+        # Simulate data with no heteroscedasticity
+        np.random.seed(42)
+        x = np.random.normal(size=(100, 2))
+        y = 2 + 3 * x[:, 0] + 4 * x[:, 1] + np.random.normal(size=100)
+        result = TimeseriesTests.breusch_pagan(x, y)
+        self.assertEqual(result['Heteroscedasticity'], 'Absent', "Failed to correctly identify absence of heteroscedasticity")
+
+    def test_breusch_pagan_heteroscedasticity(self):
+        # Simulate data with heteroscedasticity
+        np.random.seed(42)
+        x = np.random.normal(size=(100, 2))
+
+        # Heteroscedasticity introduced more strongly
+        y = 2 + 3 * x[:, 0] + 4 * x[:, 1] + np.random.normal(size=100) * (1 + x[:, 0])
+        result = TimeseriesTests.breusch_pagan(x, y)
+        self.assertEqual(result['Heteroscedasticity'], 'Present', "Failed to correctly identify presence of heteroscedasticity")
+
+    def test_white_homoscedasticity(self):
+        # Simulate data with homoscedastic residuals
+        np.random.seed(42)
+        x = np.random.normal(size=(100, 2))
+        y = 2 + 3 * x[:, 0] + 4 * x[:, 1] + np.random.normal(size=100)
+        result = TimeseriesTests.white_test(x, y)
+        self.assertEqual(result['Heteroscedasticity'], 'Absent', "Failed to correctly identify homoscedastic residuals")
+
+    def test_white_heteroscedasticity(self):
+        # Simulate data with heteroscedastic residuals
+        np.random.seed(42)
+        x = np.random.normal(size=(100, 2))
+        y = 2 + 3 * x[:, 0] + 4 * x[:, 1] + np.random.normal(size=100) * (5 * abs(x[:, 0]))
+        result = TimeseriesTests.white_test(x, y)
+        self.assertEqual(result['Heteroscedasticity'], 'Present', "Failed to correctly identify heteroscedastic residuals")
+
+    def test_granger_causality_x_to_y(self):
+        data = generate_causal_data()
+        result = TimeseriesTests.granger_causality(data, max_lag=10, significance_level=0.05)
+        self.assertEqual(result[('x', 'y')]['Granger Causality'], 'Causality')
+
+    def test_granger_causality_y_to_x(self):
+        data = generate_causal_data()
+        result = TimeseriesTests.granger_causality(data, max_lag=10, significance_level=0.05)
+        self.assertEqual(result[('y', 'x')]['Granger Causality'], 'Non-Causality')
+
+    def test_half_life_valid(self):
+        """
+        Test the half_life function with a known half-life.
+        """
+        known_half_life = 10  # Known half-life of the series
+        series = generate_mean_reverting_series_known_half_life(half_life=known_half_life)
         
-    def test_hurst_exp_trending_series(self):
-        self.trending_series = TimeseriesTests.generate_trending_series()
+        # Create a lagged version of the series
+        series_lagged = series.shift(1).bfill() 
         
-        hurst = TimeseriesTests.hurst_exponent(self.trending_series)
-        self.assertGreater(hurst, 0.5)
-
-    # def test_half_life_valid(self):
-    #     """
-    #     Test the half_life function with a known half-life.
-    #     """
-    #     known_half_life = 10  # Known half-life of the series
-    #     series = generate_mean_reverting_series_known_half_life(half_life=known_half_life)
+        # Calculate the half-life using the function under test
+        calculated_half_life, _ = TimeseriesTests.half_life(series, include_constant=False)
         
-    #     # Create a lagged version of the series
-    #     series_lagged = series.shift(1).bfill() 
+        # Assert the calculated half-life is close to the known value
+        self.assertAlmostEqual(known_half_life, calculated_half_life, delta=1, msg="Calculated half-life deviates from the known value")
+
+    def test_evaluate_forecast_dataframe(self):
+        """Test the evaluate_forecast function with pd.DataFrame input."""
+        # For DataFrame testing
+        self.actual = pd.Series(np.random.normal(100, 10, 100), name='TestSeries')
+        self.forecast = self.actual + np.random.normal(0, 5, 100)  # Adding noise to create a forecast
+
+        self.actual_df = pd.DataFrame({
+            'Series1': self.actual,
+            'Series2': self.actual + np.random.normal(0, 3, 100)  # Another series with less noise
+        })
+        self.forecast_df = pd.DataFrame({
+            'Series1': self.forecast,
+            'Series2': self.actual_df['Series2'] + np.random.normal(0, 2, 100)  # Forecast with different noise
+        })
+        result = TimeseriesTests.evaluate_forecast(self.actual_df, self.forecast_df, print_output=False)
+        self.assertIsInstance(result, dict, "The result should be a dictionary.")
+        for col in self.actual_df.columns:
+            self.assertIn(col, result, f"Result dictionary should include metrics for {col}.")
+            self.assertIn('MAE', result[col], f"Result for {col} should include MAE.")
+            self.assertIn('MSE', result[col], f"Result for {col} should include MSE.")
+            self.assertIn('RMSE', result[col], f"Result for {col} should include RMSE.")
+            self.assertIn('MAPE', result[col], f"Result for {col} should include MAPE.")
+
+    def test_evaluate_forecast_series(self):
+        """Test the evaluate_forecast function with pd.Series input."""
+        self.actual = pd.Series(np.random.normal(100, 10, 100), name='TestSeries')
+        self.forecast = self.actual + np.random.normal(0, 5, 100)  # Adding noise to create a forecast
+
+        result = TimeseriesTests.evaluate_forecast(self.actual, self.forecast, print_output=False)
+
+        self.assertIsInstance(result, dict, "The result should be a dictionary.")
+        self.assertIn('MAE', result['TestSeries'], "Result dictionary should include MAE.")
+        self.assertIn('MSE', result['TestSeries'], "Result dictionary should include MSE.")
+        self.assertIn('RMSE', result['TestSeries'], "Result dictionary should include RMSE.")
+        self.assertIn('MAPE', result['TestSeries'], "Result dictionary should include MAPE.")
+
+    def test_line_plot(self):
+        # Create sample data
+        x = pd.Series(np.arange(0, 10))
+        y = pd.Series(np.random.random(10))
+
+        # test
+        fig = TimeseriesTests.line_plot(x, y, title='Test Line Plot', x_label='Index', y_label='Random Value')
+
+        # validate
+        self.assertIsInstance(fig, plt.Figure)
+        self.assertTrue(len(fig.axes[0].lines) > 0)
+
+    def test_double_line_plot(self):
+        # Create sample data
+        dates = pd.date_range(start='2023-01-01', periods=10, freq='D')
+        data1 = pd.DataFrame({
+            'Value': np.random.random(10)
+        }, index=dates)
+        data2 = pd.DataFrame({
+            'Value': np.random.random(10)
+        }, index=dates)
+
+        # test
+        fig = TimeseriesTests.double_line_plot(data1, data2, label1='Data 1', label2='Data 2', title='Test Double Line Plot')
+
+        # validate
+        self.assertIsInstance(fig, plt.Figure)
+        self.assertTrue(len(fig.axes[0].lines) >= 2)
+
+    # def test_hurst_exp_mean_reverting_series(self):
+    #     hurst = TimeseriesTests.hurst_exponent(self.mean_reverting_series)
+    #     self.assertLess(hurst, 0.5)
+
+    # def test_hurst_exp_random_walk(self):
+    #     series = TimeseriesTests.generate_random_walk_series()
+    #     hurst = TimeseriesTests.hurst_exponent(series)
+    #     self.assertAlmostEqual(hurst, 0.5, delta=0.05)
         
-    #     # Calculate the half-life using the function under test
-    #     calculated_half_life, _ = TimeseriesTests.half_life(series, series_lagged, include_constant=False)
+    # def test_hurst_exp_trending_series(self):
+    #     self.trending_series = TimeseriesTests.generate_trending_series()
         
-    #     # Assert the calculated half-life is close to the known value
-    #     self.assertAlmostEqual(known_half_life, calculated_half_life, delta=1, msg="Calculated half-life deviates from the known value")
+    #     hurst = TimeseriesTests.hurst_exponent(self.trending_series)
+    #     self.assertGreater(hurst, 0.5)
 
-    # def test_evaluate_forecast_dataframe(self):
-    #     """Test the evaluate_forecast function with pd.DataFrame input."""
-    #     # For DataFrame testing
-    #     self.actual = pd.Series(np.random.normal(100, 10, 100), name='TestSeries')
-    #     self.forecast = self.actual + np.random.normal(0, 5, 100)  # Adding noise to create a forecast
 
-    #     self.actual_df = pd.DataFrame({
-    #         'Series1': self.actual,
-    #         'Series2': self.actual + np.random.normal(0, 3, 100)  # Another series with less noise
-    #     })
-    #     self.forecast_df = pd.DataFrame({
-    #         'Series1': self.forecast,
-    #         'Series2': self.actual_df['Series2'] + np.random.normal(0, 2, 100)  # Forecast with different noise
-    #     })
-    #     result = TimeseriesTests.evaluate_forecast(self.actual_df, self.forecast_df, print_output=False)
-    #     self.assertIsInstance(result, dict, "The result should be a dictionary.")
-    #     for col in self.actual_df.columns:
-    #         self.assertIn(col, result, f"Result dictionary should include metrics for {col}.")
-    #         self.assertIn('MAE', result[col], f"Result for {col} should include MAE.")
-    #         self.assertIn('MSE', result[col], f"Result for {col} should include MSE.")
-    #         self.assertIn('RMSE', result[col], f"Result for {col} should include RMSE.")
-    #         self.assertIn('MAPE', result[col], f"Result for {col} should include MAPE.")
-
-    # def test_evaluate_forecast_series(self):
-    #     """Test the evaluate_forecast function with pd.Series input."""
-    #     self.actual = pd.Series(np.random.normal(100, 10, 100), name='TestSeries')
-    #     self.forecast = self.actual + np.random.normal(0, 5, 100)  # Adding noise to create a forecast
-
-    #     result = TimeseriesTests.evaluate_forecast(self.actual, self.forecast, print_output=False)
-
-    #     self.assertIsInstance(result, dict, "The result should be a dictionary.")
-    #     self.assertIn('MAE', result['TestSeries'], "Result dictionary should include MAE.")
-    #     self.assertIn('MSE', result['TestSeries'], "Result dictionary should include MSE.")
-    #     self.assertIn('RMSE', result['TestSeries'], "Result dictionary should include RMSE.")
-    #     self.assertIn('MAPE', result['TestSeries'], "Result dictionary should include MAPE.")
-            
 
 if __name__ =="__main__":
     unittest.main()
