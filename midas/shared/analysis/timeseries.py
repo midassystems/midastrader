@@ -2,6 +2,7 @@ import warnings
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from typing import List, Tuple
 import matplotlib.pyplot as plt
 from arch.unitroot import PhillipsPerron
 from sklearn.metrics import mean_absolute_error, mean_squared_error
@@ -12,6 +13,7 @@ from statsmodels.tsa.stattools import adfuller, kpss
 from statsmodels.stats.stattools import durbin_watson
 from statsmodels.stats.diagnostic import acorr_ljungbox
 from statsmodels.tsa.stattools import grangercausalitytests
+from statsmodels.tsa.arima.model import ARIMA, ARIMAResultsWrapper
 from statsmodels.stats.diagnostic import het_breuschpagan, het_white
 from statsmodels.tsa.vector_ar.vecm import coint_johansen, VECM, select_coint_rank
 
@@ -19,7 +21,6 @@ import scipy.stats as stats
 from scipy.stats import norm
 from scipy.stats import shapiro
 from scipy.optimize import curve_fit
-
 
 pd.set_option('display.max_colwidth', None)
 pd.set_option('display.max_columns', 100)
@@ -33,19 +34,19 @@ class TimeseriesTests:
     """
     # -- Synthentic Timeseries --
     @staticmethod
-    def generate_mean_reverting_series(n=2000, mu=0, theta=0.1 , sigma=0.2, start_value=1):
+    def generate_mean_reverting_series(n:int=2000, mu:float=0, theta:float=0.1 , sigma:float=0.2, start_value:float=1) -> np.ndarray:
         """
         Generate a mean-reverting time series using the Ornstein-Uhlenbeck process.
 
         Parameters:
-        n (int): The number of observations in the time series.
-        mu (float): The long-term mean value towards which the time series reverts.
-        theta (float): The rate of reversion to the mean.
-        sigma (float): The volatility of the process.
-        start_value (float): The starting value of the time series.
+        - n (int): The number of observations in the time series.
+        - mu (float): The long-term mean value towards which the time series reverts.
+        - theta (float): The rate of reversion to the mean.
+        - sigma (float): The volatility of the process.
+        - start_value (float): The starting value of the time series.
 
         Returns:
-        np.array: A numpy array representing the generated time series.
+        - np.array: A numpy array representing the generated time series.
         """
         time_series = [start_value]
         for _ in range(1, n):
@@ -58,18 +59,18 @@ class TimeseriesTests:
         return np.array(time_series)
 
     @staticmethod
-    def generate_trending_series(n=2000, start_value=0, trend=5, step_std=1):
+    def generate_trending_series(n:int=2000, start_value:float=0, trend:float=5, step_std:float=1) -> np.ndarray:
         """
         Generate a trending time series.
 
         Parameters:
-        n (int): The number of observations in the time series.
-        start_value (float): The starting value of the time series.
-        trend (float): The constant amount added to each step to create a trend.
-        step_std (float): The standard deviation of the step size.
+        - n (int): The number of observations in the time series.
+        - start_value (float): The starting value of the time series.
+        - trend (float): The constant amount added to each step to create a trend.
+        - step_std (float): The standard deviation of the step size.
 
         Returns:
-        np.array: A numpy array representing the generated time series.
+        - np.array: A numpy array representing the generated time series.
         """
         time_series = [start_value]
         for _ in range(1, n):
@@ -80,17 +81,17 @@ class TimeseriesTests:
         return np.array(time_series)
 
     @staticmethod
-    def generate_random_walk_series(n=2000, start_value=0, step_std=1):
+    def generate_random_walk_series(n:int=2000, start_value:float=0, step_std:float=1) -> np.ndarray:
         """
         Generate a random walk time series.
 
         Parameters:
-        n (int): The number of observations in the time series.
-        start_value (float): The starting value of the time series.
-        step_std (float): The standard deviation of the step size.
+        - n (int): The number of observations in the time series.
+        - start_value (float): The starting value of the time series.
+        - step_std (float): The standard deviation of the step size.
 
         Returns:
-        np.array: A numpy array representing the generated time series.
+        - np.array: A numpy array representing the generated time series.
         """
         time_series = [start_value]
         for _ in range(1, n):
@@ -102,8 +103,17 @@ class TimeseriesTests:
     
     # -- Timeseries Adjustment -- 
     @staticmethod
-    def lag_series(series: pd.Series, lag: int = 1):
-        """Lags a pandas series by a given lag. Default lag = 1."""
+    def lag_series(series:pd.Series, lag:int=1) -> pd.Series:
+        """
+        Lags a pandas series by a given lag. 
+        
+        Parameters:
+        - series (pd.Series): The timeseries to be lagged. 
+        - lag (int): The number lags to be applied to the timeseries.
+        
+        Returns:
+        - pd.Series : A pandas series representing the lagged series.
+        """
         # Create a lagged version of the series
         series_lagged = series.shift(lag)
 
@@ -113,7 +123,18 @@ class TimeseriesTests:
         return series_lagged
     
     @staticmethod
-    def split_data(data:pd.DataFrame,train_ratio=0.8):
+    def split_data(data:pd.DataFrame, train_ratio:float=0.8) -> Tuple[pd.DataFrame, pd.DataFrame]:
+        """
+        Splits a pandas dataframe into a train and test dataframe.
+
+        Parameters:
+        - data (pd.DataFrame): The dataframe that is to be split.
+        - train_ratio (float): The portion of original data to be in train dataframe.()
+
+        Returns:
+        - train_data (pd.DataFrame): Represents the portion of the data form the begining to the point equal to the train_ratio.
+        - test_data (pd.DateFrame): Represents the portion of the data from the train_ratio point to the end of the data.
+        """
         split_index = int(len(data) * train_ratio)
         train_data = data.iloc[:split_index]
         test_data = data.iloc[split_index:]
@@ -121,7 +142,7 @@ class TimeseriesTests:
     
     # -- Stationarity -- 
     @staticmethod
-    def adf_test(series: pd.Series, trend='c', confidence_interval='5%', significance_level=0.05):
+    def adf_test(series:pd.Series, trend:str='c', confidence_interval:str='5%', significance_level:float=0.05) -> dict:
         """
         Perform the Augmented Dickey-Fuller (ADF) test to determine the stationarity of a time series.
 
@@ -132,19 +153,19 @@ class TimeseriesTests:
         1. The ADF statistic is less than the critical value at the specified confidence interval.
         2. The p-value is less than the specified significance level, suggesting the result is statistically significant.
 
-        Args:
-        series (pd.Series): The time series to be tested.
-        trend (str): Type of regression applied in the test. Options include:
+        Parameters:
+        - series (pd.Series): The time series to be tested.
+        - trend (str): Type of regression applied in the test. Options include:
             - 'c': Only a constant (default). Use if the series is expected to be stationary around a mean.
             - 'ct': Constant and trend. Use if the series is suspected to have a trend.
-        confidence_interval (str): Confidence interval for the critical values. Common options are '1%', '5%', and '10%'.
-        significance_level (float): The significance level for determining statistical significance. Default is 0.05.
+        - confidence_interval (str): Confidence interval for the critical values. Common options are '1%', '5%', and '10%'.
+        - significance_level (float): The significance level for determining statistical significance. Default is 0.05.
 
         Returns:
-        dict: A dictionary with the ADF test statistic, p-value, critical values, and an indication of stationarity 
+        - dict: A dictionary with the ADF test statistic, p-value, critical values, and an indication of stationarity 
         ('Stationary' or 'Non-Stationary') based on the test results.
 
-        Note: A low p-value (less than the specified significance level) combined with an ADF statistic lower than the 
+        **Note: A low p-value (less than the specified significance level) combined with an ADF statistic lower than the 
         critical value at the specified confidence interval suggests rejecting the null hypothesis in favor of stationarity. 
         Conversely, a high p-value suggests failing to reject the null hypothesis, indicating non-stationarity.
         """
@@ -170,11 +191,23 @@ class TimeseriesTests:
         return output
 
     @staticmethod
-    def display_adf_results(adf_results:dict, print_output: bool = True, to_html: bool = False, indent: int=0):
-        # Define the base indentation as a string of spaces
-        base_indent = "    " * indent
-        next_indent = "    " * (indent + 1)  
+    def display_adf_results(adf_results:dict, print_output:bool=True, to_html:bool=False, indent:int=0) -> str:
+        """
+        Display the results of the Augmented Dickey-Fuller (ADF) test.
 
+        This function formats ADF test results into a human-readable format, either as a plain text table or an HTML table.
+        It also includes an interpretation footer to aid in understanding the results.
+
+        Parameters:
+        - adf_results (dict): A dictionary where keys are tickers and values are dictionaries containing ADF test results. 
+                            Each value dictionary should have keys: 'ADF Statistic', 'p-value', 'Critical Values', and 'Stationarity'.
+        - print_output (bool): If True, the results are printed to the console. If False, the results are returned as a string.
+        - to_html (bool): If True, the results are formatted as an HTML string. If False, the results are formatted as plain text.
+        - indent (int): The number of indentation levels to apply to the HTML output (useful for nested HTML structures).
+
+        Returns:
+        - str: The formatted ADF test results as a string (plain text or HTML).
+        """
         # Convert ADF results to DataFrame
         adf_data = []
         for ticker, values in adf_results.items():
@@ -188,6 +221,10 @@ class TimeseriesTests:
         footer = "** IF p-value < 0.05 and/or statistic < statistic @ confidence interval, then REJECT the Null that the time series posses a unit root (non-stationary)."
 
         if to_html:
+            # Define the base indentation as a string of spaces
+            base_indent = "    " * indent
+            next_indent = "    " * (indent + 1)  
+
             # Convert DataFrame to HTML table and add explanation
             html_table = adf_df.to_html(index=False, border=1)
             html_table_indented = "\n".join(next_indent + line for line in html_table.split("\n"))
@@ -198,22 +235,71 @@ class TimeseriesTests:
         
             return html_output
         
-        elif print_output:
-            print(f"""\n{title}:
-                    {'=' * len(title)}
-                    {adf_df}
-                    {footer}
-                """)
         else:
-            return (
+            output = (
                 f"\n{title}\n"
                 f"{'=' * len(title)}\n"
                 f"{adf_df.to_string(index=False)}\n"
                 f"{footer}"
             )
+            if print_output:
+                print(output)
+            else:
+                return output
     
     @staticmethod
-    def kpss_test(series: pd.Series,trend='c', confidence_interval='5%'):
+    def rolling_adf(series:pd.Series, window:int, trend:str='c') -> pd.Series:
+        """
+        Calculate rolling ADF statistics over a specified window.
+        
+        Paremeters:
+        - series (pd.Series): The time series to be tested.
+        - window (int): The rolling window size.
+        - trend (str): Type of regression applied in the test. Options include:
+            - 'c': Only a constant (default).
+            - 'ct': Constant and trend.
+        
+        Returns:
+        - pd.Series: Rolling ADF statistics.
+        """
+        # Convert numpy array to pandas Series if necessary
+        if isinstance(series, np.ndarray):
+            series = pd.Series(series)
+
+        rolling_adf_results = series.rolling(window=window).apply(
+            lambda x: adfuller(x, regression=trend)[0] if len(x) == window else np.nan
+        )
+        
+        return rolling_adf_results 
+    
+    @staticmethod
+    def display_rolling_adf_results(series:pd.Series, rolling_adf_results:pd.Series, confidence_interval:str='5%') -> plt.Figure:
+        """
+        Creates the plot of a rolling adf statistic verse the critical value for the original timeseries at the confidence interval passed.
+
+        Parameters:
+        - series (pd.Series): The original series.
+        - rolling_adf_results (pd.Series): The results of the rolling_adf.
+        - confidence_interval (str): Confidence interval for the critical values. Common options are '1%', '5%', and '10%'.
+
+        Returns:
+        -  plt.Figure: Figure representing the plot.
+
+        Example:
+        >>> TimeseriesTests.display_rolling_adf_results(pd.Series(series), rolling_adf_results)
+        >>> plt.show()
+        """
+        fig, ax = plt.subplots()
+        ax.plot(rolling_adf_results, label='Rolling ADF Statistic')
+        ax.axhline(y=adfuller(series)[4][confidence_interval], color='r', linestyle='--', label=f'Critical Value @ {confidence_interval}')
+        ax.set_title('Rolling ADF Statistic')
+        ax.set_xlabel('Time')
+        ax.set_ylabel('ADF Statistic')
+        ax.legend()
+        return fig
+    
+    @staticmethod
+    def kpss_test(series:pd.Series, trend:str='c', confidence_interval:str='5%') -> dict:
         """
         Perform the KPSS test to determine the stationarity of a time series.
 
@@ -224,20 +310,20 @@ class TimeseriesTests:
         stationarity. Conversely, a low p-value suggests rejecting the null hypothesis in favor of the alternative, 
         indicating non-stationarity.
 
-        Args:
-        series (pd.Series): The time series to be tested.
-        trend (str): Type of regression applied in the test. Options include:
+        Parameters:
+        - series (pd.Series): The time series to be tested.
+        - trend (str): Type of regression applied in the test. Options include:
             - 'c': Only a constant. Use if the series is expected to be stationary around a mean.
             - 'ct': Constant and trend. Use if the series is suspected to have a trend and is stationary around a trend.
-        significance_level (float): The significance level for determining statistical significance. This is used to 
-        adjust the interpretation of the test result but note that KPSS uses critical values directly for decision making.
+        - significance_level (float): The significance level for determining statistical significance. This is used to 
+        - adjust the interpretation of the test result but note that KPSS uses critical values directly for decision making.
 
         Returns:
-        dict: A dictionary with the KPSS test statistic, p-value, critical values, and an indication of stationarity 
+        - dict: A dictionary with the KPSS test statistic, p-value, critical values, and an indication of stationarity 
         ('Stationary' or 'Non-Stationary') based on the test results. Stationarity is determined by comparing the test 
         statistic to critical values, not directly by p-value.
 
-        Note: KPSS test results are interpreted differently from tests like ADF. Here, stationarity is suggested by not 
+        **Note: KPSS test results are interpreted differently from tests like ADF. Here, stationarity is suggested by not 
         rejecting the null hypothesis (high p-value), while evidence of non-stationarity comes from rejecting H0 (low p-value).
         """
         try:
@@ -270,7 +356,23 @@ class TimeseriesTests:
         return output
     
     @staticmethod
-    def display_kpss_results(kpss_results:dict, print_output: bool=True, to_html: bool = False):
+    def display_kpss_results(kpss_results:dict, print_output:bool=True, to_html:bool=False, indent:int=0) -> str:
+        """
+        Display the results of the KPSS test.
+
+        This function formats KPSS test results into a human-readable format, either as a plain text table or an HTML table.
+        It also includes an interpretation footer to aid in understanding the results.
+
+        Parameters:
+        - kpss_results (dict): A dictionary where keys are tickers and values are dictionaries containing KPSS test results. 
+                            Each value dictionary should have keys: 'KPSS Statistic', 'p-value', 'Critical Values', and 'Stationarity'.
+        - print_output (bool): If True, the results are printed to the console. If False, the results are returned as a string.
+        - to_html (bool): If True, the results are formatted as an HTML string. If False, the results are formatted as plain text.
+        - indent (int): The number of indentation levels to apply to the HTML output (useful for nested HTML structures).
+
+        Returns:
+        - str: The formatted KPSS test results as a string (plain text or HTML).
+        """
         # Convert KPSS results to DataFrame
         kpss_data = []
         for ticker, values in kpss_results.items():
@@ -284,27 +386,34 @@ class TimeseriesTests:
         footer = "** IF KPSS statistic > statistic @ confidence interval, then reject the NUll that time-series is stationary.\n"
 
         if to_html:
+            # Define the base indentation as a string of spaces
+            base_indent = "    " * indent
+            next_indent = "    " * (indent + 1)  
+
             # Convert DataFrame to HTML table and add explanation
             html_table = kpss_df.to_html(index=False, border=1)
-            html_explanation = f"<p>{footer}</p>"
-            html_output = f"<h2>{title}</h2>\n{html_table}\n{html_explanation}"
+            html_table_indented = "\n".join(next_indent + line for line in html_table.split("\n"))
+
+            html_title = f"{next_indent}<h2>{title}</h2>\n"
+            html_footer = f"{next_indent}<p>{footer}</p>\n"
+            html_output = f"{base_indent}<div>\n{html_title}{html_table_indented}\n{html_footer}{base_indent}</div>"
+
             return html_output
-        elif print_output:
-            print(f"""\n{title}:
-                    {'=' * len(title)}
-                    {kpss_df}
-                    {footer}
-                """)
+        
         else:
-            return (
+            output = (
                 f"\n{title}\n"
                 f"{'=' * len(title)}\n"
                 f"{kpss_df.to_string(index=False)}\n"
                 f"{footer}"
             )
-
+            if print_output:
+                print(output)
+            else:
+                return output
+            
     @staticmethod
-    def phillips_perron_test(series: pd.Series, trend='c', confidence_interval='5%', significance_level=0.05):
+    def phillips_perron_test(series:pd.Series, trend:str='c', confidence_interval:str='5%', significance_level:float=0.05) -> dict:
         """
         Perform the Phillips-Perron test to determine the stationarity of a time series.
 
@@ -315,19 +424,19 @@ class TimeseriesTests:
         1. The PP statistic is less than the critical value at the specified confidence interval.
         2. The p-value is less than the specified significance level, suggesting the result is statistically significant.
 
-        Args:
-        series (pd.Series): The time series to be tested.
-        trend (str): Type of regression applied in the test. Options include:
+        Parameters:
+        - series (pd.Series): The time series to be tested.
+        - trend (str): Type of regression applied in the test. Options include:
             - 'c': Only a constant (default). Use if the series is expected to be stationary around a mean.
             - 'ct': Constant and trend. Use if the series is suspected to have a trend.
-        confidence_interval (str): Confidence interval for the critical values. Common options are '1%', '5%', and '10%'.
-        significance_level (float): The significance level for determining statistical significance. Default is 0.05.
+        - confidence_interval (str): Confidence interval for the critical values. Common options are '1%', '5%', and '10%'.
+        - significance_level (float): The significance level for determining statistical significance. Default is 0.05.
 
         Returns:
-        dict: A dictionary with the PP test statistic, p-value, critical values, and an indication of stationarity 
+        - dict: A dictionary with the PP test statistic, p-value, critical values, and an indication of stationarity 
         ('Stationary' or 'Non-Stationary') based on the test results.
 
-        Note: A low p-value (less than the specified significance level) combined with a PP statistic lower than the 
+        **Note: A low p-value (less than the specified significance level) combined with a PP statistic lower than the 
         critical value at the specified confidence interval suggests rejecting the null hypothesis in favor of stationarity. 
         Conversely, a high p-value suggests failing to reject the null hypothesis, indicating non-stationarity.
         """
@@ -352,11 +461,23 @@ class TimeseriesTests:
         return output
 
     @staticmethod
-    def display_pp_results(pp_results: dict, print_output: bool=True, to_html: bool = False, indent: int=0):
-        # Define the base indentation as a string of spaces
-        base_indent = "    " * indent
-        next_indent = "    " * (indent + 1)  
+    def display_pp_results(pp_results:dict, print_output:bool=True, to_html:bool=False, indent:int=0) -> str:
+        """
+        Display the results of the PP test.
 
+        This function formats PP test results into a human-readable format, either as a plain text table or an HTML table.
+        It also includes an interpretation footer to aid in understanding the results.
+
+        Parameters:
+        - PP_results (dict): A dictionary where keys are tickers and values are dictionaries containing PP test results. 
+                            Each value dictionary should have keys: 'PP Statistic', 'p-value', 'Critical Values', and 'Stationarity'.
+        - print_output (bool): If True, the results are printed to the console. If False, the results are returned as a string.
+        - to_html (bool): If True, the results are formatted as an HTML string. If False, the results are formatted as plain text.
+        - indent (int): The number of indentation levels to apply to the HTML output (useful for nested HTML structures).
+
+        Returns:
+        - str: The formatted PP test results as a string (plain text or HTML).
+        """
         # Convert PP results to DataFrame
         pp_data = []
         for ticker, values in pp_results.items():
@@ -374,6 +495,10 @@ class TimeseriesTests:
         footer = "** IF p-value < 0.05, then REJECT the Null Hypothesis of a unit root (non-stationary time series)."
 
         if to_html:
+            # Define the base indentation as a string of spaces
+            base_indent = "    " * indent
+            next_indent = "    " * (indent + 1)  
+
             # Convert DataFrame to HTML table and add explanation
             html_table = pp_df.to_html(index=False, border=1)
             html_table_indented = "\n".join(next_indent + line for line in html_table.split("\n"))
@@ -383,23 +508,21 @@ class TimeseriesTests:
             html_output = f"{base_indent}<div>\n{html_title}{html_table_indented}\n{html_footer}{base_indent}</div>"
         
             return html_output
-
-        elif print_output:
-            print(f"""\n{title}:
-                    {'=' * len(title)}
-                    {pp_df}
-                    {footer}
-                """)
+        
         else:
-            return (
+            output = (
                 f"\n{title}\n"
                 f"{'=' * len(title)}\n"
                 f"{pp_df.to_string(index=False)}\n"
                 f"{footer}"
             )
+            if print_output:
+                print(output)
+            else:
+                return output
         
     @staticmethod
-    def seasonal_adf_test(series: pd.Series, maxlag: int = None, regression: str = 'c', seasonal_periods: int = 12, confidence_interval: str = '5%', significance_level=0.05) -> dict:
+    def seasonal_adf_test(series:pd.Series, maxlag:int=None, regression:str='c', seasonal_periods:int=12, confidence_interval:str='5%', significance_level:float=0.05) -> dict:
         """
         Perform Seasonal Augmented Dickey-Fuller (ADF) test to assess the stationarity of a seasonal time series.
 
@@ -408,21 +531,16 @@ class TimeseriesTests:
         account its seasonality.
 
         Parameters:
-            series (pd.Series): Time series data.
-            maxlag (int, optional): Maximum number of lags to include in the ADF test. Defaults to None, letting the
-                                    test choose the lag based on AIC.
-            regression (str, optional): Type of regression ('c' constant, 'ct' constant and trend, 'ctt' constant,
-                                        trend, and trend squared, 'nc' no constant). Defaults to 'c'.
-            seasonal_periods (int, optional): Number of periods in a season. Defaults to 12.
-            confidence_interval (str, optional): The confidence interval used to determine stationarity. Defaults to '5%'.
+        - series (pd.Series): Time series data.
+        - maxlag (int, optional): Maximum number of lags to include in the ADF test. Defaults to None, letting the test choose the lag based on AIC.
+        - regression (str, optional): Type of regression ('c' constant, 'ct' constant and trend, 'ctt' constant, trend, and trend squared, 'nc' no constant). Defaults to 'c'.
+        - seasonal_periods (int, optional): Number of periods in a season. Defaults to 12.
+        - confidence_interval (str, optional): The confidence interval used to determine stationarity. Defaults to '5%'.
 
         Returns:
-            dict: A dictionary with the test statistic ('ADF Statistic'), the p-value ('p-value'), the critical values
+        - dict: A dictionary with the test statistic ('ADF Statistic'), the p-value ('p-value'), the critical values
                 ('Critical Values'), and an indication of stationarity ('Stationarity') based on the specified 
                 confidence interval.
-
-        Raises:
-            ValueError: If the series is empty or contains fewer observations than the seasonal_periods.
         """
         if series.empty or len(series) < seasonal_periods:
             raise ValueError("The time series must contain more observations than the number of seasonal periods.")
@@ -446,9 +564,114 @@ class TimeseriesTests:
             'Stationarity': stationarity
         }
 
+    @staticmethod
+    def monte_carlo_simulation(n_simulations:int, series_length:int, mean:float, std_dev:float, trend:str='c', confidence_interval:str='5%', significance_level:float=0.05) -> Tuple[list,list]:
+        """
+        Perform Monte Carlo Simulation, generating a number of random timeseries and performing the augmented dickey fuller on them.
+
+        Parameters:
+        - n_simulations (int): Number of time series generated.
+        - series_length (int): Length of each time series generated.
+        - mean (float): Mean of each time series generated. 
+        - std_dev (float): Standard deviation of each time series generated.
+        - trend (str): Type of regression applied in the test. Options include:
+            - 'c': Only a constant (default). Use if the series is expected to be stationary around a mean.
+            - 'ct': Constant and trend. Use if the series is suspected to have a trend.
+        - confidence_interval (str): Confidence interval for the critical values. Common options are '1%', '5%', and '10%'.
+        - significance_level (float): The significance level for determining statistical significance. Default is 0.05.
+        
+        """
+        adf_stats = []
+        p_values = []
+        for _ in range(n_simulations):
+            simulated_series = np.random.normal(mean, std_dev, series_length)
+            adf_result = TimeseriesTests.adf_test(pd.Series(simulated_series), trend, confidence_interval, significance_level)
+            adf_stats.append(adf_result['ADF Statistic'])
+            p_values.append(adf_result['p-value'])
+        return adf_stats, p_values
+
+    @staticmethod
+    def display_monte_carlo_simulation(adf_stats:list, original_series:pd.Series, confidence_interval:str='5%') -> plt.Figure:
+        """
+        Display the histogram of ADF statistics from Monte Carlo simulations and the ADF statistic of the original series.
+        
+        Parameters:
+        - adf_stats (list): ADF statistics from Monte Carlo simulations.
+        - original_series (pd.Series): The original time series to compare.
+        - confidence_interval (str): Confidence interval for critical values.
+
+        Returns:
+        -  plt.Figure: Figure representing the plot.
+
+        Example:
+        >>> TimeseriesTests.display_monte_carlo_simulation(adf_stats, original_series)
+        >>> plt.show()
+        """
+        adf_statistic_original = adfuller(original_series)[0]
+
+        fig, ax = plt.subplots()
+        ax.hist(adf_stats, bins=30, edgecolor='k', alpha=0.7)
+        ax.axvline(x=adf_statistic_original, color='r', linestyle='--', label=f'ADF Statistic of Original Series')
+        ax.set_title('Distribution of ADF Statistics from Simulations')
+        ax.set_xlabel('ADF Statistic')
+        ax.set_ylabel('Frequency')
+        ax.legend()
+        return fig
+
+    @staticmethod
+    def fit_arima(series:pd.Series, order:tuple=(1, 0, 0)) -> Tuple[ARIMAResultsWrapper, pd.Series]:
+        """
+        Fit an ARIMA model to the series.
+        
+        Parameters:
+        - series (pd.Series): The time series data.
+        - order (tuple): The (p, d, q) order of the ARIMA model.
+
+        Returns:
+        - model_fit (ARIMAResultsWrapper): The fitted ARIMA model.
+        - residuals (pd.Series): Residuals of the fitted model.
+        """
+        model = ARIMA(series, order=order)
+        model_fit = model.fit()
+        residuals = model_fit.resid
+        return model_fit, residuals
+    
+    @staticmethod
+    def plot_acf_pacf(residuals:pd.Series, lags:int=40) -> plt.Figure:
+        """
+        Plot the ACF and PACF of residuals.
+        
+        Parameters:
+        - residuals (pd.Series): Residuals of a time series model.
+        - lags (int): Number of lags for ACF and PACF plots.
+
+        Returns:
+          -  plt.Figure: Figure representing the plot.
+
+        Example:
+        >>> TimeseriesTests.plot_acf_pacf(residuals, lags)
+        >>> plt.show()
+        """
+
+        fig, axs = plt.subplots(1, 2, figsize=[15, 5])
+
+        # Plot ACF
+        sm.graphics.tsa.plot_acf(residuals, lags=lags, ax=axs[0])
+        axs[0].set_title('ACF of Residuals')
+
+        # Plot PACF
+        sm.graphics.tsa.plot_pacf(residuals, lags=lags, ax=axs[1])
+        axs[1].set_title('PACF of Residuals')
+
+        # Adjust layout
+        fig.tight_layout()
+
+        # Return the figure object
+        return fig
+
     # -- Cointegration --
     @staticmethod
-    def johansen_test(data: pd.DataFrame, det_order: int = -1, k_ar_diff: int = 1) -> dict:
+    def johansen_test(data:pd.DataFrame, det_order:int=-1, k_ar_diff:int=1) -> dict:
         """
         Perform Johansen cointegration test to assess the presence of cointegration relationships 
         among several time series.
@@ -457,18 +680,18 @@ class TimeseriesTests:
         of multiple time series.
 
         Parameters:
-            data (pd.DataFrame): A pandas DataFrame where each column represents a time series.
-            det_order (int): Specifies the deterministic trend in the data. The default value is -1,
+        - data (pd.DataFrame): A pandas DataFrame where each column represents a time series.
+        - det_order (int): Specifies the deterministic trend in the data. The default value is -1,
                             which includes a constant term but no trend. 0 includes no constant or trend,
                             and 1 includes a constant and a linear trend.
-            k_ar_diff (int): The number of lagged differences used in the test. The default is 1.
+        - k_ar_diff (int): The number of lagged differences used in the test. The default is 1.
 
         Returns:
-            dict: A dictionary containing the test's eigenvalues, critical values, statistics, and 
+        - dict: A dictionary containing the test's eigenvalues, critical values, statistics, and 
                 the cointegrating vector. It also includes analysis of trace and max eigenvalue statistics.
 
         Raises:
-            ValueError: If `data` is empty or not a pandas DataFrame.
+        - ValueError: If `data` is empty or not a pandas DataFrame.
         """
         if data.empty or not isinstance(data, pd.DataFrame):
             raise ValueError("Input data must be a non-empty pandas DataFrame.")
@@ -507,11 +730,24 @@ class TimeseriesTests:
         return output, num_cointegrations
     
     @staticmethod
-    def display_johansen_results(johansen_results: dict, num_cointegrations: int, print_output: bool=True, to_html: bool=False, indent: int=0):
-        # Define the base indentation as a string of spaces
-        base_indent = "    " * indent
-        next_indent = "    " * (indent + 1)  
-    
+    def display_johansen_results(johansen_results:dict, num_cointegrations:int, print_output:bool=True, to_html:bool=False, indent:int=0) -> str:
+        """
+        Display the results of the Johansen test.
+
+        This function formats Johansen test results into a human-readable format, either as a plain text table or an HTML table.
+        It also includes an interpretation footer to aid in understanding the results.
+
+        Parameters:
+        - johansen_results (dict): A dictionary where keys are tickers and values are dictionaries containing PP test results. 
+                            Each value dictionary should have keys: 'Eigenvalues', 'Trace Statistics', 'Critical Values for Trace Statistic','Max Eigenvalue Statistics', 'Critical Values for Max Eigenvalue Statistic', 'Decision (Trace)' and 'Decision (Max Eigenvalue)'. 
+        - print_output (bool): If True, the results are printed to the console. If False, the results are returned as a string.
+        - to_html (bool): If True, the results are formatted as an HTML string. If False, the results are formatted as plain text.
+        - indent (int): The number of indentation levels to apply to the HTML output (useful for nested HTML structures).
+
+        Returns:
+        - str: The formatted Johansen test results as a string (plain text or HTML).
+        """
+        
         # Creating DataFrame from the results
         johansen_df = pd.DataFrame({
             'Hypothesis': [f'H{i}' for i in range(len(johansen_results['Eigenvalues']))],
@@ -537,6 +773,10 @@ class TimeseriesTests:
         footer = f"** IF Trace Statistic > Critical Value AND Max Eigenvalue > Critical Value then Reject Null of at most r cointegrating relationships.(r=0 in first test)"
 
         if to_html:
+            # Define the base indentation as a string of spaces
+            base_indent = "    " * indent
+            next_indent = "    " * (indent + 1)  
+
             # Convert DataFrame to HTML table and add explanation
             html_table = johansen_df.to_html(index=False, border=1)
             html_table_indented = "\n".join(next_indent + line for line in html_table.split("\n"))
@@ -549,24 +789,20 @@ class TimeseriesTests:
         
             return html_output
         
-        elif print_output:
-            print(f"""\n{title}:
-                    {'=' * len(title)}
-                    {header}
-                    {johansen_df}
-                    {footer}
-                """)
         else:
-            return (
+            output = (
                 f"\n{title}\n"
                 f"{'=' * len(title)}\n"
-                f"{header}\n"
                 f"{johansen_df.to_string(index=False)}\n"
                 f"{footer}"
             )
+            if print_output:
+                print(output)
+            else:
+                return output
         
     @staticmethod
-    def select_lag_length(data: pd.DataFrame, maxlags: int = 10, criterion: str = 'bic') -> int:
+    def select_lag_length(data:pd.DataFrame, maxlags:int=10, criterion:str='bic') -> int:
         """
         Selects the optimal lag length for a time series dataset based on a specified information criterion.
 
@@ -576,16 +812,16 @@ class TimeseriesTests:
         **Note: BIC will be more conservative and less overfitted than AIC
 
         Parameters:
-            data (pd.DataFrame): A pandas DataFrame containing the time series data.
-            maxlags (int, optional): The maximum number of lags to test. Defaults to 10.
-            criterion (str, optional): The information criterion to use for selecting the optimal lag.
+        - data (pd.DataFrame): A pandas DataFrame containing the time series data.
+        - maxlags (int, optional): The maximum number of lags to test. Defaults to 10.
+        - criterion (str, optional): The information criterion to use for selecting the optimal lag.
                                     Options are 'aic' (default), 'bic', 'fpe', and 'hqic'.
 
         Returns:
-            int: The optimal number of lags according to the specified information criterion.
+        - int: The optimal number of lags according to the specified information criterion.
 
         Raises:
-            ValueError: If the input data is not a pandas DataFrame or is empty.
+        - ValueError: If the input data is not a pandas DataFrame or is empty.
                         If the specified criterion is not supported.
         """
         if not isinstance(data, pd.DataFrame) or data.empty:
@@ -614,24 +850,24 @@ class TimeseriesTests:
         return best_lag
     
     @staticmethod
-    def select_coint_rank(data: pd.DataFrame, k_ar_diff: int, method: str = 'trace', signif: float = 0.05, det_order: int = -1):
+    def select_coint_rank(data:pd.DataFrame, k_ar_diff:int, method:str='trace', signif:float=0.05, det_order:int=-1) -> dict:
         """
         Selects the cointegration rank for a dataset using the Johansen cointegration test.
 
         Parameters:
-            data (pd.DataFrame): A pandas DataFrame containing the time series data.
-            k_ar_diff (int): The number of lags minus one to be used in the Johansen test.
-            method (str, optional): The test statistic to use ('trace' or 'maxeig'). Defaults to 'trace'.
-            signif (float, optional): Significance level for rejecting the null hypothesis. Defaults to 0.05.
-            det_order (int, optional): The order of the deterministic trend to include in the test. 
+        - data (pd.DataFrame): A pandas DataFrame containing the time series data.
+        - k_ar_diff (int): The number of lags minus one to be used in the Johansen test.
+        - method (str, optional): The test statistic to use ('trace' or 'maxeig'). Defaults to 'trace'.
+        - signif (float, optional): Significance level for rejecting the null hypothesis. Defaults to 0.05.
+        - det_order (int, optional): The order of the deterministic trend to include in the test. 
                                     -1 for no deterministic term, 0 for constant term only, and 1 for constant with linear trend. 
                                     Defaults to -1.
 
         Returns:
-            A summary of the Johansen cointegration test results, including the selected cointegration rank based on the specified significance level.
+        - dict : A summary of the Johansen cointegration test results, including the selected cointegration rank based on the specified significance level.
 
         Raises:
-            ValueError: If `data` is not a pandas DataFrame or if other input parameters do not meet the required conditions.
+        - ValueError: If `data` is not a pandas DataFrame or if other input parameters do not meet the required conditions.
         """
         if not isinstance(data, pd.DataFrame):
             raise ValueError("Data must be a pandas DataFrame.")
@@ -657,7 +893,7 @@ class TimeseriesTests:
     
     # -- Autocorrelation -- 
     @staticmethod
-    def durbin_watson(residuals: pd.DataFrame):
+    def durbin_watson(residuals:pd.DataFrame) -> dict:
         """
         Perform the Durbin-Watson test to assess autocorrelation in the residuals of a regression model.
 
@@ -669,12 +905,12 @@ class TimeseriesTests:
         The closer the statistic is to 0, the stronger the evidence for positive serial correlation. Conversely,
         the closer to 4, the stronger the evidence for negative serial correlation.
 
-        Args:
-        residuals (pd.DataFrame): A pandas DataFrame of residuals from a regression model, where each column represents 
+        Parameters:
+        - residuals (pd.DataFrame): A pandas DataFrame of residuals from a regression model, where each column represents 
                                 a different set of residuals (e.g., from multiple models or dependent variables).
 
         Returns:
-        dict: A dictionary with column names as keys and values as another dictionary containing the Durbin-Watson statistic
+        - dict: A dictionary with column names as keys and values as another dictionary containing the Durbin-Watson statistic
             and an interpretation of autocorrelation ('Positive', 'Negative', or 'Absent').
         """
         dw_stats = {}
@@ -694,33 +930,65 @@ class TimeseriesTests:
         return dw_stats
 
     @staticmethod 
-    def display_durbin_watson_results(dw_results:dict, print_output: bool=True, to_html: bool = False):
+    def display_durbin_watson_results(dw_results:dict, print_output: bool=True, to_html:bool=False, indent:int=0) -> str:
+        """
+        Display the results of the Durbin Watson test.
+
+        This function formats DW test results into a human-readable format, either as a plain text table or an HTML table.
+        It also includes an interpretation footer to aid in understanding the results.
+
+        Parameters:
+        - dw_results (dict): A dictionary where keys are tickers and values are dictionaries containing DW test results. 
+                            Each value dictionary should have keys: 'Durbin-Watson Statistic' and 'Autocorrelation'.
+        - print_output (bool): If True, the results are printed to the console. If False, the results are returned as a string.
+        - to_html (bool): If True, the results are formatted as an HTML string. If False, the results are formatted as plain text.
+        - indent (int): The number of indentation levels to apply to the HTML output (useful for nested HTML structures).
+
+        Returns:
+        - str: The formatted DW test results as a string (plain text or HTML).
+        """
         # Convert Durbin-Watson results to DataFrame
         dw_data = []
         for ticker, values in dw_results.items():
             row = {
-                'Ticker': ticker, 
+                'Series': ticker, 
                 'Durbin-Watson Statistic': values['Durbin-Watson Statistic'], 
                 'Autocorrelation': values['Autocorrelation']
             }
             dw_data.append(row)
-
+        
+        title = "Durbin Watson Test Results"
         dw_df = pd.DataFrame(dw_data)
-        footnote = "** If the Durbin-Watson statistic is significantly different from 2 (either much less than 2 or much greater than 2), it suggests the presence of autocorrelation in the residuals.\n"
+        footer = "** If the Durbin-Watson statistic is significantly different from 2 (either much less than 2 or much greater than 2), it suggests the presence of autocorrelation in the residuals.\n"
 
         if to_html:
+            # Define the base indentation as a string of spaces
+            base_indent = "    " * indent
+            next_indent = "    " * (indent + 1)  
+
             # Convert DataFrame to HTML table and add explanation
             html_table = dw_df.to_html(index=False, border=1)
-            html_explanation = f"<p>{footnote}</p>"
-            html_output = f"<h2>Durbin Watson Results</h2>\n{html_table}\n{html_explanation}"
+            html_table_indented = "\n".join(next_indent + line for line in html_table.split("\n"))
+
+            html_title = f"{next_indent}<h2>{title}</h2>\n"
+            html_footer = f"{next_indent}<p>{footer}</p>\n"
+            html_output = f"{base_indent}<div>\n{html_title}{html_table_indented}\n{html_footer}{base_indent}</div>"
+
             return html_output
-        elif print_output:
-            print(f"Durbin Watson Results:\n{dw_df}\n{footnote}")
         else:
-            return f"Durbin Watson Results:\n{dw_df.to_string(index=False)}\n{footnote}"
+            output = (
+                f"\n{title}\n"
+                f"{'=' * len(title)}\n"
+                f"{dw_df.to_string(index=False)}\n"
+                f"{footer}"
+            )
+            if print_output:
+                print(output)
+            else:
+                return output
     
     @staticmethod
-    def ljung_box(residuals: pd.DataFrame, lags: int, significance_level: float = 0.05):
+    def ljung_box(residuals:pd.DataFrame, lags:int, significance_level:float=0.05) -> dict:
         """
         Perform the Ljung-Box test to assess the presence of autocorrelation at multiple lag levels 
         in the residuals of a regression model.
@@ -729,16 +997,16 @@ class TimeseriesTests:
         that autocorrelations of the residual time series are absent, i.e., the data are independently distributed. 
         Rejection of the null hypothesis indicates the presence of autocorrelation.
 
-        Args:
-        residuals (pd.DataFrame): A pandas DataFrame of residuals from a regression model, 
+        Parameters:
+        - residuals (pd.DataFrame): A pandas DataFrame of residuals from a regression model, 
                                 where each column represents a different set of residuals 
                                 (e.g., from multiple models or dependent variables).
-        lags (int): The number of lags to include in the test. Can also be an array of integers specifying the lags.
-        significance_level (float): The significance level for determining the presence of autocorrelation. 
+        - lags (int): The number of lags to include in the test. Can also be an array of integers specifying the lags.
+        - significance_level (float): The significance level for determining the presence of autocorrelation. 
                                     Default is 0.05.
 
         Returns:
-        dict: A dictionary with column names as keys and values as dictionaries containing the Ljung-Box 
+        - dict: A dictionary with column names as keys and values as dictionaries containing the Ljung-Box 
             test statistics, p-values, a boolean array indicating which lags are significantly autocorrelated, 
             and an overall indication of autocorrelation ('Present' or 'Absent') based on the test results.
         """
@@ -755,7 +1023,23 @@ class TimeseriesTests:
         return lb_results
 
     @staticmethod
-    def display_ljung_box_results(ljung_box_results:dict, print_output: bool=True, to_html: bool = False):
+    def display_ljung_box_results(ljung_box_results:dict, print_output:bool=True, to_html:bool=False, indent:int=0) -> str:
+        """
+        Display the results of the Ljung Box test.
+
+        This function formats ljung box test results into a human-readable format, either as a plain text table or an HTML table.
+        It also includes an interpretation footer to aid in understanding the results.
+
+        Parameters:
+        - ljung_box_results (dict): A dictionary where keys are tickers and values are dictionaries containing ljung box test results. 
+                            Each value dictionary should have keys: 'test_statistic', 'p-value', 'significance' and 'Autocorrelation'.
+        - print_output (bool): If True, the results are printed to the console. If False, the results are returned as a string.
+        - to_html (bool): If True, the results are formatted as an HTML string. If False, the results are formatted as plain text.
+        - indent (int): The number of indentation levels to apply to the HTML output (useful for nested HTML structures).
+
+        Returns:
+        - str: The formatted ljung box test results as a string (plain text or HTML).
+        """
         # Convert Ljung-Box results to DataFrame
         ljung_box_data = []
         for ticker, values in ljung_box_results.items():
@@ -763,38 +1047,55 @@ class TimeseriesTests:
             row.update({'Autocorrelation': 'Absent' if values['significance'][0] == False else 'Present'})
             ljung_box_data.append(row)
 
+        title = "Ljung-Box Test Results"
         ljung_box_df = pd.DataFrame(ljung_box_data)
-        footnote = "** IF p-value < 0.05, then REJECT the Null Hypothesis of no autocorrelation (i.e., autocorrelation is present).\n"
+        footer = "** IF p-value < 0.05, then REJECT the Null Hypothesis of no autocorrelation (i.e., autocorrelation is present).\n"
     
         if to_html:
+            # Define the base indentation as a string of spaces
+            base_indent = "    " * indent
+            next_indent = "    " * (indent + 1)  
+
             # Convert DataFrame to HTML table and add explanation
             html_table = ljung_box_df.to_html(index=False, border=1)
-            html_explanation = f"<p>{footnote}</p>"
-            html_output = f"<h2>Ljung-Box Results</h2>\n{html_table}\n{html_explanation}"
+            html_table_indented = "\n".join(next_indent + line for line in html_table.split("\n"))
+
+            html_title = f"{next_indent}<h2>{title}</h2>\n"
+            html_footer = f"{next_indent}<p>{footer}</p>\n"
+            html_output = f"{base_indent}<div>\n{html_title}{html_table_indented}\n{html_footer}{base_indent}</div>"
+        
             return html_output
-        elif print_output:
-            print(f"Ljung-Box Results:\n{ljung_box_df}\n{footnote}")
+        
         else:
-            return f"Ljung-Box Results:\n{ljung_box_df.to_string(index=False)}\n{footnote}"
+            output = (
+                f"\n{title}\n"
+                f"{'=' * len(title)}\n"
+                f"{ljung_box_df.to_string(index=False)}\n"
+                f"{footer}"
+            )
+            if print_output:
+                print(output)
+            else:
+                return output
     
     # -- Normality -- 
     @staticmethod
-    def shapiro_wilk(data: pd.Series, significance_level: float = 0.05):
+    def shapiro_wilk(data:pd.Series, significance_level:float=0.05) -> dict:
         """
         Perform the Shapiro-Wilk test to assess the normality of a dataset.
 
         The Shapiro-Wilk test evaluates the null hypothesis that the data was drawn from a normal distribution.
         
-        Args:
-            data (pd.Series or array-like): The dataset to test for normality. Should be one-dimensional.
-            significance_level (float): The significance level at which to test the null hypothesis. Default is 0.05.
+        Parameters:
+        - data (pd.Series or array-like): The dataset to test for normality. Should be one-dimensional.
+        - significance_level (float): The significance level at which to test the null hypothesis. Default is 0.05.
 
         Returns:
-            dict: A dictionary containing the test statistic ('Statistic'), the p-value ('p-value'), and an indication
+        - dict: A dictionary containing the test statistic ('Statistic'), the p-value ('p-value'), and an indication
                 of whether the data is considered 'Normal' or 'Not Normal' based on the significance level.
 
         Raises:
-            ValueError: If the input data contains fewer than 3 elements, as the test cannot be applied in such cases.
+        - ValueError: If the input data contains fewer than 3 elements, as the test cannot be applied in such cases.
         """
         if len(data) < 3:
             raise ValueError("Data must contain at least 3 elements to perform the Shapiro-Wilk test.")
@@ -811,7 +1112,23 @@ class TimeseriesTests:
         }
 
     @staticmethod
-    def display_shapiro_wilk_results(sw_results:dict, print_output:bool=True, to_html: bool = False):
+    def display_shapiro_wilk_results(sw_results:dict, print_output:bool=True, to_html:bool=False, indent:int=0) -> str:
+        """
+        Display the results of the Shapiro Wilk test.
+
+        This function formats Shapiro Wilk test results into a human-readable format, either as a plain text table or an HTML table.
+        It also includes an interpretation footer to aid in understanding the results.
+
+        Parameters:
+        - sw_results (dict): A dictionary where keys are tickers and values are dictionaries containing SW test results. 
+                            Each value dictionary should have keys: 'Shapiro-Wilk Statistic', 'p-value' and 'Normality'.
+        - print_output (bool): If True, the results are printed to the console. If False, the results are returned as a string.
+        - to_html (bool): If True, the results are formatted as an HTML string. If False, the results are formatted as plain text.
+        - indent (int): The number of indentation levels to apply to the HTML output (useful for nested HTML structures).
+
+        Returns:
+        - str: The formatted SW test results as a string (plain text or HTML).
+        """
         # Convert Shapiro-Wilk results to DataFrame
         sw_data = []
         for ticker, values in sw_results.items():
@@ -822,131 +1139,166 @@ class TimeseriesTests:
                 'Normality': values['Normality']
             }
             sw_data.append(row)
-
+        
+        title = "Shapiro Wilk Results"
         sw_df = pd.DataFrame(sw_data)
-        footnote = "** If p-value < 0.05, then REJECT the Null Hypothesis of normality (i.e., data is not normally distributed).\n"
+        footer = "** If p-value < 0.05, then REJECT the Null Hypothesis of normality (i.e., data is not normally distributed).\n"
 
         if to_html:
+            # Define the base indentation as a string of spaces
+            base_indent = "    " * indent
+            next_indent = "    " * (indent + 1)  
+
             # Convert DataFrame to HTML table and add explanation
             html_table = sw_df.to_html(index=False, border=1)
-            html_explanation = f"<p>{footnote}</p>"
-            html_output = f"<h2>Shapiro Wilk Results</h2>\n{html_table}\n{html_explanation}"
+            html_table_indented = "\n".join(next_indent + line for line in html_table.split("\n"))
+
+            html_title = f"{next_indent}<h2>{title}</h2>\n"
+            html_footer = f"{next_indent}<p>{footer}</p>\n"
+            html_output = f"{base_indent}<div>\n{html_title}{html_table_indented}\n{html_footer}{base_indent}</div>"
+
             return html_output
-        elif print_output:
-            print(f"Shapiro Wilk Results:\n{sw_df}\n{footnote}")
         else:
-            return f"Shapiro Wilk Results:\n{sw_df.to_string(index=False)}\n{footnote}"
+            output = (
+                f"\n{title}\n"
+                f"{'=' * len(title)}\n"
+                f"{sw_df.to_string(index=False)}\n"
+                f"{footer}"
+            )
+            if print_output:
+                print(output)
+            else:
+                return output
     
     @staticmethod
-    def histogram_ndc(data:pd.Series, bins='auto', title='Histogram with Normal Distribution Curve'):
+    def histogram_ndc(data:pd.Series, bins:str='auto', title:str='Histogram with Normal Distribution Curve') -> plt.Figure:
         """
         Create a histogram for the given data and overlay a normal distribution fit.
 
-        Args:
-        data (array-like): The dataset for which the histogram is to be created.
-        bins (int or sequence or str): Specification of bin sizes. Default is 'auto'.
-        title (str): Title of the plot.
+        Parameters:
+        - data (array-like): The dataset for which the histogram is to be created.
+        - bins (int or sequence or str): Specification of bin sizes. Default is 'auto'.
+        - title (str): Title of the plot.
 
         Returns:
-        matplotlib figure: A histogram with a normal distribution fit.
+        - plt.Figure: A histogram with a normal distribution fit.
+
+        Example: 
+        >>> TimeseriesTests.histogram_ndc(data, bins='auto', title='Test Histogram with NDC')
+        >>> plt.show()
+
         """
         # Convert data to a numpy array if it's not already
         data = np.asarray(data)
 
+        # Create figure and axis
+        fig, ax = plt.subplots(figsize=(10, 6))
+
         # Generate histogram
-        plt.figure(figsize=(10, 6))
-        sns.histplot(data, bins=bins, kde=False, color='blue', stat="density")
+        sns.histplot(data, bins=bins, kde=False, color='blue', stat="density", ax=ax)
 
         # Fit and overlay a normal distribution
         mean, std = norm.fit(data)
-        xmin, xmax = plt.xlim()
+        xmin, xmax = ax.get_xlim()
         x = np.linspace(xmin, xmax, 100)
         p = norm.pdf(x, mean, std)
-        plt.plot(x, p, 'k', linewidth=2)
+        ax.plot(x, p, 'k', linewidth=2)
 
         title += f'\n Fit Results: Mean = {mean:.2f},  Std. Dev = {std:.2f}'
-        plt.title(title)
-        plt.xlabel('Value')
-        plt.ylabel('Density')
+        ax.set_title(title)
+        ax.set_xlabel('Value')
+        ax.set_ylabel('Density')
 
-        # Show the plot
-        plt.show()
-
+        # Return the figure object
+        return fig
+    
     @staticmethod
-    def histogram_kde(data: pd.Series, bins='auto', title='Histogram with Kernel Density Estimate (KDE)'):
+    def histogram_kde(data:pd.Series, bins:str='auto', title:str='Histogram with Kernel Density Estimate (KDE)') -> plt.Figure:
         """
         Create a histogram for the given data to visually check for normal distribution.
 
-        Args:
-        data (array-like): The dataset for which the histogram is to be created.
-        bins (int or sequence or str): Specification of bin sizes. Default is 'auto'.
-        title (str): Title of the plot.
+        Parameters:
+        - data (array-like): The dataset for which the histogram is to be created.
+        - bins (int or sequence or str): Specification of bin sizes. Default is 'auto'.
+        - title (str): Title of the plot.
 
         Returns:
-        matplotlib figure: A histogram for assessing normality.
+        - plt.Figure: A histogram for assessing normality.
+
+        Example
+        >>> TimeseriesTests.histogram_kde(data, bins='auto', title='Test Histogram with KDE')
+        >>> plt.show()
         """
         # Convert data to a numpy array if it's not already
         data = np.asarray(data)
 
-        # Generate histogram
-        plt.figure(figsize=(10, 6))
-        sns.histplot(data, bins=bins, kde=True, color='blue')
+        # Create figure and axis
+        fig, ax = plt.subplots(figsize=(10, 6))
 
-        plt.title(title)
-        plt.xlabel('Value')
-        plt.ylabel('Frequency')
+        # Generate histogram with KDE
+        sns.histplot(data, bins=bins, kde=True, color='blue', ax=ax)
 
-        # Show the plot
-        plt.show()
+        ax.set_title(title)
+        ax.set_xlabel('Value')
+        ax.set_ylabel('Frequency')
+
+        # Return the figure object
+        return fig
     
     @staticmethod
-    def qq_plot(data:pd.Series, title='Q-Q Plot'):
+    def qq_plot(data:pd.Series, title:str='Q-Q Plot') -> plt.Figure:
         """
         Create a Q-Q plot for the given data comparing it against a normal distribution.
 
-        Args:
-        data (array-like): The dataset for which the Q-Q plot is to be created.
-        title (str): Title of the plot.
+        Parameters:
+        - data (array-like): The dataset for which the Q-Q plot is to be created.
+        - title (str): Title of the plot.
 
         Returns:
-        matplotlib figure: A Q-Q plot.
+        - plt.Figure: A Q-Q plot.
+
+        Example:
+        >>> TimeseriesTests.qq_plot(data, title='Test Q-Q Plot')
+        >>> plt.show()
         """
         # Convert data to a numpy array if it's not already
         data = np.asarray(data)
 
+        # Create figure and axis
+        fig, ax = plt.subplots(figsize=(6, 6))
+
         # Generate Q-Q plot
-        plt.figure(figsize=(6, 6))
-        stats.probplot(data, dist="norm", plot=plt)
+        stats.probplot(data, dist="norm", plot=ax)
 
         # Add title and labels
-        plt.title(title)
-        plt.xlabel('Theoretical Quantiles')
-        plt.ylabel('Sample Quantiles')
+        ax.set_title(title)
+        ax.set_xlabel('Theoretical Quantiles')
+        ax.set_ylabel('Sample Quantiles')
 
-        # Show the plot
-        plt.show()
+        # Return the figure object
+        return fig
     
     # -- Heteroscedasticity -- 
     @staticmethod
-    def breusch_pagan(x:np.array, y:np.array, significance_level:float=0.05):
+    def breusch_pagan(x:np.array, y:np.array, significance_level:float=0.05) -> dict:
         """
         Perform the Breusch-Pagan test to assess the presence of heteroscedasticity in a linear regression model.
 
         Heteroscedasticity occurs when the variance of the residuals is not constant across all levels of the independent
         variables, potentially violating an assumption of linear regression models and affecting inference.
 
-        Args:
-            x (np.array): The independent variables (explanatory variables) of the regression model. Should be 2D.
-            y (np.array): The dependent variable (response variable) of the regression model. Should be 1D.
-            significance_level (float): The significance level at which to test for heteroscedasticity. Default is 0.05.
+        Parameters:
+        - x (np.array): The independent variables (explanatory variables) of the regression model. Should be 2D.
+        - y (np.array): The dependent variable (response variable) of the regression model. Should be 1D.
+        - significance_level (float): The significance level at which to test for heteroscedasticity. Default is 0.05.
 
         Returns:
-            dict: A dictionary containing the Breusch-Pagan test statistic ('Breusch-Pagan Test Statistic'),
+        - dict: A dictionary containing the Breusch-Pagan test statistic ('Breusch-Pagan Test Statistic'),
                 the p-value ('p-value'), and an indication of heteroscedasticity ('Heteroscedasticity': 'Present'
                 if detected, otherwise 'Absent').
 
         Raises:
-            ValueError: If `x` or `y` are empty, or if their dimensions are incompatible.
+        - ValueError: If `x` or `y` are empty, or if their dimensions are incompatible.
         """
         # Add a constant to the independent variables matrix
         X = sm.add_constant(x)
@@ -979,9 +1331,25 @@ class TimeseriesTests:
         return output
 
     @staticmethod
-    def display_breusch_pagan_results(bp_results:dict, print_output:bool=True, to_html: bool = False):
+    def display_breusch_pagan_results(bp_results:dict, print_output:bool=True, to_html:bool=False, indent:int=0) -> str:
+        """
+        Display the results of the Breusch Pagen (BP) test.
+
+        This function formats BP test results into a human-readable format, either as a plain text table or an HTML table.
+        It also includes an interpretation footer to aid in understanding the results.
+
+        Parameters:
+        - bp_results (dict): A dictionary where keys are tickers and values are dictionaries containing BP test results. 
+                            Each value dictionary should have keys: 'Breusch-Pagan Test Statistic', 'p-value' and 'Heteroscedasticity'.
+        - print_output (bool): If True, the results are printed to the console. If False, the results are returned as a string.
+        - to_html (bool): If True, the results are formatted as an HTML string. If False, the results are formatted as plain text.
+        - indent (int): The number of indentation levels to apply to the HTML output (useful for nested HTML structures).
+
+        Returns:
+        - str: The formatted BP test results as a string (plain text or HTML).
+        """
         # Convert Breusch-Pagan results to DataFrame
-        bp_data = []
+        bp_data=[]
         for ticker, values in bp_results.items():
             row = {
                 'Ticker': ticker,
@@ -990,41 +1358,57 @@ class TimeseriesTests:
                 'Heteroscedasticity': values['Heteroscedasticity']
             }
             bp_data.append(row)
-
-        bp_df = pd.DataFrame(bp_data)
-        footnote = "** IF p-value < 0.05, then REJECT the Null Hypothesis of homoscedasticity (constant variance) in favor of heteroscedasticity (varying variance).\n"
+        
+        title="Breusch Pagan Results"
+        bp_df=pd.DataFrame(bp_data)
+        footer="** IF p-value < 0.05, then REJECT the Null Hypothesis of homoscedasticity (constant variance) in favor of heteroscedasticity (varying variance).\n"
         
         if to_html:
+            # Define the base indentation as a string of spaces
+            base_indent = "    " * indent
+            next_indent = "    " * (indent + 1)  
+
             # Convert DataFrame to HTML table and add explanation
             html_table = bp_df.to_html(index=False, border=1)
-            html_explanation = f"<p>{footnote}</p>"
-            html_output = f"<h2>Breusch Pagan Results</h2>\n{html_table}\n{html_explanation}"
+            html_table_indented = "\n".join(next_indent + line for line in html_table.split("\n"))
+
+            html_title = f"{next_indent}<h2>{title}</h2>\n"
+            html_footer = f"{next_indent}<p>{footer}</p>\n"
+            html_output = f"{base_indent}<div>\n{html_title}{html_table_indented}\n{html_footer}{base_indent}</div>"
+
             return html_output
-        elif print_output:
-            print(f"Breusch Pagan Results:\n{bp_df}\n{footnote}")
         else:
-            return f"Breusch Pagan Results:\n{bp_df.to_string(index=False)}\n{footnote}"
+            output = (
+                f"\n{title}\n"
+                f"{'=' * len(title)}\n"
+                f"{bp_df.to_string(index=False)}\n"
+                f"{footer}"
+            )
+            if print_output:
+                print(output)
+            else:
+                return output
         
     @staticmethod
-    def white_test(x: np.array, y: np.array, significance_level: float = 0.05):
+    def white_test(x:np.array, y:np.array, significance_level:float=0.05) -> dict:
         """
         Perform White's test for heteroscedasticity in a linear regression model.
 
         White's test assesses the null hypothesis that the variance of the residuals in the regression model is homoscedastic
         (constant across levels of the independent variables).
 
-        Args:
-            x (np.array): The independent variables of the regression model, excluding the intercept.
+        Parameters:
+        - x (np.array): The independent variables of the regression model, excluding the intercept.
                         Should be a 2D array where each column is a variable.
-            y (np.array): The dependent variable of the regression model. Should be a 1D array.
-            significance_level (float): The significance level for testing heteroscedasticity. Defaults to 0.05.
+        - y (np.array): The dependent variable of the regression model. Should be a 1D array.
+        - significance_level (float): The significance level for testing heteroscedasticity. Defaults to 0.05.
 
         Returns:
-            dict: A dictionary containing the White test statistic ('White Test Statistic'), the p-value ('p-value'), and
+        - dict: A dictionary containing the White test statistic ('White Test Statistic'), the p-value ('p-value'), and
                 an indication of heteroscedasticity ('Heteroscedasticity': 'Present' if detected, otherwise 'Absent').
 
         Raises:
-            ValueError: If `x` or `y` are empty, if their dimensions are incompatible, or if `x` is not 2-dimensional.
+        - ValueError: If `x` or `y` are empty, if their dimensions are incompatible, or if `x` is not 2-dimensional.
         """
         if x.size == 0 or y.size == 0:
             raise ValueError("Input arrays x and y must not be empty.")
@@ -1052,7 +1436,23 @@ class TimeseriesTests:
         }
 
     @staticmethod
-    def display_white_test_results(white_results:dict, print_output:bool=True, to_html: bool = False):
+    def display_white_test_results(white_results:dict, print_output:bool=True, to_html:bool=False, indent:int=0) -> str:
+        """
+        Display the results of the White test.
+
+        This function formats White test results into a human-readable format, either as a plain text table or an HTML table.
+        It also includes an interpretation footer to aid in understanding the results.
+
+        Parameters:
+        - white_results (dict): A dictionary where keys are tickers and values are dictionaries containing White test results. 
+                            Each value dictionary should have keys: 'White Test Statistic', 'p-value' and 'Heteroscedasticity'.
+        - print_output (bool): If True, the results are printed to the console. If False, the results are returned as a string.
+        - to_html (bool): If True, the results are formatted as an HTML string. If False, the results are formatted as plain text.
+        - indent (int): The number of indentation levels to apply to the HTML output (useful for nested HTML structures).
+
+        Returns:
+        - str: The formatted White test results as a string (plain text or HTML).
+        """
         # Convert White test results to DataFrame
         white_data = []
         for ticker, values in white_results.items():
@@ -1063,43 +1463,59 @@ class TimeseriesTests:
                 'Heteroscedasticity': values['Heteroscedasticity']
             }
             white_data.append(row)
-
+        
+        title = "White Test Results"
         white_df = pd.DataFrame(white_data)
-        footnote = "** IF p-value < 0.05, then REJECT the Null Hypothesis of homoscedasticity (constant variance) in favor of heteroscedasticity (varying variance).\n"
+        footer = "** IF p-value < 0.05, then REJECT the Null Hypothesis of homoscedasticity (constant variance) in favor of heteroscedasticity (varying variance).\n"
 
         if to_html:
+            # Define the base indentation as a string of spaces
+            base_indent = "    " * indent
+            next_indent = "    " * (indent + 1)  
+
             # Convert DataFrame to HTML table and add explanation
             html_table = white_df.to_html(index=False, border=1)
-            html_explanation = f"<p>{footnote}</p>"
-            html_output = f"<h2>White Test Results</h2>\n{html_table}\n{html_explanation}"
+            html_table_indented = "\n".join(next_indent + line for line in html_table.split("\n"))
+
+            html_title = f"{next_indent}<h2>{title}</h2>\n"
+            html_footer = f"{next_indent}<p>{footer}</p>\n"
+            html_output = f"{base_indent}<div>\n{html_title}{html_table_indented}\n{html_footer}{base_indent}</div>"
+
             return html_output
-        elif print_output:
-            print(f"White Test Results:\n{white_df}\n{footnote}")
         else:
-            return f"White Test Results:\n{white_df.to_string(index=False)}\n{footnote}"
+            output = (
+                f"\n{title}\n"
+                f"{'=' * len(title)}\n"
+                f"{white_df.to_string(index=False)}\n"
+                f"{footer}"
+            )
+            if print_output:
+                print(output)
+            else:
+                return output
 
     # -- Granger Causality -- 
     @staticmethod
-    def granger_causality(data: pd.DataFrame, max_lag: int, significance_level: float = 0.05):
+    def granger_causality(data: pd.DataFrame, max_lag:int, significance_level:float=0.05) -> dict:
         """
         Perform Granger Causality tests to determine if one time series can forecast another.
 
         This method tests for each pair of variables in the provided DataFrame to see if the past values
         of one variable help to predict the future values of another, indicating a Granger causal relationship.
 
-        Args:
-            data (pd.DataFrame): A pandas DataFrame where each column represents a time series variable.
-            max_lag (int): The maximum number of lags to test for Granger causality.
-            significance_level (float): The significance level for determining statistical significance.
+        Parameters:
+        - data (pd.DataFrame): A pandas DataFrame where each column represents a time series variable.
+        - max_lag (int): The maximum number of lags to test for Granger causality.
+        - significance_level (float): The significance level for determining statistical significance.
 
         Returns:
-            dict: A dictionary with keys as tuples (cause_variable, effect_variable) and values as dictionaries containing
+        - dict: A dictionary with keys as tuples (cause_variable, effect_variable) and values as dictionaries containing
                 the minimum p-value across all tested lags, a boolean indicating Granger causality based on the
                 significance level, and the used significance level.
 
         Raises:
-            ValueError: If `data` contains fewer than two columns, as Granger causality requires pairwise comparison.
-            ValueError: If `max_lag` is less than 1, as at least one lag is necessary for testing causality.
+        - ValueError: If `data` contains fewer than two columns, as Granger causality requires pairwise comparison.
+        - ValueError: If `max_lag` is less than 1, as at least one lag is necessary for testing causality.
         """
         if data.shape[1] < 2:
             raise ValueError("DataFrame must contain at least two time series for pairwise Granger causality tests.")
@@ -1124,37 +1540,120 @@ class TimeseriesTests:
         return granger_results
 
     @staticmethod
-    def display_granger_results(granger_results:dict, print_output:bool=True, to_html: bool = False):
+    def display_granger_results(granger_results:dict, print_output:bool=True, to_html:bool=False, indent:int=0) -> str:
+        """
+        Display the results of the Granger Causality (GC) test.
+
+        This function formats GC test results into a human-readable format, either as a plain text table or an HTML table.
+        It also includes an interpretation footer to aid in understanding the results.
+
+        Parameters:
+        - granger_results (dict): A dictionary where keys are tickers and values are dictionaries containing GC test results. 
+                            Each value dictionary should have keys: 'Min P-Value', 'Granger Causality' and 'Significance Level'.
+        - print_output (bool): If True, the results are printed to the console. If False, the results are returned as a string.
+        - to_html (bool): If True, the results are formatted as an HTML string. If False, the results are formatted as plain text.
+        - indent (int): The number of indentation levels to apply to the HTML output (useful for nested HTML structures).
+
+        Returns:
+        - str: The formatted GC test results as a string (plain text or HTML).
+        """
         # Creating DataFrame from the results
         granger_df = pd.DataFrame([
             {
                 'Variable Pair': f'{pair[0]} -> {pair[1]}',
-                'Min p-value': details['min_p_value'],
+                'Min P-Value': details['Min P-Value'],
                 'Granger Causality': 'Yes' if details['Granger Causality'] else 'No',
-                'Significance Level': details['significance']
+                'Significance Level': details['Significance Level']
             }
             for pair, details in granger_results.items()
         ])
 
-        # Display the DataFrame
-        output = f"Granger Causality Results: \n{granger_df}"
-        footnote = "** IF p-value < significance level then REJECT the NUll and conclude that the lagged values of one time series can provide useful information for predicting the other time series. \n"
+        title="Granger Causality Results"
+        footer = "** IF p-value < significance level then REJECT the NUll and conclude that the lagged values of one time series can provide useful information for predicting the other time series. \n"
 
         if to_html:
+            # Define the base indentation as a string of spaces
+            base_indent = "    " * indent
+            next_indent = "    " * (indent + 1)  
+
             # Convert DataFrame to HTML table and add explanation
             html_table = granger_df.to_html(index=False, border=1)
-            html_explanation = f"<p>{footnote}</p>"
-            html_output = f"<h2>Granger Causality Results</h2>\n{html_table}\n{html_explanation}"
-            return html_output
-        elif print_output:
-            print(f"Granger Causality Results:\n{granger_df}\n{footnote}")
-        else:
-            return f"Granger Causality Results:\n{granger_df.to_string(index=False)}\n{footnote}"
-    
+            html_table_indented = "\n".join(next_indent + line for line in html_table.split("\n"))
 
+            html_title = f"{next_indent}<h2>{title}</h2>\n"
+            html_footer = f"{next_indent}<p>{footer}</p>\n"
+            html_output = f"{base_indent}<div>\n{html_title}{html_table_indented}\n{html_footer}{base_indent}</div>"
+
+            return html_output
+        else:
+            output = (
+                f"\n{title}\n"
+                f"{'=' * len(title)}\n"
+                f"{granger_df.to_string(index=False)}\n"
+                f"{footer}"
+            )
+            if print_output:
+                print(output)
+            else:
+                return output
+    
     # -- Historcal Nature --
     @staticmethod
-    def rescaled_range_analysis(time_series: np.array, min_chunk_size=8):
+    def half_life(Y:pd.Series, include_constant:bool=True) -> Tuple[float, pd.Series]:
+        """
+        Calculate the expected half-life of a mean-reverting time series using an AR(1) model.
+
+        The half-life is the period over which the deviation from the mean is expected to be halved,
+        based on the autoregressive coefficient from the AR(1) model.
+
+        Parameters:
+        - Y (pd.Series): The time series for which the half-life is to be calculated.
+        - include_constant (bool, optional): Whether to include a constant term in the regression model. Defaults to True.
+
+        Returns:
+        - float: The half-life of mean reversion, representing how quickly the series reverts to its mean.
+        - pd.Series: Residuals from the regression model, indicating the error term for each observation.
+
+        Raises:
+        - ValueError: If the calculated autoregressive coefficient (phi) is outside the expected range (0, 1),
+                    indicating that the time series may not exhibit mean-reverting behavior.
+        """
+        # Create the lagged series
+        Y_lagged = Y.shift(1).dropna()
+        Y = Y.dropna()
+
+        # Align series by dropping the first item of Y
+        Y = Y[1:]
+
+        # Ensure alignment
+        if len(Y) != len(Y_lagged):
+            raise ValueError("The lengths of Y and Y_lagged must match after dropping NA values.")
+
+        # Prepare the lagged series with or without a constant
+        if include_constant:
+            Y_lagged = sm.add_constant(Y_lagged)
+
+        # Fit the AR(1) model
+        model = sm.OLS(Y, Y_lagged).fit()
+
+        # Extract the coefficient 'phi'
+        phi = model.params[0]  # Slope coefficient
+
+        # Ensure phi is in the expected range for mean reversion
+        if not (0 < phi < 1):
+            raise ValueError("Phi is outside the expected range (0, 1). The time series may not be mean-reverting.")
+
+        # Calculate the half-life of mean reversion
+        half_life = -np.log(2) / np.log(phi)
+
+        # Extract the residuals
+        residuals = model.resid
+
+        return half_life, residuals
+    
+    # --- TODO: Hurst Exponent --
+    @staticmethod
+    def rescaled_range_analysis(time_series:np.array, min_chunk_size:int=8) -> np.ndarray:
         """
         Perform rescaled range analysis on a given time series.
 
@@ -1219,7 +1718,6 @@ class TimeseriesTests:
         
         return results.params[1]  # Hurst exponent
     
-
     # @staticmethod
     # def hurst_exponent(series: np.array):
     #     # """
@@ -1336,51 +1834,6 @@ class TimeseriesTests:
     #     # The slope of the linear fit is the estimate of the Hurst exponent
     #     return slope
     
-    @staticmethod
-    def half_life(Y: pd.Series, Y_lagged: pd.Series, include_constant: bool = True):
-        """
-        Calculate the expected half-life of a mean-reverting time series using an AR(1) model.
-
-        The half-life is the period over which the deviation from the mean is expected to be halved,
-        based on the autoregressive coefficient from the AR(1) model.
-
-        Parameters:
-        Y (pd.Series): The dependent variable representing the current values of the time series.
-        Y_lagged (pd.Series): The independent variable representing the lagged values of the time series.
-        include_constant (bool, optional): Whether to include a constant term in the regression model. Defaults to True.
-
-        Returns:
-        float: The half-life of mean reversion, representing how quickly the series reverts to its mean.
-        pd.Series: Residuals from the regression model, indicating the error term for each observation.
-
-        Raises:
-        ValueError: If the calculated autoregressive coefficient (phi) is outside the expected range (0, 1),
-                    indicating that the time series may not exhibit mean-reverting behavior.
-        """
-        # Check if the series are properly aligned
-        if len(Y) != len(Y_lagged):
-            raise ValueError("The length of Y and Y_lagged must be the same.")
-
-        if include_constant:
-            Y_lagged = sm.add_constant(Y_lagged)  # Add a constant term to the regression model
-
-        model = sm.OLS(Y, Y_lagged).fit()  # Fit the AR(1) model
-        
-        if model.params.index[0] == 'const':
-            phi = model.params.iloc[1]  # If there's a constant, the slope coefficient is the second parameter
-        else:
-            phi = model.params.iloc[0]  # If there's no constant, the slope coefficient is the first parameter
-
-        # Ensure phi is in the expected range for mean reversion
-        if not (0 < phi < 1):
-            raise ValueError("Phi is outside the expected range (0, 1). The time series may not be mean-reverting.")
-
-        half_life = -np.log(2) / np.log(phi)  # Calculate the half-life of mean reversion
-        residuals = model.resid  # Extract the residuals from the model
-
-        return half_life, residuals
-    
-        
     # -- VECM Model --
     # !!! Untested!!! 
     @staticmethod
@@ -1392,20 +1845,20 @@ class TimeseriesTests:
 
     # -- Forescast Metrics -- 
     @staticmethod
-    def evaluate_forecast(actual: pd.DataFrame, forecast: pd.DataFrame, print_output: bool = True) -> dict:
+    def evaluate_forecast(actual:pd.DataFrame, forecast:pd.DataFrame, print_output:bool=True) -> dict:
         """
         Evaluate the accuracy of forecasted values against actual observations using various metrics.
 
-        Args:
-            actual (pd.DataFrame or pd.Series): The actual observed values.
-            forecast (pd.DataFrame or pd.Series): The forecasted values.
-            print_output (bool, optional): Flag indicating whether to print the output. Defaults to True.
+        Parameters:
+        - actual (pd.DataFrame or pd.Series): The actual observed values.
+        - forecast (pd.DataFrame or pd.Series): The forecasted values.
+        - print_output (bool, optional): Flag indicating whether to print the output. Defaults to True.
 
         Returns:
-            dict: A dictionary of forecast accuracy metrics for each series, including MAE, MSE, RMSE, and MAPE.
+        - dict: A dictionary of forecast accuracy metrics for each series, including MAE, MSE, RMSE, and MAPE.
 
         Raises:
-            ValueError: If `actual` or `forecast` are not pandas Series or DataFrame.
+        - ValueError: If `actual` or `forecast` are not pandas Series or DataFrame.
                         If `actual` and `forecast` have different lengths or indexes.
         """
         if not isinstance(actual, (pd.Series, pd.DataFrame)) or not isinstance(forecast, (pd.Series, pd.DataFrame)):
@@ -1435,201 +1888,246 @@ class TimeseriesTests:
 
     # -- Plots --
     @staticmethod
-    def line_plot(x:pd.Series,y:pd.Series, title:str="Time Series Plot", x_label:str="Time",y_label:str="Value"):
-        plt.figure(figsize=(10, 6))
-        plt.plot(x, y, marker='o')
-        plt.title(title)
-        plt.xlabel(x_label)
-        plt.ylabel(y_label)
-        plt.grid(True)
-        plt.show()
+    def line_plot(x: pd.Series, y:pd.Series, title:str="Time Series Plot", x_label:str="Time", y_label:str="Value") -> plt.Figure:
+        """
+        Create a line plot for the given x and y data.
+
+        Parameters:
+        - x (pd.Series): The x-axis data.
+        - y (pd.Series): The y-axis data.
+        - title (str): Title of the plot.
+        - x_label (str): Label for the x-axis.
+        - y_label (str): Label for the y-axis.
+
+        Returns:
+        - plt.Figure: The line plot.
+
+        Example:
+        >>> TimeseriesTests.line_plot(x, y, title='Test Line Plot', x_label='Index', y_label='Random Value')
+        >>> plt.show()
+        """
+        # Create figure and axis
+        fig, ax = plt.subplots(figsize=(10, 6))
+
+        # Plot the line
+        ax.plot(x, y, marker='o')
+
+        # Add title and labels
+        ax.set_title(title)
+        ax.set_xlabel(x_label)
+        ax.set_ylabel(y_label)
+
+        # Add grid
+        ax.grid(True)
+
+        # Return the figure object
+        return fig
 
     @staticmethod
-    def plot_forecast(actual:pd.DataFrame, forecast:pd.DataFrame):
-        # Ensure actual_values and forecasted_values have the same columns
-        if set(actual.columns) != set(forecast.columns):
-            raise ValueError("Columns of actual_values and forecasted_values do not match")
+    def double_line_plot(data1:pd.DataFrame, data2:pd.DataFrame, label1:str="Series 1", label2:str="Series 2", title:str="Double Line Plot") -> plt.Figure:
+        """
+        Plot two data series for each column in the DataFrame.
+
+        Parameters:
+        - data1 (pd.DataFrame): First DataFrame of values.
+        - data2 (pd.DataFrame): Second DataFrame of values.
+        - label1 (str): Label for the first series.
+        - label2 (str): Label for the second series.
+        - title (str): Title of the plot.
+
+        Returns:
+        - plt.Figure: The figure object containing the plots.
+
+        Example:
+        >>> TimeseriesTests.double_line_plot(data1, data2, label1='Data 1', label2='Data 2', title='Test Double Line Plot')
+        >>> plt.show()
+        """
+        # Ensure data1 and data2 columns match
+        if set(data1.columns) != set(data2.columns):
+            raise ValueError("Columns of data1 and data2 do not match")
 
         # Iterate over each column to create separate plots
-        for column in actual.columns:
+        for column in data1.columns:
             fig, ax = plt.subplots(figsize=(12, 6))
 
-            # Plot the actual values
-            ax.plot(actual[column], label=f"{column} Actual", color='blue')
+            # Plot the first series
+            ax.plot(data1[column], label=f"{label1} {column}", color='blue')
 
-            # Plot the forecasted values
-            if column in forecast.columns:
-                ax.plot(forecast[column], label=f"{column} Forecast", color='red')
+            # Plot the second series
+            if column in data2.columns:
+                ax.plot(data2[column], label=f"{label2} {column}", color='red')
 
             # Add labels, legend, and grid
             ax.grid(True)
             ax.set_xlabel('Time')
             ax.set_ylabel('Value')
-            ax.set_title(f'Actual vs. Forecast for {column}')
+            ax.set_title(f'{title} for {column}')
             ax.legend()
 
             # Customize x-axis labels for readability
             plt.xticks(rotation=45)
 
-            # Show the plot
-            plt.show()  
+            # Return the figure object
+            return fig
+        
     
-    @staticmethod
-    def plot_price_and_spread(price_data:pd.DataFrame, spread:pd.Series, show_plot=True):
-        """
-        Plot multiple ticker data on the left y-axis and spread with mean and standard deviations on the right y-axis.
+    # # --- UNTESTED --
+    # @staticmethod
+    # def plot_price_and_spread(price_data:pd.DataFrame, spread:pd.Series, show_plot=True):
+    #     """
+    #     Plot multiple ticker data on the left y-axis and spread with mean and standard deviations on the right y-axis.
         
-        Parameters:
-            price_data (pd.DataFrame): DataFrame containing the data with timestamps as index and multiple ticker columns.
-            spread (pd.Series): Series containing the spread data.
-        """
-        # Extract data from the DataFrame
-        timestamps = price_data.index
+    #     Parameters:
+    #         price_data (pd.DataFrame): DataFrame containing the data with timestamps as index and multiple ticker columns.
+    #         spread (pd.Series): Series containing the spread data.
+    #     """
+    #     # Extract data from the DataFrame
+    #     timestamps = price_data.index
 
-        # Create a figure and primary axis for price data (left y-axis)
-        fig, ax1 = plt.subplots(figsize=(12, 6))
+    #     # Create a figure and primary axis for price data (left y-axis)
+    #     fig, ax1 = plt.subplots(figsize=(12, 6))
 
-        # Plot each ticker on the left y-axis
-        colors = ['blue', 'green', 'red', 'cyan', 'magenta', 'yellow', 'black', 'orange']  # Extend this list as needed
-        for i, ticker in enumerate(price_data.columns):
-            color = colors[i % len(colors)]  # Cycle through colors
-            ax1.plot(timestamps, price_data[ticker], label=ticker, color=color, linewidth=2)
+    #     # Plot each ticker on the left y-axis
+    #     colors = ['blue', 'green', 'red', 'cyan', 'magenta', 'yellow', 'black', 'orange']  # Extend this list as needed
+    #     for i, ticker in enumerate(price_data.columns):
+    #         color = colors[i % len(colors)]  # Cycle through colors
+    #         ax1.plot(timestamps, price_data[ticker], label=ticker, color=color, linewidth=2)
 
-        ax1.set_yscale('linear')
-        ax1.set_ylabel('Price')
-        ax1.legend(loc='upper left')
+    #     ax1.set_yscale('linear')
+    #     ax1.set_ylabel('Price')
+    #     ax1.legend(loc='upper left')
 
-        # Calculate mean and standard deviations for spread
-        spread_mean = spread.rolling(window=20).mean()  # Adjust the window size as needed
-        spread_std_1 = spread.rolling(window=20).std()  # 1 standard deviation
-        spread_std_2 = 2 * spread.rolling(window=20).std()  # 2 standard deviations
+    #     # Calculate mean and standard deviations for spread
+    #     spread_mean = spread.rolling(window=20).mean()  # Adjust the window size as needed
+    #     spread_std_1 = spread.rolling(window=20).std()  # 1 standard deviation
+    #     spread_std_2 = 2 * spread.rolling(window=20).std()  # 2 standard deviations
 
-        # Create a secondary axis for the spread with mean and standard deviations (right y-axis)
-        ax2 = ax1.twinx()
+    #     # Create a secondary axis for the spread with mean and standard deviations (right y-axis)
+    #     ax2 = ax1.twinx()
 
-        # Plot Spread on the right y-axis
-        ax2.plot(timestamps, spread, label='Spread', color='purple', linewidth=2)
-        ax2.plot(timestamps, spread_mean, label='Mean', color='orange', linestyle='--')
-        ax2.fill_between(timestamps, spread_mean - spread_std_1, spread_mean + spread_std_1, color='gray', alpha=0.2, label='1 Std Dev')
-        ax2.fill_between(timestamps, spread_mean - spread_std_2, spread_mean + spread_std_2, color='gray', alpha=0.4, label='2 Std Dev')
-        ax2.set_yscale('linear')
-        ax2.set_ylabel('Spread and Statistics')
-        ax2.legend(loc='upper right')
+    #     # Plot Spread on the right y-axis
+    #     ax2.plot(timestamps, spread, label='Spread', color='purple', linewidth=2)
+    #     ax2.plot(timestamps, spread_mean, label='Mean', color='orange', linestyle='--')
+    #     ax2.fill_between(timestamps, spread_mean - spread_std_1, spread_mean + spread_std_1, color='gray', alpha=0.2, label='1 Std Dev')
+    #     ax2.fill_between(timestamps, spread_mean - spread_std_2, spread_mean + spread_std_2, color='gray', alpha=0.4, label='2 Std Dev')
+    #     ax2.set_yscale('linear')
+    #     ax2.set_ylabel('Spread and Statistics')
+    #     ax2.legend(loc='upper right')
 
-        # Add grid lines
-        ax1.grid(True)
+    #     # Add grid lines
+    #     ax1.grid(True)
 
-        # Format x-axis labels for better readability
-        plt.xticks(rotation=45)
-        plt.xlabel('Timestamp')
+    #     # Format x-axis labels for better readability
+    #     plt.xticks(rotation=45)
+    #     plt.xlabel('Timestamp')
 
-        # Title
-        plt.title('Price Data, Spread, and Statistics Over Time')
+    #     # Title
+    #     plt.title('Price Data, Spread, and Statistics Over Time')
 
-        # Show the plot
-        plt.tight_layout()
+    #     # Show the plot
+    #     plt.tight_layout()
         
-        if show_plot:
-            plt.show()
+    #     if show_plot:
+    #         plt.show()
 
-    @staticmethod
-    def plot_zscore(zscore_series:pd.Series, window=20):
-        """
-        Plot Z-score along with its mean and standard deviations (1 and 2) on the right y-axis.
+    # @staticmethod
+    # def plot_zscore(zscore_series:pd.Series, window=20):
+    #     """
+    #     Plot Z-score along with its mean and standard deviations (1 and 2) on the right y-axis.
         
-        Parameters:
-            zscore_series (pd.Series): Series containing the Z-score data.
-            window (int): Rolling window size for calculating mean and standard deviations (default is 20).
-        """
-        # Create a figure and primary axis for Z-score (left y-axis)
-        fig, ax1 = plt.subplots(figsize=(12, 6))
+    #     Parameters:
+    #         zscore_series (pd.Series): Series containing the Z-score data.
+    #         window (int): Rolling window size for calculating mean and standard deviations (default is 20).
+    #     """
+    #     # Create a figure and primary axis for Z-score (left y-axis)
+    #     fig, ax1 = plt.subplots(figsize=(12, 6))
 
-        # Plot Z-score on the left y-axis
-        ax1.plot(zscore_series.index, zscore_series, label='Z-Score', color='blue', linewidth=2)
+    #     # Plot Z-score on the left y-axis
+    #     ax1.plot(zscore_series.index, zscore_series, label='Z-Score', color='blue', linewidth=2)
 
-        ax1.set_yscale('linear')
-        ax1.set_ylabel('Z-Score')
-        ax1.legend(loc='upper left')
+    #     ax1.set_yscale('linear')
+    #     ax1.set_ylabel('Z-Score')
+    #     ax1.legend(loc='upper left')
 
-        # Calculate mean and standard deviations for Z-score
-        zscore_mean = zscore_series.rolling(window=window).mean()
-        zscore_std_1 = zscore_series.rolling(window=window).std()  # 1 standard deviation
-        zscore_std_2 = 2 * zscore_series.rolling(window=window).std()  # 2 standard deviations
+    #     # Calculate mean and standard deviations for Z-score
+    #     zscore_mean = zscore_series.rolling(window=window).mean()
+    #     zscore_std_1 = zscore_series.rolling(window=window).std()  # 1 standard deviation
+    #     zscore_std_2 = 2 * zscore_series.rolling(window=window).std()  # 2 standard deviations
 
-        # Create a secondary axis for mean and standard deviations (right y-axis)
-        ax2 = ax1.twinx()
+    #     # Create a secondary axis for mean and standard deviations (right y-axis)
+    #     ax2 = ax1.twinx()
 
-        # Plot mean and standard deviations on the right y-axis
-        ax2.plot(zscore_series.index, zscore_mean, label='Mean', color='orange', linestyle='--')
-        ax2.fill_between(zscore_series.index, zscore_mean - zscore_std_1, zscore_mean + zscore_std_1, color='gray', alpha=0.2, label='1 Std Dev')
-        ax2.fill_between(zscore_series.index, zscore_mean - zscore_std_2, zscore_mean + zscore_std_2, color='gray', alpha=0.4, label='2 Std Dev')
-        ax2.set_yscale('linear')
-        ax2.set_ylabel('Statistics')
-        ax2.legend(loc='upper right')
+    #     # Plot mean and standard deviations on the right y-axis
+    #     ax2.plot(zscore_series.index, zscore_mean, label='Mean', color='orange', linestyle='--')
+    #     ax2.fill_between(zscore_series.index, zscore_mean - zscore_std_1, zscore_mean + zscore_std_1, color='gray', alpha=0.2, label='1 Std Dev')
+    #     ax2.fill_between(zscore_series.index, zscore_mean - zscore_std_2, zscore_mean + zscore_std_2, color='gray', alpha=0.4, label='2 Std Dev')
+    #     ax2.set_yscale('linear')
+    #     ax2.set_ylabel('Statistics')
+    #     ax2.legend(loc='upper right')
 
-        # Add grid lines
-        ax1.grid(True)
+    #     # Add grid lines
+    #     ax1.grid(True)
 
-        # Format x-axis labels for better readability
-        plt.xticks(rotation=45)
-        plt.xlabel('Timestamp')
+    #     # Format x-axis labels for better readability
+    #     plt.xticks(rotation=45)
+    #     plt.xlabel('Timestamp')
 
-        # Title
-        plt.title('Z-Score and Statistics Over Time')
+    #     # Title
+    #     plt.title('Z-Score and Statistics Over Time')
 
-        # Show the plot
-        plt.tight_layout()
-        plt.show()
+    #     # Show the plot
+    #     plt.tight_layout()
+    #     plt.show()
 
-    # Function to fit models and compare
-    @staticmethod
-    def fit_and_compare(self, time, values):
-        # Fit linear model
-        params_linear, _ = curve_fit(self._linear_model, time, values)
+    # # Function to fit models and compare
+    # @staticmethod
+    # def fit_and_compare(self, time, values):
+    #     # Fit linear model
+    #     params_linear, _ = curve_fit(self._linear_model, time, values)
 
-        # Fit log-transformed exponential model
-        log_values = np.log(values)
-        params_log_exp, _ = curve_fit(self._log_exponential_model, time, log_values)
+    #     # Fit log-transformed exponential model
+    #     log_values = np.log(values)
+    #     params_log_exp, _ = curve_fit(self._log_exponential_model, time, log_values)
 
-        # Compute residuals
-        residuals_linear = values - self._linear_model(time, *params_linear)
-        residuals_log_exp = log_values - self._log_exponential_model(time, *params_log_exp)
+    #     # Compute residuals
+    #     residuals_linear = values - self._linear_model(time, *params_linear)
+    #     residuals_log_exp = log_values - self._log_exponential_model(time, *params_log_exp)
 
-        # Plotting
-        plt.figure(figsize=(12, 6))
+    #     # Plotting
+    #     plt.figure(figsize=(12, 6))
 
-        # Linear Fit
-        plt.subplot(1, 2, 1)
-        plt.plot(time, values, 'o', label="Data")
-        plt.plot(time, self._linear_model(time, *params_linear), label="Linear Fit")
-        plt.title("Linear Fit")
-        plt.legend()
+    #     # Linear Fit
+    #     plt.subplot(1, 2, 1)
+    #     plt.plot(time, values, 'o', label="Data")
+    #     plt.plot(time, self._linear_model(time, *params_linear), label="Linear Fit")
+    #     plt.title("Linear Fit")
+    #     plt.legend()
 
-        # Log-Transformed Exponential Fit
-        plt.subplot(1, 2, 2)
-        plt.plot(time, values, 'o', label="Data")
-        plt.plot(time, np.exp(self._log_exponential_model(time, *params_log_exp)), label="Exponential Fit")
-        plt.title("Exponential Fit")
-        plt.legend()
+    #     # Log-Transformed Exponential Fit
+    #     plt.subplot(1, 2, 2)
+    #     plt.plot(time, values, 'o', label="Data")
+    #     plt.plot(time, np.exp(self._log_exponential_model(time, *params_log_exp)), label="Exponential Fit")
+    #     plt.title("Exponential Fit")
+    #     plt.legend()
 
-        plt.show()
+    #     plt.show()
 
-        return residuals_linear, np.exp(residuals_log_exp) - values
+    #     return residuals_linear, np.exp(residuals_log_exp) - values
    
-    # Linear model -- Untested
-    @staticmethod
-    def _linear_model(self, t, a, b):
-        return a + b * t
+    # # Linear model -- Untested
+    # @staticmethod
+    # def _linear_model(self, t, a, b):
+    #     return a + b * t
 
-    # Exponential model
-    @staticmethod
-    def _exponential_model(self, t, a, b):
-        return a * np.exp(b * t)
+    # # Exponential model
+    # @staticmethod
+    # def _exponential_model(self, t, a, b):
+    #     return a * np.exp(b * t)
 
-    # Log-transformed exponential model
-    @staticmethod
-    def _log_exponential_model(self, t, log_a, b):
-        return log_a + b * t
+    # # Log-transformed exponential model
+    # @staticmethod
+    # def _log_exponential_model(self, t, log_a, b):
+    #     return log_a + b * t
    
     # @staticmethod
     # def plot_price_and_spread_w_signals(price_data: pd.DataFrame, spread: pd.Series, signals: list, split_date=None, show_plot=True):
