@@ -6,12 +6,13 @@ from decimal import Decimal
 from dateutil import parser
 from datetime import datetime
 
-from midas.engine.order_book import OrderBook
-from midas.engine.events import MarketEvent, EODEvent
-
 from midas.client import DatabaseClient
 from midas.shared.utils import unix_to_iso
+from midas.engine.order_book import OrderBook
+from midas.engine.events import MarketEvent, EODEvent
 from midas.shared.market_data import BarData, QuoteData
+
+from quantAnalytics.dataprocessor import DataProcessor
 
 class DataClient(DatabaseClient):
     """
@@ -25,7 +26,7 @@ class DataClient(DatabaseClient):
     - data_client (DatabaseClient): A client class based on a Django Rest-Framework API for interacting with the database.
     - order_book (OrderBook): The order book where market data is posted for trading operations.
     """
-    def __init__(self, event_queue: Queue, data_client: DatabaseClient, order_book: OrderBook):
+    def __init__(self, event_queue:Queue, data_client:DatabaseClient, order_book:OrderBook):
         """
         Initializes the DataClient with the necessary components for market data management.
 
@@ -45,7 +46,7 @@ class DataClient(DatabaseClient):
         self.current_date_index = -1
         self.current_day = None
 
-    def get_data(self, tickers:List[str], start_date: str, end_date: str, missing_values_strategy: str = 'fill_forward') -> bool:
+    def get_data(self, tickers:List[str], start_date:str, end_date:str, missing_values_strategy:str='fill_forward') -> bool:
         """
         Retrieves historical market data from the database and initializes the data processing.
 
@@ -77,28 +78,16 @@ class DataClient(DatabaseClient):
         # Process the data
         data = pd.DataFrame(response)
         data.drop(columns=['id'], inplace=True)
-        self._check_duplicates(data)
-        data = self._handle_null_values(data, missing_values_strategy)
+        DataProcessor.check_duplicates(data)
+        data = DataProcessor.handle_null(data, missing_values_strategy)
         self.data = self._process_bardata(data)
                 
         # Storing unique dates if needed
         self.unique_timestamps = self.data['timestamp'].unique().tolist()
         
         return True
-    
-    def _check_duplicates(self, data: pd.DataFrame) -> None:
-        """
-        Checks for duplicate entries in the data based on timestamps and symbols.
 
-        Parameters:
-        - data (pd.DataFrame): The data to check for duplicates.
-        """
-        duplicates = data.duplicated(subset=['timestamp', 'symbol'], keep=False)
-        if duplicates.any():
-            print("Duplicates found:")
-            print(data[duplicates])
-
-    def _validate_timestamp_format(self, timestamp: str) -> None:
+    def _validate_timestamp_format(self, timestamp:str) -> None:
         """
         Validates the format of the timestamp string for querying data.
 
@@ -114,32 +103,7 @@ class DataClient(DatabaseClient):
         except TypeError:
             raise TypeError("'timestamp' must be of type str.")
 
-    def _handle_null_values(self, data: pd.DataFrame, missing_values_strategy: str = "fill_forward") -> pd.DataFrame:
-        """
-        Handles missing values in the data according to the specified strategy.
-
-        Parameters:
-        - data (pd.DataFrame): The data with potential missing values.
-        - missing_values_strategy (str): The strategy to handle missing values, either 'drop' or 'fill_forward'.
-        """
-       
-        if not isinstance(missing_values_strategy, str) or missing_values_strategy not in ['fill_forward', 'drop']:
-            raise ValueError("'missing_value_strategy' must either 'fill_forward' or 'drop' of type str.")
-       
-        data = data.pivot(index='timestamp', columns='symbol')
-
-        # Handle missing values based on the specified strategy
-        if missing_values_strategy == 'drop':
-            data.dropna(inplace=True)
-        elif missing_values_strategy == 'fill_forward':
-            if data.iloc[0].isnull().any(): # Check if the first row contains NaN values
-                raise ValueError("Cannot forward fill as the first row contains NaN values. Consider using another imputation method or manually handling these cases.")
-            
-            data.ffill(inplace=True)
-
-        return data.stack(level='symbol', future_stack=True).reset_index()
-
-    def _process_bardata(self, data: pd.DataFrame) -> pd.DataFrame:
+    def _process_bardata(self, data:pd.DataFrame) -> pd.DataFrame:
         """
         Processes raw bar data into a format suitable for the trading simulation.
 
@@ -158,6 +122,7 @@ class DataClient(DatabaseClient):
         # Sorting the DataFrame by the 'timestamp' column in ascending order
         return  data.sort_values(by='timestamp', ascending=True).reset_index(drop=True)
 
+    # --  SIMULATE DATA STREAM -- 
     def data_stream(self) -> bool:
         """
         Simulates a market data stream by iterating through unique timestamps and posting market data to the order book.
