@@ -2,6 +2,7 @@
 import logging
 from decouple import config
 import pandas as pd
+import numpy as np
 
 from .logic import Cointegrationzscore
 from midas.client import DatabaseClient
@@ -10,8 +11,11 @@ from midas.research.data import DataProcessing
 from midas.research.report import HTMLReportGenerator
 from midas.research.backtester import VectorizedBacktest
 
-from midas.shared.analysis import RegressionAnalysis
-from midas.shared.analysis.statistics import PerformanceStatistics
+from quantAnalytics.regression import RegressionAnalysis
+from quantAnalytics.risk import RiskAnalysis
+from quantAnalytics.returns import Returns
+from quantAnalytics.performance import PerformanceStatistics
+from quantAnalytics.visualization import Visualizations
 
 logging.basicConfig(level=logging.INFO)
 
@@ -61,15 +65,15 @@ def main():
     tab = "    "
     report.add_html("<section class='performance'>")
     report.add_html(f"{tab}<h2>Performance Metrics</h2>")
-    report.add_image(PerformanceStatistics.plot_curve, indent = 1, y = backtest_results['equity_value'], title = "Equity Curve", x_label="Time", y_label="Equity Value", show_plot=False)
-    report.add_image(PerformanceStatistics.plot_curve, indent = 1, y = backtest_results['cumulative_return'], title = "Cumulative Return", x_label="Time", y_label = "Return Value", show_plot=False)
-    report.add_image(PerformanceStatistics.plot_curve, indent = 1, y = backtest_results['drawdown'].tolist(), title = "Drawdown Curve", x_label="Time", y_label="Drawdown Value", show_plot=False)
+    report.add_image(Visualizations.line_plot, indent = 1, y = backtest_results['equity_value'], x = backtest_results.index, title = "Equity Curve", x_label="Time", y_label="Equity Value")
+    report.add_image(Visualizations.line_plot, indent = 1, y = backtest_results['cumulative_return'], x = backtest_results.index,title = "Cumulative Return", x_label="Time", y_label = "Return Value")
+    report.add_image(Visualizations.line_plot, indent = 1, y = backtest_results['drawdown'].tolist(), x = backtest_results.index, title = "Drawdown Curve", x_label="Time", y_label="Drawdown Value")
     report.add_html("</section>")
     
     # Step 4 : Format Backtest Results
     columns_of_interest = ['equity_value']
     backtest_data = backtest.backtest_data
-    strategy_equity_df= backtest_data[columns_of_interest].copy()
+    strategy_equity_df = backtest_data[columns_of_interest].copy()
     strategy_equity_df.reset_index(inplace=True)
 
     ## Regression Analysis
@@ -88,8 +92,11 @@ def main():
     print(alpha_analysis)
     print(beta_analysis)
 
+    # Step 10 :  Calculate Returns 
+    strategy_returns = Returns.simple_returns(np.array(strategy_equity_df['equity_value']))
+
     # Step 10 : Measure risk deviations
-    volatility_thresholds = regression_analysis.calculate_volatility_and_zscore_annualized()
+    volatility_thresholds = RiskAnalysis.calculate_volatility_and_zscore_annualized(strategy_returns)
     print(volatility_thresholds)
 
     # Step 11 : Performance Attribution
@@ -101,7 +108,7 @@ def main():
     print(volatility_decomposition)
 
     # Step : Sharpe Ratio
-    sharpe_ratio_results = regression_analysis.calculate_sharpe_ratio()
+    sharpe_ratio_results = RiskAnalysis.sharpe_ratio(strategy_returns)
     print(sharpe_ratio_results)
 
     # Step 13 : Hedge Analysis

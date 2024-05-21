@@ -13,7 +13,7 @@ from midas.engine.portfolio import PortfolioServer
 from midas.shared.symbol import Symbol
 from midas.shared.signal import TradeInstruction
 from midas.shared.orders import OrderType, Action
-from midas.shared.analysis import TimeseriesTests
+from quantAnalytics.statistics import TimeseriesTests
 
 
 def convert_decimals_to_floats(df: pd.DataFrame):

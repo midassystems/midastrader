@@ -4,7 +4,7 @@ from typing import Dict
 from enum import Enum, auto
 
 from midas.research.strategy import BaseStrategy
-from midas.shared.analysis import TimeseriesTests
+from quantAnalytics.statistics import TimeseriesTests
 
 class Signal(Enum):
     """ Long and short are treated as entry actions and short/cover are treated as exit actions. """
@@ -113,7 +113,7 @@ class Cointegrationzscore(BaseStrategy):
         spread_combined = pd.DataFrame({'Original': spread_series, 'Lagged': spread_lagged}).dropna()
         
         # Calculate half-life and add to results
-        half_life, residuals = TimeseriesTests.half_life(Y=spread_combined['Original'], Y_lagged=spread_combined['Lagged'])
+        half_life, residuals = TimeseriesTests.half_life(Y=spread_series)
         results['half_life'] = half_life
         
         return results

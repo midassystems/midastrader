@@ -4,7 +4,9 @@ import pandas as pd
 
 from midas.research.strategy import BaseStrategy
 
-from midas.shared.analysis.statistics import PerformanceStatistics
+from quantAnalytics.returns import Returns
+from quantAnalytics.risk import RiskAnalysis
+from quantAnalytics.performance import PerformanceStatistics
 
 logging.basicConfig(level=logging.INFO)
 
@@ -134,16 +136,16 @@ class VectorizedBacktest(PerformanceStatistics):
         equity_values_array = self.backtest_data['equity_value'].to_numpy()
         equity_value = equity_values_array.astype(np.float64)
         
-        period_returns = self.period_return(equity_value)
+        period_returns = Returns.simple_returns(equity_value)
         period_returns_adjusted = np.insert(period_returns, 0, 0)
 
         # Adjust rolling_cumulative_return to add a placeholder at the beginning
-        cumulative_returns = self.cumulative_return(equity_value)
+        cumulative_returns = Returns.cumulative_returns(equity_value)
         cumulative_returns_adjusted = np.insert(cumulative_returns, 0, 0)
-        annual_standard_deviation = self.annual_standard_deviation(equity_value)
-        sharpe_ratio = self.sharpe_ratio(equity_value),
+        annual_standard_deviation = RiskAnalysis.annual_standard_deviation(np.array(period_returns_adjusted))
+        sharpe_ratio = RiskAnalysis.sharpe_ratio(np.array(period_returns_adjusted)),
 
         self.backtest_data['period_return'] = period_returns_adjusted
         self.backtest_data['cumulative_return'] = cumulative_returns_adjusted
-        self.backtest_data['drawdown'] = self.drawdown(equity_value)
+        self.backtest_data['drawdown'] = RiskAnalysis.drawdown(np.array(period_returns_adjusted))
         self.backtest_data.fillna(0, inplace=True)  # Replace NaN with 0 for the first element

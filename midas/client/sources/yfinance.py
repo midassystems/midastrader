@@ -3,8 +3,8 @@ import yfinance as yf
 from typing import List
 from decimal import Decimal
 
-from shared.utils import iso_to_unix
-from shared.market_data import BarData
+from midas.shared.utils import iso_to_unix
+from midas.shared.market_data import BarData
 
 class YFinanceClient:
     def __init__(self) -> None:
