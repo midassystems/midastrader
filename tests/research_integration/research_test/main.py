@@ -5,17 +5,17 @@ import pandas as pd
 import numpy as np
 
 from .logic import Cointegrationzscore
-from midas.client import DatabaseClient
 
+from midas.client import DatabaseClient
 from midas.research.data import DataProcessing
-from midas.research.report import HTMLReportGenerator
 from midas.research.backtester import VectorizedBacktest
 
-from quantAnalytics.regression import RegressionAnalysis
-from quantAnalytics.risk import RiskAnalysis
 from quantAnalytics.returns import Returns
-from quantAnalytics.performance import PerformanceStatistics
+from quantAnalytics.risk import RiskAnalysis
+from quantAnalytics.report import ReportGenerator
 from quantAnalytics.visualization import Visualizations
+from quantAnalytics.regression import RegressionAnalysis
+from quantAnalytics.performance import PerformanceStatistics
 
 logging.basicConfig(level=logging.INFO)
 
@@ -24,7 +24,7 @@ database = DatabaseClient(config('LOCAL_API_KEY'), config('LOCAL_URL'))
 def main():
     # Set-up Report
     report_path = "/Users/anthony/git-projects/midas/midasPython/tests/research_integration/research_test/outputs/cointegrationzscore.html"
-    report = HTMLReportGenerator(report_path)
+    report = ReportGenerator(report_path)
 
     # Step 1 : Set-Up
     # Parameters
@@ -57,18 +57,18 @@ def main():
     # Step 3 : Run Backtest
     backtest = VectorizedBacktest(data, strategy, initial_capital=10000)
     backtest_setup =  backtest.setup()
-    report.add_html("Strategy Preparation")
-    report.add_html(backtest_setup)
+    report.add_text("Strategy Preparation")
+    report.add_text(backtest_setup)
 
     backtest_results = backtest.run_backtest(entry_threshold=entry[0], exit_threshold=exit[0])
 
     tab = "    "
-    report.add_html("<section class='performance'>")
-    report.add_html(f"{tab}<h2>Performance Metrics</h2>")
+    report.add_text("<section class='performance'>")
+    report.add_text(f"{tab}<h2>Performance Metrics</h2>")
     report.add_image(Visualizations.line_plot, indent = 1, y = backtest_results['equity_value'], x = backtest_results.index, title = "Equity Curve", x_label="Time", y_label="Equity Value")
     report.add_image(Visualizations.line_plot, indent = 1, y = backtest_results['cumulative_return'], x = backtest_results.index,title = "Cumulative Return", x_label="Time", y_label = "Return Value")
     report.add_image(Visualizations.line_plot, indent = 1, y = backtest_results['drawdown'].tolist(), x = backtest_results.index, title = "Drawdown Curve", x_label="Time", y_label="Drawdown Value")
-    report.add_html("</section>")
+    report.add_text("</section>")
     
     # Step 4 : Format Backtest Results
     columns_of_interest = ['equity_value']
@@ -115,11 +115,8 @@ def main():
     hedge_analysis = regression_analysis.hedge_analysis()
     print(hedge_analysis)
 
-    # Step 13 : Validate or Invalidate Strategy
-
-    # Complete Report
+    # Step 13 : Complete HTML & PDF Report
     report.complete_report()
-
 
 if __name__ == "__main__":
     main()
