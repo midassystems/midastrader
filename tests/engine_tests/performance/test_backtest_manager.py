@@ -305,6 +305,7 @@ class TestPerformanceManager(unittest.TestCase):
         df_input = pd.DataFrame(self.performance_manager.equity_value)
         df_input= self.performance_manager._timestamps_to_datetime(df_input)
         df = self.performance_manager._calculate_return_and_drawdown(df_input)
+        print(df)
 
         # Validate
         self.assertTrue(isinstance(df, pd.DataFrame), "Result should be a pandas DataFrame")
@@ -374,7 +375,7 @@ class TestPerformanceManager(unittest.TestCase):
 
          # Validate that static_stats has non-null values and contains expected keys
         expected_static_keys = ['net_profit', 'total_fees', 'total_return', 'ending_equity', 'max_drawdown', 'total_trades',"num_winning_trades", 
-                                "num_lossing_trades", "avg_win_percent", "avg_loss_percent", "percent_profitable", "profit_and_loss", "profit_factor", 
+                                "num_lossing_trades", "sharpe_ratio","annual_standard_deviation","avg_win_percent", "avg_loss_percent", "percent_profitable", "profit_and_loss", "profit_factor", 
                                 "avg_trade_profit", 'sortino_ratio']
             
         static_stats = self.performance_manager.static_stats[0]
@@ -384,8 +385,8 @@ class TestPerformanceManager(unittest.TestCase):
 
         # Validate that regression_stats has non-null values and contains expected keys
         expected_regression_keys = ["r_squared", "p_value_alpha", "p_value_beta", "risk_free_rate", "alpha", 
-                                    "beta", "sharpe_ratio", "annualized_return", "market_contribution", "idiosyncratic_contribution", 
-                                    "total_contribution", "annualized_volatility", "market_volatility", "idiosyncratic_volatility", 
+                                    "beta", "market_contribution", "idiosyncratic_contribution", 
+                                    "total_contribution", "market_volatility", "idiosyncratic_volatility", 
                                     "total_volatility", "portfolio_dollar_beta", "market_hedge_nmv"]
         
         regression_stats = self.performance_manager.regression_stats[0]
@@ -461,7 +462,8 @@ class TestPerformanceManager(unittest.TestCase):
                                 'net_profit', 
                                 'total_return', 
                                 'max_drawdown', 
-                                # 'annual_standard_deviation', 
+                                'annual_standard_deviation', 
+                                'sharpe_ratio',
                                 'ending_equity', 
                                 'total_fees',
                                 'total_trades', 
@@ -478,10 +480,8 @@ class TestPerformanceManager(unittest.TestCase):
         actual_static_keys = set(backtest.static_stats[0].keys())
         self.assertEqual(actual_static_keys, expected_static_keys, "Static stats keys do not match expected keys.")
 
-        expected_reg_keys = {"r_squared", "p_value_alpha", "p_value_beta", "risk_free_rate", "alpha", "beta", "sharpe_ratio", 
-                            "annualized_return", "market_contribution", "idiosyncratic_contribution", 
-                            "total_contribution", "annualized_volatility", "market_volatility", 
-                            "idiosyncratic_volatility", "total_volatility", "portfolio_dollar_beta", "market_hedge_nmv"}
+        expected_reg_keys = {"r_squared", "p_value_alpha", "p_value_beta", "risk_free_rate", "alpha", "beta", "market_contribution", "idiosyncratic_contribution", 
+                            "total_contribution", "market_volatility", "idiosyncratic_volatility", "total_volatility", "portfolio_dollar_beta", "market_hedge_nmv"}
 
         actual_reg_keys = set(backtest.regression_stats[0].keys())
         self.assertEqual(actual_reg_keys, expected_reg_keys, "Regression stats keys do not match expected keys.")

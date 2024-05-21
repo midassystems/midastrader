@@ -799,6 +799,7 @@ class DatabaseClient:
         
         url = f"{self.api_url}/api/backtest/"
         data=backtest.to_dict()
+        print(data)
         headers = {'Authorization': f'Token {self.api_key}'}
         response = requests.post(url, json=data, headers=headers)
         

@@ -8,7 +8,7 @@ from midas.client import DatabaseClient
 
 from midas.shared.trade import Trade
 from midas.shared.portfolio import EquityDetails, AccountDetails
-from midas.shared.analysis.statistics import PerformanceStatistics
+from quantAnalytics.performance import PerformanceStatistics
 
 
 class BasePerformanceManager(PerformanceStatistics):    

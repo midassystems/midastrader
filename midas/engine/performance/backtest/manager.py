@@ -8,7 +8,9 @@ from ..base_manager import BasePerformanceManager
 
 from midas.shared.trade import Trade
 from midas.shared.backtest import Backtest
-from midas.shared.analysis.regression import RegressionAnalysis
+from quantAnalytics.regression import RegressionAnalysis
+from quantAnalytics.returns import Returns
+from quantAnalytics.risk import RiskAnalysis
 
 
 class BacktestPerformanceManager(BasePerformanceManager):
@@ -124,16 +126,17 @@ class BacktestPerformanceManager(BasePerformanceManager):
         equity_curve = data['equity_value'].to_numpy()
 
         # Adjust daily_return to add a placeholder at the beginning
-        period_returns = self.period_return(equity_curve)
+        period_returns = Returns.simple_returns(equity_curve)
         period_returns_adjusted = np.insert(period_returns, 0, 0)
+        print(period_returns_adjusted)
 
         # Adjust rolling_cumulative_return to add a placeholder at the beginning
-        cumulative_returns = self.cumulative_return(equity_curve)
+        cumulative_returns = Returns.cumulative_returns(equity_curve)
         cumulative_returns_adjusted = np.insert(cumulative_returns, 0, 0)
 
-        data['period_return'] = period_returns_adjusted
+        data['period_return'] = np.round(period_returns_adjusted, 6)
         data['cumulative_return'] = cumulative_returns_adjusted
-        data['drawdown'] = self.drawdown(equity_curve)
+        data['drawdown'] = RiskAnalysis.drawdown(period_returns_adjusted)
         data.fillna(0, inplace=True)  # Replace NaN with 0 for the first element
         return data
     
@@ -150,7 +153,6 @@ class BacktestPerformanceManager(BasePerformanceManager):
         benchmark_data = [{'timestamp': item['timestamp'], 'close': item['close']} for item in data]
         # benchmark_data = self.database.get_benchmark_data(self.params.benchmark, self.params.test_start, self.params.test_end)
         benchmark_df = pd.DataFrame(benchmark_data)
-        print(benchmark_df)
         benchmark_df["close"] = benchmark_df["close"].astype(float)
         benchmark_df= self._timestamps_to_datetime(benchmark_df)
         benchmark_df=benchmark_df.reset_index()
@@ -191,11 +193,11 @@ class BacktestPerformanceManager(BasePerformanceManager):
             # General Statistics
                 'net_profit': self.net_profit(aggregated_trades), 
                 'total_fees': round(aggregated_trades['fees'].sum(), 4),
-                'total_return':self.total_return(raw_equity_curve), # raw
-                # 'annual_standard_deviation': self.annual_standard_deviation(raw_equity_curve), # raw
+                'total_return': Returns.total_return(raw_equity_curve), # raw
+                'annual_standard_deviation': RiskAnalysis.annual_standard_deviation(np.array(daily_strategy_returns)), # raw
                 'ending_equity': raw_equity_curve[-1], # raw
-                'max_drawdown':self.max_drawdown(raw_equity_curve), # standardized
-
+                'max_drawdown': RiskAnalysis.max_drawdown(np.array(daily_strategy_returns)), # standardized
+                'sharpe_ratio': RiskAnalysis.sharpe_ratio(np.array(daily_strategy_returns), risk_free_rate),
             # Trade Statistics
                 'total_trades': self.total_trades(aggregated_trades),
                 "num_winning_trades":self.total_winning_trades(aggregated_trades), 
@@ -206,7 +208,7 @@ class BacktestPerformanceManager(BasePerformanceManager):
                 "profit_and_loss" :self.profit_and_loss_ratio(aggregated_trades),
                 "profit_factor":self.profit_factor(aggregated_trades),
                 "avg_trade_profit":self.avg_trade_profit(aggregated_trades),
-                'sortino_ratio': self.sortino_ratio(aggregated_trades),
+                'sortino_ratio': RiskAnalysis.sortino_ratio(np.array(daily_strategy_returns)),
             }
             self.static_stats.append(stats)
             self.logger.info(f"Backtest statistics successfully calculated.")
