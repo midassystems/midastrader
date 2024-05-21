@@ -5,6 +5,8 @@ from datetime import datetime
 
 from midas.client import DatabaseClient
 
+from quantAnalytics.dataprocessor import DataProcessor
+
 logging.basicConfig(filename='app.log', filemode='w', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class DataProcessing:
@@ -71,8 +73,8 @@ class DataProcessing:
         # Process the data
         data = pd.DataFrame(response)
         data.drop(columns=['id'], inplace=True)
-        self._check_duplicates(data)
-        data = self._handle_null_values(data, missing_values_strategy)
+        DataProcessor.check_duplicates(data)
+        data = DataProcessor.handle_null(data, missing_values_strategy)
         self.processed_data = self._process_bardata(data)
         
         return True
@@ -93,35 +95,6 @@ class DataProcessing:
         except TypeError:
             raise TypeError("'timestamp' must be of type str.")
 
-    def _handle_null_values(self, data: pd.DataFrame, missing_values_strategy: str = "fill_forward") -> pd.DataFrame:
-        """
-        Handles missing values in a DataFrame according to the specified strategy after pivoting the data for time series analysis.
-
-        Parameters:
-        - data (pd.DataFrame): The DataFrame with potential missing values.
-        - missing_values_strategy (str): The strategy for handling missing values. Options are 'fill_forward' or 'drop'.
-
-        Returns:
-        - pd.DataFrame: The DataFrame with missing values handled according to the specified strategy.
-        """
-       
-        if not isinstance(missing_values_strategy, str) or missing_values_strategy not in ['fill_forward', 'drop']:
-            raise ValueError("'missing_value_strategy' must either 'fill_forward' or 'drop' of type str.")
-       
-        data = data.pivot(index='timestamp', columns='symbol')
-
-        # Handle missing values based on the specified strategy
-        if missing_values_strategy == 'drop':
-            data.dropna(inplace=True)
-        elif missing_values_strategy == 'fill_forward':
-            # Drop all rows up to the first non-null row
-            if data.iloc[0].isnull().any():
-                first_complete_index = data.dropna().index[0]
-                data = data.loc[first_complete_index:]
-            data.ffill(inplace=True)
-            
-        return data.stack(level='symbol', future_stack=True).reset_index()
-
     def _process_bardata(self, data: pd.DataFrame) -> pd.DataFrame:
         """
         Transforms the raw data fetched from the database into a structured format suitable for backtesting.
@@ -139,47 +112,4 @@ class DataProcessing:
 
         data = data.sort_values(by='timestamp', ascending=True).reset_index(drop=True)
         return data
-
-    # -- Checks -- 
-    def _check_duplicates(self, data: pd.DataFrame) -> None:
-        """
-        Checks for and prints out any duplicate records in the data, based on 'timestamp' and 'symbol'.
-
-        Parameters:
-        - data (pd.DataFrame): The DataFrame to check for duplicates.
-
-        Side Effect:
-        - Prints out duplicate rows if found.
-        """
-        duplicates = data.duplicated(subset=['timestamp', 'symbol'], keep=False)
-        if duplicates.any():
-            print("Duplicates found:")
-            print(data[duplicates])
-
-    def check_duplicates_series(self, series: pd.Series) -> bool:
-        """
-        Checks for duplicate values within a Pandas Series.
-
-        Parameters:
-        - series (pd.Series): The series to check for duplicates.
-
-        Returns:
-        - bool: True if duplicates are found, False otherwise.
-        """
-        duplicate_dates = series.duplicated()
-        return any(duplicate_dates)
-    
-    def check_missing(self, data: pd.DataFrame) -> bool:
-        """
-        Checks a DataFrame for any missing values.
-
-        Parameters:
-        - data (pd.DataFrame): The DataFrame to check for missing values.
-
-        Returns:
-        - bool: True if any missing values are found, otherwise False.
-        """
-        has_missing_values = data.isna().any().any()  # Checks if any column has any NA values
-        return has_missing_values
-
     
