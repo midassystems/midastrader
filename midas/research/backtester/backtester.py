@@ -46,6 +46,7 @@ class VectorizedBacktest(PerformanceStatistics):
 
         self.equity_curve = None
         self.backtest_data : pd.DataFrame
+        self.summary_stats = {}
 
     def setup(self) -> str:
         """
@@ -89,7 +90,7 @@ class VectorizedBacktest(PerformanceStatistics):
             logging.error(f"Backtest failed: {e}")
             raise
 
-        return self.backtest_data
+        return self.backtest_data, self.summary_stats
 
     def _calculate_equity_curve(self) -> None:
         """
@@ -125,7 +126,7 @@ class VectorizedBacktest(PerformanceStatistics):
 
         logging.info("Equity value calculation completed.")
 
-    def _calculate_metrics(self, risk_free_rate: float= 0.04) -> None:
+    def _calculate_metrics(self, risk_free_rate:float=0.04) -> None:
         """
         Calculates performance metrics for the backtest including period return, cumulative return, drawdown, and Sharpe ratio.
 
@@ -142,10 +143,13 @@ class VectorizedBacktest(PerformanceStatistics):
         # Adjust rolling_cumulative_return to add a placeholder at the beginning
         cumulative_returns = Returns.cumulative_returns(equity_value)
         cumulative_returns_adjusted = np.insert(cumulative_returns, 0, 0)
-        annual_standard_deviation = RiskAnalysis.annual_standard_deviation(np.array(period_returns_adjusted))
-        sharpe_ratio = RiskAnalysis.sharpe_ratio(np.array(period_returns_adjusted)),
 
         self.backtest_data['period_return'] = period_returns_adjusted
         self.backtest_data['cumulative_return'] = cumulative_returns_adjusted
         self.backtest_data['drawdown'] = RiskAnalysis.drawdown(np.array(period_returns_adjusted))
         self.backtest_data.fillna(0, inplace=True)  # Replace NaN with 0 for the first element
+
+        # Summary Statistics
+        self.summary_stats["annual_standard_deviation"] = RiskAnalysis.annual_standard_deviation(np.array(period_returns_adjusted))
+        self.summary_stats["sharpe_ratio"] = RiskAnalysis.sharpe_ratio(np.array(period_returns_adjusted), risk_free_rate)
+

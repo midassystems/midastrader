@@ -60,7 +60,7 @@ def main():
     report.add_text("Strategy Preparation")
     report.add_text(backtest_setup)
 
-    backtest_results = backtest.run_backtest(entry_threshold=entry[0], exit_threshold=exit[0])
+    backtest_results, summary_stats = backtest.run_backtest(entry_threshold=entry[0], exit_threshold=exit[0])
 
     tab = "    "
     report.add_text("<section class='performance'>")
