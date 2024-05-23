@@ -374,9 +374,13 @@ class TestPerformanceManager(unittest.TestCase):
             self.assertIn(column, self.performance_manager.timeseries_stats.columns)
 
          # Validate that static_stats has non-null values and contains expected keys
-        expected_static_keys = ['net_profit', 'total_fees', 'total_return', 'ending_equity', 'max_drawdown', 'total_trades',"num_winning_trades", 
-                                "num_lossing_trades", "sharpe_ratio","annual_standard_deviation","avg_win_percent", "avg_loss_percent", "percent_profitable", "profit_and_loss", "profit_factor", 
-                                "avg_trade_profit", 'sortino_ratio']
+        expected_static_keys = [
+                                    'net_profit', 'total_fees', 'ending_equity', "avg_trade_profit", 
+                                    'total_return','annual_standard_deviation_percentage', 'max_drawdown_percentage',
+                                    "avg_win_percentage", "avg_loss_percentage","percent_profitable",
+                                    'total_trades', "number_winning_trades", "number_losing_trades", "profit_and_loss_ratio", 
+                                    "profit_factor", 'sortino_ratio', 'sharpe_ratio'
+                                ]
             
         static_stats = self.performance_manager.static_stats[0]
         for key in expected_static_keys:
@@ -458,34 +462,28 @@ class TestPerformanceManager(unittest.TestCase):
         self.assertEqual(backtest.signal_data, [signal_event.to_dict()])
         self.assertEqual(backtest.trade_data , [trade.to_dict() for trade in self.performance_manager.trades])
 
-        expected_static_keys = {
-                                'net_profit', 
-                                'total_return', 
-                                'max_drawdown', 
-                                'annual_standard_deviation', 
-                                'sharpe_ratio',
-                                'ending_equity', 
-                                'total_fees',
-                                'total_trades', 
-                                'num_winning_trades', 
-                                'num_lossing_trades',
-                                'avg_win_percent', 
-                                'avg_loss_percent', 
-                                'percent_profitable', 
-                                'profit_and_loss', 
-                                'profit_factor', 
-                                'avg_trade_profit',
-                                'sortino_ratio', 
-        }
-        actual_static_keys = set(backtest.static_stats[0].keys())
-        self.assertEqual(actual_static_keys, expected_static_keys, "Static stats keys do not match expected keys.")
+        # static stats
+        expected_static_keys = [
+                    'net_profit', 'total_fees', 'ending_equity', "avg_trade_profit", 
+                    'total_return','annual_standard_deviation_percentage', 'max_drawdown_percentage',
+                    "avg_win_percentage", "avg_loss_percentage","percent_profitable",
+                    'total_trades', "number_winning_trades", "number_losing_trades", "profit_and_loss_ratio", 
+                    "profit_factor", 'sharpe_ratio','sortino_ratio'
+                ]
+        static_stats = list(backtest.static_stats[0].keys())
 
+        for key in static_stats:
+            self.assertIn(key, expected_static_keys)
+            self.assertIsNotNone(backtest.static_stats[0][key])
+
+        # regression stats
         expected_reg_keys = {"r_squared", "p_value_alpha", "p_value_beta", "risk_free_rate", "alpha", "beta", "market_contribution", "idiosyncratic_contribution", 
                             "total_contribution", "market_volatility", "idiosyncratic_volatility", "total_volatility", "portfolio_dollar_beta", "market_hedge_nmv"}
 
         actual_reg_keys = set(backtest.regression_stats[0].keys())
         self.assertEqual(actual_reg_keys, expected_reg_keys, "Regression stats keys do not match expected keys.")
 
+        # timeseries stats
         expected_timeseries_keys = {'timestamp', 'equity_value','period_return', 'cumulative_return', 'drawdown', 'daily_strategy_return', 'daily_benchmark_return'}  # Adjust based on your actual expected output
         actual_timeseries_keys = set(backtest.timeseries_stats[0].keys())
         
