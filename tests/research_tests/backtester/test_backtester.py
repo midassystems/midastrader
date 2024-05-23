@@ -53,12 +53,13 @@ class TestVectorizedBacktest(unittest.TestCase):
         # provided thresholds
         entry_threshold = 0.5
         exit_threshold = 0.2
+        lag = 1
         
         # test
-        self.vectorized_backtest.run_backtest(entry_threshold, exit_threshold)
+        self.vectorized_backtest.run_backtest(entry_threshold, exit_threshold, lag)
         
         # validate
-        self.mock_strategy.generate_signals.assert_called_once_with(entry_threshold, exit_threshold)
+        self.mock_strategy.generate_signals.assert_called_once_with(entry_threshold, exit_threshold, lag)
     
     def test_run_backtest_calls_subsequent_methods(self):
         self.vectorized_backtest._calculate_equity_curve = MagicMock()
@@ -67,8 +68,10 @@ class TestVectorizedBacktest(unittest.TestCase):
         # Test that calculate_returns_and_equity and calculate_metrics are called
         entry_threshold = 0.5
         exit_threshold = 0.2
+        lag = 1
+
         # test 
-        self.vectorized_backtest.run_backtest(entry_threshold, exit_threshold)
+        self.vectorized_backtest.run_backtest(entry_threshold, exit_threshold, lag)
 
         # validate
         self.vectorized_backtest._calculate_equity_curve.assert_called_once()
@@ -80,12 +83,13 @@ class TestVectorizedBacktest(unittest.TestCase):
 
         entry_threshold = 0.5
         exit_threshold = 0.2
+        lag = 1
         
         # test
-        self.vectorized_backtest.run_backtest(entry_threshold, exit_threshold)
+        self.vectorized_backtest.run_backtest(entry_threshold, exit_threshold, lag)
         
         # validate
-        self.mock_strategy.generate_signals.assert_called_once_with(entry_threshold, exit_threshold)
+        self.mock_strategy.generate_signals.assert_called_once_with(entry_threshold, exit_threshold, lag)
         
         # Verify that calculate_returns_and_equity and calculate_metrics are called
         self.vectorized_backtest._calculate_equity_curve.assert_called_once()
@@ -191,14 +195,14 @@ class TestVectorizedBacktest(unittest.TestCase):
         self.vectorized_backtest._calculate_metrics = MagicMock()
 
         # test
-        self.vectorized_backtest.run_backtest(100, 100)
+        self.vectorized_backtest.run_backtest(100, 100, 1)
     
         # valdiate
-        self.mock_strategy.generate_signals.assert_called_once_with(100, 100)
+        self.mock_strategy.generate_signals.assert_called_once_with(100, 100, 1)
 
         self.mock_strategy.generate_signals.reset_mock()# Reset mock to test another edge case 
-        self.vectorized_backtest.run_backtest(-1, -1)
-        self.mock_strategy.generate_signals.assert_called_once_with(-1, -1)
+        self.vectorized_backtest.run_backtest(-1, -1, 1)
+        self.mock_strategy.generate_signals.assert_called_once_with(-1, -1, 1)
 
     # # # Integration 
     # # def backtest(self):
