@@ -161,6 +161,11 @@ class TestVectorizedBacktest(unittest.TestCase):
 
         # validate
         assert_frame_equal(self.vectorized_backtest.backtest_data, expected_data, check_dtype=False, check_like=True, rtol=1e-5, atol=1e-4)
+        self.assertIn("sharpe_ratio", self.vectorized_backtest.summary_stats.keys())
+        self.assertTrue(self.vectorized_backtest.summary_stats['sharpe_ratio'] > 0)
+        self.assertIn("annual_standard_deviation", self.vectorized_backtest.summary_stats.keys())
+        self.assertTrue(self.vectorized_backtest.summary_stats['annual_standard_deviation'] > 0)
+
 
     # Type
     def test_run_backtest_with_exception_in_generate_signals(self):
