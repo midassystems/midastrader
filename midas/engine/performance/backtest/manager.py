@@ -190,25 +190,28 @@ class BacktestPerformanceManager(BasePerformanceManager):
         try:
             self.validate_trade_log(aggregated_trades)
             stats = {
-            # General Statistics
-                'net_profit': self.net_profit(aggregated_trades), 
-                'total_fees': round(aggregated_trades['fees'].sum(), 4),
-                'total_return': Returns.total_return(raw_equity_curve), # raw
-                'annual_standard_deviation': RiskAnalysis.annual_standard_deviation(np.array(daily_strategy_returns)), # raw
-                'ending_equity': raw_equity_curve[-1], # raw
-                'max_drawdown': RiskAnalysis.max_drawdown(np.array(daily_strategy_returns)), # standardized
-                'sharpe_ratio': RiskAnalysis.sharpe_ratio(np.array(daily_strategy_returns), risk_free_rate),
-            # Trade Statistics
-                'total_trades': self.total_trades(aggregated_trades),
-                "num_winning_trades":self.total_winning_trades(aggregated_trades), 
-                "num_lossing_trades":self.total_losing_trades(aggregated_trades),
-                "avg_win_percent":self.avg_win_return_rate(aggregated_trades),
-                "avg_loss_percent":self.avg_loss_return_rate(aggregated_trades),
-                "percent_profitable":self.profitability_ratio(aggregated_trades),
-                "profit_and_loss" :self.profit_and_loss_ratio(aggregated_trades),
-                "profit_factor":self.profit_factor(aggregated_trades),
+                # Dollars
+                "net_profit": self.net_profit(aggregated_trades), 
+                "total_fees": round(aggregated_trades['fees'].sum(), 4),
+                "ending_equity": raw_equity_curve[-1], # raw
                 "avg_trade_profit":self.avg_trade_profit(aggregated_trades),
-                'sortino_ratio': RiskAnalysis.sortino_ratio(np.array(daily_strategy_returns)),
+                
+                # Percentages
+                "total_return": Returns.total_return(raw_equity_curve), # raw
+                "annual_standard_deviation_percentage": RiskAnalysis.annual_standard_deviation(np.array(daily_strategy_returns)), # raw
+                "max_drawdown_percentage": RiskAnalysis.max_drawdown(np.array(daily_strategy_returns)), # standardized
+                "avg_win_percentage":self.avg_win_return_rate(aggregated_trades),
+                "avg_loss_percentage":self.avg_loss_return_rate(aggregated_trades),
+                "percent_profitable":self.profitability_ratio(aggregated_trades),
+                
+                # Real Numbers 
+                "total_trades": self.total_trades(aggregated_trades),
+                "number_winning_trades":self.total_winning_trades(aggregated_trades), 
+                "number_losing_trades":self.total_losing_trades(aggregated_trades),
+                "profit_and_loss_ratio" :self.profit_and_loss_ratio(aggregated_trades),
+                "profit_factor":self.profit_factor(aggregated_trades),
+                "sharpe_ratio": RiskAnalysis.sharpe_ratio(np.array(daily_strategy_returns), risk_free_rate),
+                "sortino_ratio": RiskAnalysis.sortino_ratio(np.array(daily_strategy_returns)),
             }
             self.static_stats.append(stats)
             self.logger.info(f"Backtest statistics successfully calculated.")
