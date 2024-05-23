@@ -65,13 +65,14 @@ class VectorizedBacktest(PerformanceStatistics):
                 raise Exception(f"Error during strategy preparation: {e}")
         return html_content
 
-    def run_backtest(self, entry_threshold: float, exit_threshold: float) -> pd.DataFrame:
+    def run_backtest(self, entry_threshold:float, exit_threshold:float, lag:int) -> pd.DataFrame:
         """
         Executes the backtest by generating trading signals and calculating equity curves based on entry and exit thresholds.
 
         Parameters:
         - entry_threshold: The threshold to trigger a trade entry.
         - exit_threshold: The threshold to trigger a trade exit.
+        - lag (int): The number of periods the entry/exit of a position will be lagged after a signal.
         
         Returns:
         - pandas.DataFrame: A DataFrame containing the backtest results including signals and equity values.
@@ -82,7 +83,7 @@ class VectorizedBacktest(PerformanceStatistics):
         assert self.strategy is not None, "Strategy must be set before running backtest."
         
         try:
-            self.backtest_data = self.strategy.generate_signals(entry_threshold, exit_threshold)
+            self.backtest_data = self.strategy.generate_signals(entry_threshold, exit_threshold, lag)
             self._calculate_equity_curve()
             self._calculate_metrics()
             logging.info("Backtest completed successfully.")
