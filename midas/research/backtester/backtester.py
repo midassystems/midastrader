@@ -1,15 +1,10 @@
-import logging
 import numpy as np
 import pandas as pd
-
-from midas.research.strategy import BaseStrategy
-
 from quantAnalytics.returns import Returns
 from quantAnalytics.risk import RiskAnalysis
+from midas.research.strategy import BaseStrategy
 from quantAnalytics.statistics import TimeseriesTests
 from quantAnalytics.performance import PerformanceStatistics
-
-logging.basicConfig(level=logging.INFO)
 
 class VectorizedBacktest(PerformanceStatistics):
     """
@@ -58,7 +53,7 @@ class VectorizedBacktest(PerformanceStatistics):
         if hasattr(self.strategy, 'prepare'):
             try:
                 self.strategy.prepare(self.train_data.copy())
-                logging.info("Strategy preparation completed and added to the report.")
+                print("Strategy preparation completed.")
             except Exception as e:
                 raise Exception(f"Error during strategy preparation: {e}")
 
@@ -75,7 +70,7 @@ class VectorizedBacktest(PerformanceStatistics):
         - pandas.DataFrame: A DataFrame containing the backtest results including signals and equity values.
         """
 
-        logging.info("Starting backtest...")
+        print("Starting backtest...")
         
         try:
             signals = self.strategy.generate_signals(self.test_data)
@@ -83,12 +78,11 @@ class VectorizedBacktest(PerformanceStatistics):
             self._calculate_positions_pnl()
             self._calculate_equity_curve()
             self._calculate_metrics()
-            logging.info("Backtest completed successfully.")
+            print("Backtest completed successfully.")
+            return self.test_data, self.summary_stats
         except Exception as e:
-            logging.error(f"Backtest failed: {e}")
-            raise
+            raise Exception(f"Backtest failed: {e}")
 
-        return self.test_data, self.summary_stats
 
     def _calculate_positions(self, signals:pd.DataFrame, lag:int) -> None:
         """
@@ -167,6 +161,9 @@ class VectorizedBacktest(PerformanceStatistics):
         # Calculate summary statistics
         self.summary_stats = {
             "annual_standard_deviation": RiskAnalysis.annual_standard_deviation(period_returns_adjusted),
-            "sharpe_ratio": RiskAnalysis.sharpe_ratio(period_returns_adjusted, risk_free_rate)
+            "sharpe_ratio": RiskAnalysis.sharpe_ratio(period_returns_adjusted, risk_free_rate),
+            "max_drawdown": RiskAnalysis.max_drawdown(period_returns_adjusted), # standardized
+            "sortino_ratio": RiskAnalysis.sortino_ratio(period_returns_adjusted),
+            "ending_equity": equity_values.values[-1], # raw
         }
         self.test_data.fillna(0, inplace=True) 

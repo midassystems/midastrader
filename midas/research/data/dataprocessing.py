@@ -1,13 +1,8 @@
-import logging
 import pandas as pd
 from typing import List
 from datetime import datetime
-
 from midas.client import DatabaseClient
-
 from quantAnalytics.dataprocessor import DataProcessor
-
-logging.basicConfig(filename='app.log', filemode='w', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class DataProcessing:
     """
@@ -68,7 +63,6 @@ class DataProcessing:
 
         # Get data from backend
         response = self.database.get_bar_data(tickers=tickers, start_date=start_date, end_date=end_date)
-        logging.info(response)
 
         # Process the data
         data = pd.DataFrame(response)

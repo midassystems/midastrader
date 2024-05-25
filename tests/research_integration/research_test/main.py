@@ -21,20 +21,16 @@ database = DatabaseClient(config('MIDAS_API_KEY'), config('MIDAS_URL'))
 
 def main():
     # Set-up Report
-    report_path = "/Users/anthony/trading/strategies/cointegrationzscore/research/outputs/cointegrationzscore.html"
-    custom_css = "/Users/anthony/trading/strategies/cointegrationzscore/research/styles.css"
-    report = ReportGenerator(report_path, custom_css)
+    report_path = "/Users/anthony/git-projects/midas/midasPython/tests/research_integration/research_test/outputs/cointegrationzscore.html"
+    report = ReportGenerator(report_path)
 
     # Step 1 : Set-Up
     # Parameters
     start_date="2023-01-01T12:00:00"
     end_date="2024-05-07T12:00:00"
-
     contract_details = {'HE.n.0': {'quantity_multiplier': 40000, 'price_multiplier': 0.01}, 'ZC.n.0':{'quantity_multiplier': 5000, 'price_multiplier': 0.01}}
     tickers = list(contract_details.keys())
     benchmark=["^GSPC"]
-    entry = [2.0]
-    exit = [1.0]
 
     # Strategy
     strategy = Cointegrationzscore(tickers, report)
