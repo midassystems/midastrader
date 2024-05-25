@@ -6,6 +6,7 @@ from midas.research.strategy import BaseStrategy
 
 from quantAnalytics.returns import Returns
 from quantAnalytics.risk import RiskAnalysis
+from quantAnalytics.statistics import TimeseriesTests
 from quantAnalytics.performance import PerformanceStatistics
 
 logging.basicConfig(level=logging.INFO)
@@ -30,7 +31,7 @@ class VectorizedBacktest(PerformanceStatistics):
     - _calculate_equity_curve(): Calculates the equity curve based on trading signals and updates the `equity_curve` attribute.
     - _calculate_metrics(risk_free_rate=0.04): Computes various performance metrics such as the Sharpe Ratio and maximum drawdown.
     """
-    def __init__(self, full_data: pd.DataFrame, strategy: BaseStrategy,  initial_capital: float = 10000):
+    def __init__(self, strategy: BaseStrategy, full_data: pd.DataFrame, symbols_map:dict, initial_capital:float=10000, train_ratio:float=0.65):
         """
         Initializes the VectorizedBacktest object with a dataset, a trading strategy, and initial capital.
         
@@ -39,33 +40,29 @@ class VectorizedBacktest(PerformanceStatistics):
         - strategy (BaseStrategy): An instance of BaseStrategy that defines the trading logic.
         - initial_capital (float): The initial capital amount in dollars. Defaults to 10,000.
         """
-        self.full_data = full_data
         self.strategy = strategy
+        self.symbols_map = symbols_map
         self.initial_capital = initial_capital
-        self.symbols = full_data.columns.tolist()
-
-        self.equity_curve = None
-        self.backtest_data : pd.DataFrame
+        self.train_data, self.test_data = self.split_data(full_data, train_ratio)
         self.summary_stats = {}
 
-    def setup(self) -> str:
+    def split_data(self, full_data:pd.DataFrame, train_ratio:float=0.65):
+        train_data, test_data = TimeseriesTests.split_data(full_data, train_ratio)
+        return train_data, test_data
+
+    def setup(self):
         """
         Prepares the backtesting environment by optionally calling the strategy's prepare method.
         This can include setting up necessary parameters or data within the strategy.
-        
-        Returns:
-        - str: HTML content generated during the setup process if any.
         """
-        html_content = ""
         if hasattr(self.strategy, 'prepare'):
             try:
-                html_content = self.strategy.prepare(self.full_data)
+                self.strategy.prepare(self.train_data.copy())
                 logging.info("Strategy preparation completed and added to the report.")
             except Exception as e:
                 raise Exception(f"Error during strategy preparation: {e}")
-        return html_content
 
-    def run_backtest(self, entry_threshold:float, exit_threshold:float, lag:int) -> pd.DataFrame:
+    def run_backtest(self, position_lag:int) -> pd.DataFrame:
         """
         Executes the backtest by generating trading signals and calculating equity curves based on entry and exit thresholds.
 
@@ -79,11 +76,11 @@ class VectorizedBacktest(PerformanceStatistics):
         """
 
         logging.info("Starting backtest...")
-        assert self.full_data is not None, "Full data must be provided before running backtest."
-        assert self.strategy is not None, "Strategy must be set before running backtest."
         
         try:
-            self.backtest_data = self.strategy.generate_signals(entry_threshold, exit_threshold, lag)
+            signals = self.strategy.generate_signals(self.test_data)
+            self._calculate_positions(signals, position_lag)
+            self._calculate_positions_pnl()
             self._calculate_equity_curve()
             self._calculate_metrics()
             logging.info("Backtest completed successfully.")
@@ -91,42 +88,61 @@ class VectorizedBacktest(PerformanceStatistics):
             logging.error(f"Backtest failed: {e}")
             raise
 
-        return self.backtest_data, self.summary_stats
+        return self.test_data, self.summary_stats
+
+    def _calculate_positions(self, signals:pd.DataFrame, lag:int) -> None:
+        """
+        Calculates the positions held over the course of the backtest.
+
+        Parameters:
+        - signals (pd.DataFrame): DataFrame containing trading signals for each ticker.
+        - lag (int): The number of periods the entry/exit of a position will be lagged after a signal.
+        """
+        for ticker in signals.columns:
+            # Position signals are filled forward until changed
+            position_column = f'{ticker}_position'
+            self.test_data[position_column] = signals[ticker].ffill().shift(lag).fillna(0)
+            
+            # Retrieve multipliers and weights
+            hedge_ratio = abs(self.strategy.weights[ticker])
+            quantity_multiplier = self.symbols_map[ticker]['quantity_multiplier']
+            price_multiplier = self.symbols_map[ticker]['price_multiplier']
+            
+            # Calculate the dollar value of each position
+            position_value_column = f'{ticker}_position_value'
+            self.test_data[position_value_column] = (self.test_data[position_column] * self.test_data[ticker] * 
+                                                hedge_ratio * quantity_multiplier * price_multiplier)
+    
+    def _calculate_positions_pnl(self) -> None:
+        pnl_columns = []
+
+        for column in self.test_data.filter(like='_position_value').columns:
+            profit_loss_column = column.replace('position_value', 'position_pnl')
+            self.test_data[profit_loss_column] = self.test_data[column].diff().fillna(0)
+
+            # Identify the start of a new position (assuming a new position starts when the previous value is 0)
+            # Set the P&L to zero at the start of new positions
+            new_position_starts = (self.test_data[column] != 0) & (self.test_data[column].shift(1) == 0)
+            self.test_data.loc[new_position_starts, profit_loss_column] = 0
+
+            # Identify the end of a position (position value goes to zero)
+            # Set the P&L to zero at the end of positions
+            position_ends = (self.test_data[column] == 0) & (self.test_data[column].shift(1) != 0)
+            self.test_data.loc[position_ends, profit_loss_column] = 0
+
+            # Add the P&L column name to the list
+            pnl_columns.append(profit_loss_column)
+
+        # Sum all P&L columns to create a single 'portfolio_pnl' column
+        self.test_data['portfolio_pnl'] = self.test_data[pnl_columns].sum(axis=1)
 
     def _calculate_equity_curve(self) -> None:
-        """
-        Calculates the equity curve for the backtest by aggregating individual position returns.
-        The method updates the 'equity_value' column in the backtest_data DataFrame.
-        """
-        logging.info("Starting equity curve calculation.")
+        # Initialize the equity_curve column with the initial capital
+        self.test_data['equity_value'] = self.initial_capital
         
-        # Initialize a column for aggregate returns
-        self.backtest_data['aggregate_returns'] = 0
-
-        # Iterate through each ticker to calculate individual returns
-        for ticker in self.symbols:
-            price_column, position_column, returns_column = f'{ticker}', f'{ticker}_position', f'{ticker}_returns'
-            try:
-                # Calculate daily returns for ticker
-                self.backtest_data[returns_column] = self.backtest_data[price_column].pct_change()
-                
-                # Return for postion if holding
-                self.backtest_data[f'{ticker}_position_returns'] = self.backtest_data[returns_column] * self.backtest_data[position_column].shift(1)
-
-                # Aggregate the individual strategy returns into the total returns
-                self.backtest_data['aggregate_returns'] += self.backtest_data[f'{ticker}_position_returns']
-            except Exception as e:
-                logging.error(f"Error processing {ticker}: {e}")
-
-        # Calculate the equity curve from aggregate returns
-        self.backtest_data['equity_value'] = (self.backtest_data['aggregate_returns'] + 1).cumprod() * self.initial_capital
-
-        # Fill NaN values for the initial capital in the equity curve
-        self.backtest_data['equity_value'] = self.backtest_data['equity_value'].fillna(self.initial_capital)
-
-
-        logging.info("Equity value calculation completed.")
-
+        # Calculate the equity_curve by cumulatively summing the portfolio_pnl with the initial capital
+        self.test_data['equity_value'] = self.test_data['equity_value'].shift(1).fillna(self.initial_capital) + self.test_data['portfolio_pnl'].cumsum()
+        
     def _calculate_metrics(self, risk_free_rate:float=0.04) -> None:
         """
         Calculates performance metrics for the backtest including period return, cumulative return, drawdown, and Sharpe ratio.
@@ -134,23 +150,23 @@ class VectorizedBacktest(PerformanceStatistics):
         Parameters:
         - risk_free_rate (float): The annual risk-free rate used for calculating the Sharpe ratio. Default is 0.04 (4%).
         """
-        # Assuming self.equity_curve is a pandas Series of cumulative returns
-        equity_values_array = self.backtest_data['equity_value'].to_numpy()
-        equity_value = equity_values_array.astype(np.float64)
-        
-        period_returns = Returns.simple_returns(equity_value)
-        period_returns_adjusted = np.insert(period_returns, 0, 0)
+        # Ensure that equity values are numeric and NaNs are handled
+        equity_values = pd.to_numeric(self.test_data['equity_value'], errors='coerce').fillna(0)
 
-        # Adjust rolling_cumulative_return to add a placeholder at the beginning
-        cumulative_returns = Returns.cumulative_returns(equity_value)
+        # Compute simple and cumulative returns
+        period_returns = Returns.simple_returns(equity_values.values)
+        period_returns_adjusted = np.insert(period_returns, 0, 0)  # Adjust for initial zero return
+        cumulative_returns = Returns.cumulative_returns(equity_values.values)
         cumulative_returns_adjusted = np.insert(cumulative_returns, 0, 0)
 
-        self.backtest_data['period_return'] = period_returns_adjusted
-        self.backtest_data['cumulative_return'] = cumulative_returns_adjusted
-        self.backtest_data['drawdown'] = RiskAnalysis.drawdown(np.array(period_returns_adjusted))
-        self.backtest_data.fillna(0, inplace=True)  # Replace NaN with 0 for the first element
+        # Update DataFrame safely using loc
+        self.test_data['period_return'] = period_returns_adjusted
+        self.test_data['cumulative_return'] = cumulative_returns_adjusted
+        self.test_data['drawdown'] = RiskAnalysis.drawdown(period_returns_adjusted)
 
-        # Summary Statistics
-        self.summary_stats["annual_standard_deviation"] = RiskAnalysis.annual_standard_deviation(np.array(period_returns_adjusted))
-        self.summary_stats["sharpe_ratio"] = RiskAnalysis.sharpe_ratio(np.array(period_returns_adjusted), risk_free_rate)
-
+        # Calculate summary statistics
+        self.summary_stats = {
+            "annual_standard_deviation": RiskAnalysis.annual_standard_deviation(period_returns_adjusted),
+            "sharpe_ratio": RiskAnalysis.sharpe_ratio(period_returns_adjusted, risk_free_rate)
+        }
+        self.test_data.fillna(0, inplace=True) 
