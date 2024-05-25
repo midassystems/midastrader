@@ -11,165 +11,291 @@ from midas.research.backtester.backtester import VectorizedBacktest
 
 class TestVectorizedBacktest(unittest.TestCase):
     def setUp(self):
-        # Mock the necessary components
+        # Mock data
+        data = {
+                'timestamp': [
+                    1700064000000000000, 1700067600000000000, 1700071200000000000,
+                    1700074800000000000, 1700143200000000000, 1700146800000000000,
+                    1700150400000000000, 1700154000000000000, 1700157600000000000,
+                    1700161200000000000
+                ],
+                'A': [75.600, 75.300, 74.900, 74.925, 74.250, 74.425, 75.400, 75.075, 75.600,  75.500],
+                'B': [489.25, 487.00, 487.75, 489.25, 485.25, 485.50, 491.50, 493.00, 493.00, 492.50],
+        }
+        self.mock_data = pd.DataFrame(data)
+        self.mock_data.set_index('timestamp', inplace=True)
+
+        # Symbols Map
+        self.symbols_map = {'A': {'quantity_multiplier': 40000, 'price_multiplier': 0.01}, 'B':{'quantity_multiplier': 5000, 'price_multiplier': 0.01}}
         self.mock_strategy = MagicMock(spec=BaseStrategy)
-        self.mock_data = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
-        
+        self.mock_strategy.weights = {'A':1, 'B':-1}
+        self.train_ratio = 0.5
+
         # Initialize the VectorizedBacktest instance
         self.vectorized_backtest = VectorizedBacktest(
-            full_data=self.mock_data,
             strategy=self.mock_strategy,
-            initial_capital=10000
+            full_data=self.mock_data,
+            symbols_map=self.symbols_map,
+            initial_capital=10000,
+            train_ratio=self.train_ratio
         )
     
     # Basic Validation
-    def test_setup_html_content(self):
-        # Setup 
-        expected_content = '<p>Mock HTML Content</p>'
-        self.mock_strategy.prepare.return_value = expected_content
+    def test_split_data(self):
+        # expected
+        expected_train_data = pd.DataFrame({
+                'timestamp': [
+                    1700064000000000000, 1700067600000000000, 1700071200000000000,
+                    1700074800000000000, 1700143200000000000, 1700146800000000000,
+                    1700150400000000000, 
+                ],
+                'A': [75.600, 75.300, 74.900, 74.925, 74.250, 74.425, 75.400],
+                'B': [489.25, 487.00, 487.75, 489.25, 485.25, 485.50, 491.50],
+        })
+        expected_train_data.set_index('timestamp', inplace=True)
         
-        # test 
-        actual_content = self.vectorized_backtest.setup()
-        
-        # validate
-        self.mock_strategy.prepare.assert_called_once_with(self.mock_data)
-        self.assertEqual(expected_content, actual_content)
+        expected_test_data = pd.DataFrame({
+                'timestamp': [
+                    1700154000000000000, 1700157600000000000, 1700161200000000000
+                ],
+                'A': [75.075, 75.600,  75.500],
+                'B': [493.00, 493.00, 492.50],
+        })
+        expected_test_data.set_index('timestamp', inplace=True)
 
-    def test_setup_no_html_content(self):
-        # Setup 
-        self.mock_strategy.prepare.return_value = None
+        # test
+        actual_train, actual_test = self.vectorized_backtest.split_data(self.mock_data, train_ratio=0.70)
+  
+        # validate
+        self.assertTrue(actual_train.equals(expected_train_data))
+        assert_frame_equal(actual_train, expected_train_data, check_dtype=True)
+        assert_frame_equal(actual_test, expected_test_data, check_dtype=True)
+
+    def test_setup_html_content(self):
+        # expected
+        split_index = int(len(self.mock_data) * self.train_ratio)
+        train_data = self.mock_data.iloc[:split_index]
         
         # test 
-        actual_content = self.vectorized_backtest.setup()
+        self.vectorized_backtest.setup()
         
-        # validate
-        self.mock_strategy.prepare.assert_called_once_with(self.mock_data)
-        self.assertEqual(None, actual_content)
+        # validate       
+        self.mock_strategy.prepare.assert_called_once()
+
+        # Retrieve arguments to verify details if needed
+        args, _ = self.mock_strategy.prepare.call_args
+        pd.testing.assert_frame_equal(args[0], train_data)
     
     def test_run_backtest_calls_generate_signals(self):
+        self.vectorized_backtest._calculate_positions = MagicMock()
+        self.vectorized_backtest._calculate_positions_pnl = MagicMock()
         self.vectorized_backtest._calculate_equity_curve = MagicMock()
         self.vectorized_backtest._calculate_metrics = MagicMock()
-
-        # provided thresholds
-        entry_threshold = 0.5
-        exit_threshold = 0.2
         lag = 1
+
+        # expected
+        split_index = int(len(self.mock_data) * self.train_ratio)
+        test_data = self.mock_data.iloc[split_index:]
         
         # test
-        self.vectorized_backtest.run_backtest(entry_threshold, exit_threshold, lag)
+        self.vectorized_backtest.run_backtest(lag)
         
         # validate
-        self.mock_strategy.generate_signals.assert_called_once_with(entry_threshold, exit_threshold, lag)
-    
-    def test_run_backtest_calls_subsequent_methods(self):
-        self.vectorized_backtest._calculate_equity_curve = MagicMock()
-        self.vectorized_backtest._calculate_metrics = MagicMock()
-        
-        # Test that calculate_returns_and_equity and calculate_metrics are called
-        entry_threshold = 0.5
-        exit_threshold = 0.2
-        lag = 1
-
-        # test 
-        self.vectorized_backtest.run_backtest(entry_threshold, exit_threshold, lag)
-
-        # validate
+        self.mock_strategy.generate_signals.assert_called_once()
+        self.vectorized_backtest._calculate_positions.assert_called_once()
+        self.vectorized_backtest._calculate_positions_pnl.assert_called_once()
         self.vectorized_backtest._calculate_equity_curve.assert_called_once()
         self.vectorized_backtest._calculate_metrics.assert_called_once()
+        args, _ = self.mock_strategy.generate_signals.call_args
+        pd.testing.assert_frame_equal(args[0], test_data)
 
-    def test_run_backtest_with_thresholds(self):
-        self.vectorized_backtest._calculate_equity_curve = MagicMock()
-        self.vectorized_backtest._calculate_metrics = MagicMock()
+    def test_calculate_positions(self):
+        signals = pd.DataFrame({
+                'timestamp': [
+                    1700146800000000000,1700150400000000000, 1700154000000000000, 
+                    1700157600000000000, 1700161200000000000
+                ],
+                'A': [None, None, -1.0, None,  0.0],
+                'B': [None, None, 1.0, None,  0.0],
+        })
+        signals.set_index('timestamp', inplace=True)
 
-        entry_threshold = 0.5
-        exit_threshold = 0.2
-        lag = 1
-        
+        # expected
+        data = {
+            'A': [74.425, 75.400, 75.075, 75.600, 75.500],
+            'B': [485.5, 491.5, 493.0, 493.0, 492.5],
+            'A_position': [0.0, 0.0, 0.0, -1.0, -1.0],
+            'A_position_value': [0.0, 0.0, 0.0, -30240.0, -30200.0],
+            'B_position': [0.0, 0.0, 0.0, 1.0, 1.0],
+            'B_position_value': [0.0, 0.0, 0.0, 24650.0, 24625.0],
+        }
+
+        # Timestamps for the index
+        timestamps = [
+            1700146800000000000,
+            1700150400000000000,
+            1700154000000000000,
+            1700157600000000000,
+            1700161200000000000
+        ]
+
+        # Create DataFrame with timestamp as index
+        expected_df = pd.DataFrame(data, index=timestamps)
+        expected_df.index.name = 'timestamp'
+
+
         # test
-        self.vectorized_backtest.run_backtest(entry_threshold, exit_threshold, lag)
-        
+        self.vectorized_backtest._calculate_positions(signals, 1)
+
         # validate
-        self.mock_strategy.generate_signals.assert_called_once_with(entry_threshold, exit_threshold, lag)
-        
-        # Verify that calculate_returns_and_equity and calculate_metrics are called
-        self.vectorized_backtest._calculate_equity_curve.assert_called_once()
-        self.vectorized_backtest._calculate_metrics.assert_called_once()
+        assert_frame_equal(self.vectorized_backtest.test_data, expected_df)
   
+    def test_calculate_positions_pnl(self):
+        signals = pd.DataFrame({
+                'timestamp': [
+                    1700146800000000000,1700150400000000000, 1700154000000000000, 
+                    1700157600000000000, 1700161200000000000
+                ],
+                'A': [None, None, -1.0, None,  0.0],
+                'B': [None, None, 1.0, None,  0.0],
+        })
+        signals.set_index('timestamp', inplace=True)
+        self.vectorized_backtest._calculate_positions(signals, 1)
+
+        # expected
+        data = {
+            'A': [74.425, 75.400, 75.075, 75.600, 75.500],
+            'B': [485.5, 491.5, 493.0, 493.0, 492.5],
+            'A_position': [0.0, 0.0, 0.0, -1.0, -1.0],
+            'A_position_value': [0.0, 0.0, 0.0, -30240.0, -30200.0],
+            'B_position': [0.0, 0.0, 0.0, 1.0, 1.0],
+            'B_position_value': [0.0, 0.0, 0.0, 24650.0, 24625.0],
+            'A_position_pnl': [0.0, 0.0, 0.0, 0.0, 40.0],
+            'B_position_pnl': [0.0, 0.0, 0.0, 0.0, -25.0],
+            'portfolio_pnl': [0.0, 0.0, 0.0, 0.0, 15.0]
+        }
+
+        # Timestamps for the index
+        timestamps = [
+            1700146800000000000,
+            1700150400000000000,
+            1700154000000000000,
+            1700157600000000000,
+            1700161200000000000
+        ]
+
+        # Create DataFrame with timestamp as index
+        expected_df = pd.DataFrame(data, index=timestamps)
+        expected_df.index.name = 'timestamp'
+
+        # test
+        self.vectorized_backtest._calculate_positions_pnl()
+
+        # validate
+        assert_frame_equal(self.vectorized_backtest.test_data, expected_df)
+
     def test_calculate_equity_curve(self):
         # Set up
-        self.vectorized_backtest.backtest_data = pd.DataFrame({
-            'timestamp': range(0, 10),  
-            'A': [100, 101, 99, 102, 98, 103, 97, 104, 96, 105],
-            'B': [200, 198, 202, 196, 204, 194, 206, 192, 208, 190],
-            'A_position': [0, -1, 0, 1, 1, 0, 0, 1, 1, 0],
-            'B_position': [0, 1, 0, -1, -1, 0, 0, -1, -1, 0]
-        }).set_index('timestamp')
+        signals = pd.DataFrame({
+                'timestamp': [
+                    1700146800000000000,1700150400000000000, 1700154000000000000, 
+                    1700157600000000000, 1700161200000000000
+                ],
+                'A': [None, None, -1.0, None,  0.0],
+                'B': [None, None, 1.0, None,  0.0],
+        })
+        signals.set_index('timestamp', inplace=True)
+        self.vectorized_backtest._calculate_positions(signals, 1)
+        self.vectorized_backtest._calculate_positions_pnl()
 
         # Expected
-        expected_data = pd.DataFrame({
-            'timestamp': range(0, 10),  
-            'A': [100, 101, 99, 102, 98, 103, 97, 104, 96, 105],
-            'B': [200, 198, 202, 196, 204, 194, 206, 192, 208, 190],
-            'A_position': [0, -1, 0, 1, 1, 0, 0, 1, 1, 0],
-            'B_position': [0, 1, 0, -1, -1, 0, 0, -1, -1, 0],
-            'A_returns':[np.nan, 0.0100, -0.019802, 0.0303, -0.0392, 0.0510, -0.0582, 0.0721, -0.0769, 0.0937],
-            'B_returns': [np.nan,-0.0100, 0.0202, -0.0297, 0.0408, -0.04902, 0.06185, -0.06796, 0.0833, -0.086538],
-            'A_position_returns': [np.nan, 0.0, 0.0198, 0.0, -0.0392, 0.0510, 0.0, 0.0, -0.0769, 0.09375],
-            'B_position_returns': [np.nan, 0.0, 0.0202, 0.0, -0.0408, 0.04902,0.0, 0.0, -0.08333, 0.0865 ],
-            'aggregate_returns': [np.nan, 0.0, 0.0400,0.0, -0.0800, 0.1000, 0.0, 0.0, -0.1602, 0.18025],
-            'equity_value':[10000.0000, 10000.0000, 10400.0400, 10400.0400, 9567.7038, 10524.8571, 10524.8571, 10524.8571, 8838.1812, 10431.6034]
-        }).set_index('timestamp')
+        data = {
+            'A': [74.425, 75.400, 75.075, 75.600, 75.500],
+            'B': [485.5, 491.5, 493.0, 493.0, 492.5],
+            'A_position': [0.0, 0.0, 0.0, -1.0, -1.0],
+            'A_position_value': [0.0, 0.0, 0.0, -30240.0, -30200.0],
+            'B_position': [0.0, 0.0, 0.0, 1.0, 1.0],
+            'B_position_value': [0.0, 0.0, 0.0, 24650.0, 24625.0],
+            'A_position_pnl': [0.0, 0.0, 0.0, 0.0, 40.0],
+            'B_position_pnl': [0.0, 0.0, 0.0, 0.0, -25.0],
+            'portfolio_pnl': [0.0, 0.0, 0.0, 0.0, 15.0],
+            'equity_value': [10000.0,10000.0,10000.0,10000.0,10015.0 ]
+        }
+
+        # Timestamps for the index
+        timestamps = [
+            1700146800000000000,
+            1700150400000000000,
+            1700154000000000000,
+            1700157600000000000,
+            1700161200000000000
+        ]
+
+        # Create DataFrame with timestamp as index
+        expected_df = pd.DataFrame(data, index=timestamps)
+        expected_df.index.name = 'timestamp'
 
         # test
         self.vectorized_backtest._calculate_equity_curve()
 
         # validate
-        assert_frame_equal(self.vectorized_backtest.backtest_data, expected_data, check_dtype=False, check_like=True, rtol=1e-5, atol=1e-4)
+        assert_frame_equal(self.vectorized_backtest.test_data, expected_df, check_dtype=False, check_like=True, rtol=1e-5, atol=1e-4)
 
     def test_calculate_metrics(self):
-        # Set-Up
-        self.vectorized_backtest.backtest_data = pd.DataFrame({
-            'timestamp': range(0, 10),  
-            'A': [100, 101, 99, 102, 98, 103, 97, 104, 96, 105],
-            'B': [200, 198, 202, 196, 204, 194, 206, 192, 208, 190],
-            'A_position': [0, -1, 0, 1, 1, 0, 0, 1, 1, 0],
-            'B_position': [0, 1, 0, -1, -1, 0, 0, -1, -1, 0],
-            'A_returns':[np.nan, 0.0100, -0.019802, 0.0303, -0.0392, 0.0510, -0.0582, 0.0721, -0.0769, 0.0937],
-            'B_returns': [np.nan,-0.0100, 0.0202, -0.0297, 0.0408, -0.04902, 0.06185, -0.06796, 0.0833, -0.086538],
-            'A_position_returns': [np.nan, 0.0, 0.0198, 0.0, -0.0392, 0.0510, 0.0, 0.0, -0.0769, 0.09375],
-            'B_position_returns': [np.nan, 0.0, 0.0202, 0.0, -0.0408, 0.04902,0.0, 0.0, -0.08333, 0.0865 ],
-            'aggregate_returns': [np.nan, 0.0, 0.0400,0.0, -0.0800, 0.1000, 0.0, 0.0, -0.1602, 0.18025],
-            'equity_value':[10000.0000, 10000.0000, 10400.0400, 10400.0400, 9567.7038, 10524.8571, 10524.8571, 10524.8571, 8838.1812, 10431.6034]
-        }).set_index('timestamp')
+      # Set up
+        signals = pd.DataFrame({
+                'timestamp': [
+                    1700146800000000000,1700150400000000000, 1700154000000000000, 
+                    1700157600000000000, 1700161200000000000
+                ],
+                'A': [None, None, -1.0, None,  0.0],
+                'B': [None, None, 1.0, None,  0.0],
+        })
+        signals.set_index('timestamp', inplace=True)
+        self.vectorized_backtest._calculate_positions(signals, 1)
+        self.vectorized_backtest._calculate_positions_pnl()
+        self.vectorized_backtest._calculate_equity_curve()
+
 
         # Expected
-        expected_data = pd.DataFrame({
-            'timestamp': range(0, 10),  
-            'A': [100, 101, 99, 102, 98, 103, 97, 104, 96, 105],
-            'B': [200, 198, 202, 196, 204, 194, 206, 192, 208, 190],
-            'A_position': [0, -1, 0, 1, 1, 0, 0, 1, 1, 0],
-            'B_position': [0, 1, 0, -1, -1, 0, 0, -1, -1, 0],
-            'A_returns': [0.0, 0.0100, -0.019802, 0.0303, -0.0392, 0.0510, -0.0582, 0.0721, -0.0769, 0.0937],
-            'B_returns': [0.0, -0.0100, 0.0202, -0.0297, 0.0408, -0.04902, 0.06185, -0.06796, 0.0833, -0.086538],
-            'A_position_returns': [0.0, 0.0, 0.0198, 0.0, -0.0392, 0.0510, 0.0, 0.0, -0.0769, 0.09375],
-            'B_position_returns': [0.0, 0.0, 0.0202, 0.0, -0.0408, 0.04902,0.0, 0.0, -0.08333, 0.0865 ],
-            'aggregate_returns': [0.0, 0.0, 0.0400,0.0, -0.0800, 0.1000, 0.0, 0.0, -0.1602, 0.18025],
-            'equity_value': [10000.0000, 10000.0000, 10400.0400, 10400.0400, 9567.7038, 10524.8571, 10524.8571, 10524.8571, 8838.1812, 10431.6034],
-            'period_return': [0.0000, 0.0000 , 0.0400, 0.0000 , -0.0800, 0.1000, 0.0000, 0.0000, -0.1603, 0.1803],
-            'cumulative_return': [0.0000, 0.0000 , 0.0400, 0.0400 , -0.0432, 0.0525, 0.0525, 0.0525, -0.1162, 0.0432],
-            'drawdown': [0.0000, 0.0000 , 0.0000, 0.0000 , -0.0800, 0.0000, 0.0000, 0.0000, -0.1603, -0.0089]
-            }).set_index('timestamp')
+        data = {
+            'A': [74.425, 75.400, 75.075, 75.600, 75.500],
+            'B': [485.5, 491.5, 493.0, 493.0, 492.5],
+            'A_position': [0.0, 0.0, 0.0, -1.0, -1.0],
+            'A_position_value': [0.0, 0.0, 0.0, -30240.0, -30200.0],
+            'B_position': [0.0, 0.0, 0.0, 1.0, 1.0],
+            'B_position_value': [0.0, 0.0, 0.0, 24650.0, 24625.0],
+            'A_position_pnl': [0.0, 0.0, 0.0, 0.0, 40.0],
+            'B_position_pnl': [0.0, 0.0, 0.0, 0.0, -25.0],
+            'portfolio_pnl': [0.0, 0.0, 0.0, 0.0, 15.0],
+            'equity_value': [10000.0,10000.0,10000.0,10000.0,10015.0 ],
+            'period_return': [0.0, 0.0 , 0.0, 0.0, 0.0015],
+            'cumulative_return': [0.0, 0.0 , 0.0, 0.0, 0.0015],
+            'drawdown': [0.0, 0.0 , 0.0, 0.0, 0.0],
+        }
+
+        # Timestamps for the index
+        timestamps = [
+            1700146800000000000,
+            1700150400000000000,
+            1700154000000000000,
+            1700157600000000000,
+            1700161200000000000
+        ]
+
+        # Create DataFrame with timestamp as index
+        expected_df = pd.DataFrame(data, index=timestamps)
+        expected_df.index.name = 'timestamp'
         
         # test
         self.vectorized_backtest._calculate_metrics()
 
         # validate
-        assert_frame_equal(self.vectorized_backtest.backtest_data, expected_data, check_dtype=False, check_like=True, rtol=1e-5, atol=1e-4)
+        assert_frame_equal(self.vectorized_backtest.test_data, expected_df, check_dtype=False, check_like=True, rtol=1e-5, atol=1e-4)
         self.assertIn("sharpe_ratio", self.vectorized_backtest.summary_stats.keys())
         self.assertTrue(self.vectorized_backtest.summary_stats['sharpe_ratio'] > 0)
         self.assertIn("annual_standard_deviation", self.vectorized_backtest.summary_stats.keys())
         self.assertTrue(self.vectorized_backtest.summary_stats['annual_standard_deviation'] > 0)
-
 
     # Type
     def test_run_backtest_with_exception_in_generate_signals(self):
@@ -189,24 +315,6 @@ class TestVectorizedBacktest(unittest.TestCase):
             
         # validate
         self.assertTrue("Mock preparation error" in str(context.exception))
-
-    def test_run_backtest_edge_cases(self):
-        self.vectorized_backtest._calculate_equity_curve = MagicMock()
-        self.vectorized_backtest._calculate_metrics = MagicMock()
-
-        # test
-        self.vectorized_backtest.run_backtest(100, 100, 1)
-    
-        # valdiate
-        self.mock_strategy.generate_signals.assert_called_once_with(100, 100, 1)
-
-        self.mock_strategy.generate_signals.reset_mock()# Reset mock to test another edge case 
-        self.vectorized_backtest.run_backtest(-1, -1, 1)
-        self.mock_strategy.generate_signals.assert_called_once_with(-1, -1, 1)
-
-    # # # Integration 
-    # # def backtest(self):
-    # #     pass 
 
 if __name__ =="__main__":
     unittest.main()

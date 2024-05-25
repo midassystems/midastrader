@@ -15,6 +15,7 @@ class BaseStrategy(ABC):
         Initializes the BaseStrategy with components for managing historical data.
         """
         self.historical_data = None
+        self.weights = {}
 
     @abstractmethod
     def prepare(self):
