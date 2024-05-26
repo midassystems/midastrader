@@ -272,10 +272,10 @@ class Cointegrationzscore(BaseStrategy):
         Returns:
         - bool : True if an exit signal else False.
         """
-        if self.last_signal == Signal.Undervalued and z_score >= exit_threshold:
+        if self.last_signal == Signal.Undervalued and z_score >= -exit_threshold:
             self.last_signal = Signal.Exit_Undervalued
             return True
-        elif self.last_signal == Signal.Overvalued and z_score <= -exit_threshold:
+        elif self.last_signal == Signal.Overvalued and z_score <= exit_threshold:
                 self.last_signal = Signal.Exit_Overvalued
                 return True
         else: 

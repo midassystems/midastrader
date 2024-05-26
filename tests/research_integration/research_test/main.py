@@ -51,7 +51,7 @@ def main():
     # Step 3 : Run Backtest
     backtest = VectorizedBacktest(strategy, data, contract_details, initial_capital=10000)
     backtest.setup()
-    backtest_results, backtest_summary_stats = backtest.run_backtest(position_lag=1)
+    backtest_results, daily_results, backtest_summary_stats = backtest.run_backtest(position_lag=1)
     stats_df = pd.DataFrame.from_dict(backtest_summary_stats, orient='index', columns=['Value'])
 
     # Step 4 : Add performance components to report

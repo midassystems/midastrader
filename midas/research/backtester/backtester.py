@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from quantAnalytics.returns import Returns
 from quantAnalytics.risk import RiskAnalysis
+from midas.shared.utils import resample_daily
 from midas.research.strategy import BaseStrategy
 from quantAnalytics.statistics import TimeseriesTests
 from quantAnalytics.performance import PerformanceStatistics
@@ -39,6 +40,7 @@ class VectorizedBacktest(PerformanceStatistics):
         self.symbols_map = symbols_map
         self.initial_capital = initial_capital
         self.train_data, self.test_data = self.split_data(full_data, train_ratio)
+        self.daily_data : pd.DataFrame
         self.summary_stats = {}
 
     def split_data(self, full_data:pd.DataFrame, train_ratio:float=0.65):
@@ -79,10 +81,9 @@ class VectorizedBacktest(PerformanceStatistics):
             self._calculate_equity_curve()
             self._calculate_metrics()
             print("Backtest completed successfully.")
-            return self.test_data, self.summary_stats
+            return self.test_data, self.daily_data, self.summary_stats
         except Exception as e:
             raise Exception(f"Backtest failed: {e}")
-
 
     def _calculate_positions(self, signals:pd.DataFrame, lag:int) -> None:
         """
@@ -140,11 +141,14 @@ class VectorizedBacktest(PerformanceStatistics):
     def _calculate_metrics(self, risk_free_rate:float=0.04) -> None:
         """
         Calculates performance metrics for the backtest including period return, cumulative return, drawdown, and Sharpe ratio.
+        ** Note: All Summary statistics are calculated on an annualized basis.
 
         Parameters:
         - risk_free_rate (float): The annual risk-free rate used for calculating the Sharpe ratio. Default is 0.04 (4%).
         """
         # Ensure that equity values are numeric and NaNs are handled
+        self.daily_data = resample_daily(self.test_data.copy())
+        daily_equity_values = pd.to_numeric(self.daily_data['equity_value'], errors='coerce').fillna(0)
         equity_values = pd.to_numeric(self.test_data['equity_value'], errors='coerce').fillna(0)
 
         # Compute simple and cumulative returns
@@ -153,17 +157,29 @@ class VectorizedBacktest(PerformanceStatistics):
         cumulative_returns = Returns.cumulative_returns(equity_values.values)
         cumulative_returns_adjusted = np.insert(cumulative_returns, 0, 0)
 
-        # Update DataFrame safely using loc
+        # Update test DataFrame 
         self.test_data['period_return'] = period_returns_adjusted
         self.test_data['cumulative_return'] = cumulative_returns_adjusted
         self.test_data['drawdown'] = RiskAnalysis.drawdown(period_returns_adjusted)
 
+
+        # Compute simple and cumulative returns daily data
+        daily_returns = Returns.simple_returns(daily_equity_values.values)
+        daily_returns_adjusted = np.insert(daily_returns, 0, 0)  # Adjust for initial zero return
+        daily_cumulative_returns = Returns.cumulative_returns(daily_equity_values.values)
+        daily_cumulative_returns_adjusted = np.insert(daily_cumulative_returns, 0, 0)
+
+        # Update daily dataframe
+        self.daily_data['period_return'] = daily_returns_adjusted
+        self.daily_data['cumulative_return'] = daily_cumulative_returns_adjusted
+        self.daily_data['drawdown'] = RiskAnalysis.drawdown(daily_returns_adjusted)
+
         # Calculate summary statistics
         self.summary_stats = {
-            "annual_standard_deviation": RiskAnalysis.annual_standard_deviation(period_returns_adjusted),
-            "sharpe_ratio": RiskAnalysis.sharpe_ratio(period_returns_adjusted, risk_free_rate),
+            "annual_standard_deviation": RiskAnalysis.annual_standard_deviation(daily_returns_adjusted),
+            "sharpe_ratio": RiskAnalysis.sharpe_ratio(daily_returns_adjusted, risk_free_rate),
+            "sortino_ratio": RiskAnalysis.sortino_ratio(daily_returns_adjusted),
             "max_drawdown": RiskAnalysis.max_drawdown(period_returns_adjusted), # standardized
-            "sortino_ratio": RiskAnalysis.sortino_ratio(period_returns_adjusted),
             "ending_equity": equity_values.values[-1], # raw
         }
         self.test_data.fillna(0, inplace=True) 

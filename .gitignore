@@ -6,6 +6,8 @@
 *.sqlite3
 __pycache__/
 *.egg-info
+*.html
+*.pdf
 
 # Django
 /db.sqlite3
