@@ -1,4 +1,5 @@
 import pytz
+import pandas as pd
 from datetime import datetime, timezone
 
 def iso_to_unix(timestamp_str: str):
@@ -51,3 +52,28 @@ def unix_to_iso(unix_timestamp: int, tz_info='UTC'):
         return dt_tz.isoformat()
     else:
         return dt_utc.isoformat()
+
+def resample_daily(df:pd.DataFrame, tz_info='UTC'):
+    """
+    Converts a DataFrame with UNIX timestamp index to daily resolution.
+
+    Parameters:
+    - df (pd.DataFrame): DataFrame with UNIX timestamp index.
+    - value_column (str): Name of the column to resample.
+    - tz_info (str): Timezone information for conversion.
+
+    Returns:
+    - pd.DataFrame: Resampled DataFrame with daily frequency.
+    """
+    # Convert index to readable datetime
+    df.index = pd.to_datetime(df.index.map(lambda x: unix_to_iso(x, tz_info)), utc=True)
+
+    # Resample to daily frequency, using the last value of each day
+    daily_df = df.resample('D').last()
+
+    # Optionally, fill NaN values if necessary, depending on your specific needs
+    daily_df.dropna(inplace=True)
+
+    return daily_df
+
+
