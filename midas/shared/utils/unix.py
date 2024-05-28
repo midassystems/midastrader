@@ -65,8 +65,17 @@ def resample_daily(df:pd.DataFrame, tz_info='UTC'):
     Returns:
     - pd.DataFrame: Resampled DataFrame with daily frequency.
     """
+    utc = True
+
+    if tz_info != 'UTC':
+        utc=False
+    
     # Convert index to readable datetime
-    df.index = pd.to_datetime(df.index.map(lambda x: unix_to_iso(x, tz_info)), utc=True)
+    df.index = pd.to_datetime(df.index.map(lambda x: unix_to_iso(x, tz_info)), utc=utc)
+
+    # Store original UNIX timestamps before resampling
+    original_timestamps = df.index.to_series().resample('D').last()
+    original_timestamps.dropna(inplace=True)
 
     # Resample to daily frequency, using the last value of each day
     daily_df = df.resample('D').last()
@@ -74,6 +83,8 @@ def resample_daily(df:pd.DataFrame, tz_info='UTC'):
     # Optionally, fill NaN values if necessary, depending on your specific needs
     daily_df.dropna(inplace=True)
 
+    # Restore original UNIX timestamps
+    daily_df.index = original_timestamps.map(lambda x: iso_to_unix(x.isoformat()))
+    daily_df.index.name = 'timestamp'
+
     return daily_df
-
-
