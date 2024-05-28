@@ -55,16 +55,14 @@ class TestConvertToUnix(unittest.TestCase):
 
     def test_resample_daily_UTC(self):
         # expected
-        UNIX_Timestamp =["2024-05-02 00:00:00+00:00" ,"2024-05-03 00:00:00+00:00"]
-        datetime_index = pd.to_datetime(UNIX_Timestamp, utc=True)
+        UNIX_Timestamp =[1714672800000000000, 1714744800000000000]
         col= [5,7]
 
         expected_df = pd.DataFrame({
-            'UNIX_Timestamp': datetime_index,
+            'timestamp': UNIX_Timestamp,
             'Col1': col,
         })
-        expected_df.set_index('UNIX_Timestamp', inplace=True)
-        expected_df.index.freq = 'D'  
+        expected_df.set_index('timestamp', inplace=True) 
 
         # test
         actual_df = resample_daily(self.mock_df)
