@@ -32,10 +32,8 @@ class DataProcessing:
         - database_client (DatabaseClient): The database client used to fetch data.
         """
         self.database = database_client
-        self.raw_data = None
-        self.processed_data = None
 
-    def get_data(self, tickers: List[str], start_date: str, end_date: str, missing_values_strategy: str = 'fill_forward') -> bool:
+    def get_data(self, tickers: List[str], start_date: str, end_date: str, missing_values_strategy: str = 'fill_forward') -> pd.DataFrame:
         """
         Retrieves data from the database and initiates the data processing. The method stores the initial data response in self.raw_data and processed data in self.processed_data.
 
@@ -46,7 +44,7 @@ class DataProcessing:
         - missing_values_strategy (str): Strategy to handle missing values. Options are 'fill_forward' or 'drop'. Defaults to 'fill_forward'.
 
         Returns:
-        - bool: Returns True if data retrieval and processing are successful.
+        - pandas.DataFrame : Returns True if data retrieval and processing are successful.
         """
         # Type Checks
         if isinstance(tickers, list):
@@ -69,9 +67,9 @@ class DataProcessing:
         data.drop(columns=['id'], inplace=True)
         DataProcessor.check_duplicates(data)
         data = DataProcessor.handle_null(data, missing_values_strategy)
-        self.processed_data = self._process_bardata(data)
+        processed_data = self._process_bardata(data)
         
-        return True
+        return processed_data
     
     def _validate_timestamp_format(self, timestamp: str) -> None:
         """
