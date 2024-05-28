@@ -55,7 +55,7 @@ class TestDataProcessing(unittest.TestCase):
         self.mock_db.get_bar_data.return_value = self.valid_db_response  # mock database response
 
         # Test
-        self.data_processor.get_data(tickers=self.valid_tickers, 
+        result = self.data_processor.get_data(tickers=self.valid_tickers, 
                                   start_date=self.valid_start_date, 
                                   end_date=self.valid_end_date)
 
@@ -63,8 +63,7 @@ class TestDataProcessing(unittest.TestCase):
         self.mock_db.get_bar_data.assert_called_once_with(tickers=self.valid_tickers, 
                                                                  start_date=self.valid_start_date, 
                                                                  end_date=self.valid_end_date)
-        # Validate Dataframe
-        result = self.data_processor.processed_data 
+        # Validate Dataframe 
         assert_frame_equal(result, self.valid_processed_data, check_dtype=True)
     
     # Type Check
