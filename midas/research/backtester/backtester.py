@@ -147,7 +147,7 @@ class VectorizedBacktest(PerformanceStatistics):
         - risk_free_rate (float): The annual risk-free rate used for calculating the Sharpe ratio. Default is 0.04 (4%).
         """
         # Ensure that equity values are numeric and NaNs are handled
-        self.daily_data = resample_daily(self.test_data.copy())
+        self.daily_data = resample_daily(self.test_data.copy(),'EST')
         daily_equity_values = pd.to_numeric(self.daily_data['equity_value'], errors='coerce').fillna(0)
         equity_values = pd.to_numeric(self.test_data['equity_value'], errors='coerce').fillna(0)
 
@@ -161,7 +161,6 @@ class VectorizedBacktest(PerformanceStatistics):
         self.test_data['period_return'] = period_returns_adjusted
         self.test_data['cumulative_return'] = cumulative_returns_adjusted
         self.test_data['drawdown'] = RiskAnalysis.drawdown(period_returns_adjusted)
-
 
         # Compute simple and cumulative returns daily data
         daily_returns = Returns.simple_returns(daily_equity_values.values)
