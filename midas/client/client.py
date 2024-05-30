@@ -6,6 +6,7 @@ from midas.shared.market_data import *
 from midas.shared.backtest import Backtest
 from midas.shared.utils import iso_to_unix, unix_to_iso
 from midas.shared.live_session import LiveTradingSession
+from midas.shared.regression import RegressionResults
 
 class DatabaseClient:
     def __init__(self, api_key:str, api_url:str ='http://127.0.0.1:8000'):
@@ -119,20 +120,21 @@ class DatabaseClient:
         return response.json()
 
     # -- Regresssion Data --
-    def create_regression_analysis(self, regression_results:dict):
+    def create_regression_analysis(self, regression_results:RegressionResults):
         """
         Create a new backtest.
 
         Parameters:
         - backtest (Backtest): Backtest object to be created.
         """
-        if not isinstance(regression_results, dict):
-            raise TypeError(f"regression_results must be of type dict.")
+        if not isinstance(regression_results, RegressionResults):
+            raise TypeError(f"regression_results must be of type RegressionResults.")
         
         url = f"{self.api_url}/api/regression_analysis/"
+        data = regression_results.to_dict()
 
         headers = {'Authorization': f'Token {self.api_key}'}
-        response = requests.post(url, json=regression_results, headers=headers)
+        response = requests.post(url, json=data, headers=headers)
 
         if response.status_code != 201:
             raise ValueError(f"Backtest creation failed: {response.text}")
