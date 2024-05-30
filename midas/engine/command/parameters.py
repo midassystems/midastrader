@@ -24,7 +24,6 @@ class Parameters:
     - symbols (List[Symbol]): List of symbols (financial instruments) involved in the trading strategy.
     - train_start (str, optional): Start date of the training period in 'YYYY-MM-DD' format.
     - train_end (str, optional): End date of the training period in 'YYYY-MM-DD' format.
-    - benchmark (List[str], optional): List of benchmark ticker symbols for performance comparison.
     - tickers (List[str]): List of ticker symbols derived from the symbols attribute.
 
     Methods:
@@ -41,7 +40,6 @@ class Parameters:
     symbols: List[Symbol] = field(default_factory=list)
     train_end: str = None
     train_start: str = None
-    benchmark: List[str] = None
     
     # Derived attribute, not directly passed by the user
     tickers: List[str] = field(default_factory=list)
@@ -68,11 +66,6 @@ class Parameters:
             raise TypeError("'symbols' must be of type list")
         if not all(isinstance(symbol, Symbol) for symbol in self.symbols):
             raise TypeError("All items in 'symbols' must be instances of Symbol")
-        if self.benchmark is not None:
-            if not isinstance(self.benchmark, list):
-                raise TypeError("benchmark must be of type list or None")
-            if not all(isinstance(item, str) for item in self.benchmark):
-                raise TypeError("All items in 'benchmark' must be of type str")
             
         # Constraint checks
         if self.missing_values_strategy not in ['drop', 'fill_forward']:
@@ -110,7 +103,6 @@ class Parameters:
             "train_end":  int(iso_to_unix(self.train_end)) if self.train_end else None, 
             "test_start": int(iso_to_unix(self.test_start)),
             "test_end": int(iso_to_unix(self.test_end)),
-            "tickers": self.tickers, 
-            "benchmark": self.benchmark
+            "tickers": self.tickers
         }   
     
