@@ -34,25 +34,6 @@ class TestBacktest(unittest.TestCase):
                                 "avg_trade_profit": 165.0, 
                                 "sortino_ratio": 0.0
                             }]
-        self.mock_regression_stats=[{
-                                "r_squared": "1.0", 
-                                "p_value_alpha": "0.5", 
-                                "p_value_beta": "0.09", 
-                                "risk_free_rate": "0.01", 
-                                "alpha": "16.4791", 
-                                "beta": "-66.6633", 
-                                "sharpe_ratio": "10.72015", 
-                                "annualized_return": "39.0001", 
-                                "market_contribution": "-0.498",
-                                "idiosyncratic_contribution": "0.66319",
-                                "total_contribution": "0.164998", 
-                                "annualized_volatility": "3.7003", 
-                                "market_volatility": "-0.25608",
-                                "idiosyncratic_volatility": "7.85876", 
-                                "total_volatility": "0.23608", 
-                                "portfolio_dollar_beta": "-8862.27533", 
-                                "market_hedge_nmv": "88662.2533"
-                            }]
         self.mock_timeseries_stats =  [
                                 {
                                     "timestamp": "2023-12-09T12:00:00Z",
@@ -104,8 +85,8 @@ class TestBacktest(unittest.TestCase):
         
         self.backtest = Backtest(parameters = self.mock_parameters,
                                  static_stats = self.mock_static_stats,
-                                 regression_stats=self.mock_regression_stats,
-                                 timeseries_stats = self.mock_timeseries_stats,
+                                 period_timeseries_stats = self.mock_timeseries_stats,
+                                 daily_timeseries_stats = self.mock_timeseries_stats,
                                  trade_data = self.mock_trades,
                                  signal_data = self.mock_signals)
 
@@ -117,8 +98,8 @@ class TestBacktest(unittest.TestCase):
         # validate
         self.assertEqual(backtest_dict['parameters'], self.mock_parameters)
         self.assertEqual(backtest_dict['static_stats'], self.mock_static_stats)
-        self.assertEqual(backtest_dict['timeseries_stats'], self.mock_timeseries_stats)
-        self.assertEqual(backtest_dict['regression_stats'], self.mock_regression_stats)
+        self.assertEqual(backtest_dict['period_timeseries_stats'], self.mock_timeseries_stats)
+        self.assertEqual(backtest_dict['daily_timeseries_stats'], self.mock_timeseries_stats)
         self.assertEqual(backtest_dict['signals'], self.mock_signals)
         self.assertEqual(backtest_dict['trades'], self.mock_trades)
 
@@ -126,47 +107,48 @@ class TestBacktest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "parameters must be a dictionary"):
             Backtest(parameters = "self.mock_parameters,",
                                 static_stats = self.mock_static_stats,
-                                regression_stats=self.mock_regression_stats,
-                                timeseries_stats = self.mock_timeseries_stats,
+                                period_timeseries_stats = self.mock_timeseries_stats,
+                                daily_timeseries_stats = self.mock_timeseries_stats,
                                 trade_data = self.mock_trades,
                                 signal_data = self.mock_signals)
             
         with self.assertRaisesRegex(ValueError,"static_stats must be a list of dictionaries" ):
             Backtest(parameters = self.mock_parameters,
                                 static_stats = "self.mock_static_stats",
-                                regression_stats=self.mock_regression_stats,
-                                timeseries_stats = self.mock_timeseries_stats,
+                                period_timeseries_stats = self.mock_timeseries_stats,
+                                daily_timeseries_stats = self.mock_timeseries_stats,
                                 trade_data = self.mock_trades,
                                 signal_data = self.mock_signals)
-        with self.assertRaisesRegex(ValueError,"regression_stats must be a list of dictionaries" ):
+            
+        with self.assertRaisesRegex(ValueError, "period_timeseries_stats must be a list of dictionaries"):
             Backtest(parameters = self.mock_parameters,
                                  static_stats = self.mock_static_stats,
-                                 regression_stats="self.mock_regression_stats",
-                                 timeseries_stats = self.mock_timeseries_stats,
+                                 period_timeseries_stats = "self.mock_timeseries_stats,",
+                                 daily_timeseries_stats = self.mock_timeseries_stats,
                                  trade_data = self.mock_trades,
                                  signal_data = self.mock_signals)
-            
-        with self.assertRaisesRegex(ValueError, "timeseries_stats must be a list of dictionaries"):
+
+        with self.assertRaisesRegex(ValueError, "daily_timeseries_stats must be a list of dictionaries"):
             Backtest(parameters = self.mock_parameters,
                                  static_stats = self.mock_static_stats,
-                                 regression_stats=self.mock_regression_stats,
-                                 timeseries_stats = "self.mock_timeseries_stats",
+                                 period_timeseries_stats = self.mock_timeseries_stats,
+                                 daily_timeseries_stats = "self.mock_timeseries_stats",
                                  trade_data = self.mock_trades,
                                  signal_data = self.mock_signals)
             
         with self.assertRaisesRegex(ValueError, "trade_data must be a list of dictionaries"):
             Backtest(parameters = self.mock_parameters,
                                  static_stats = self.mock_static_stats,
-                                 regression_stats=self.mock_regression_stats,
-                                 timeseries_stats = self.mock_timeseries_stats,
+                                 period_timeseries_stats = self.mock_timeseries_stats,
+                                 daily_timeseries_stats = self.mock_timeseries_stats,
                                  trade_data = "self.mock_trades",
                                  signal_data = self.mock_signals)
             
         with self.assertRaisesRegex(ValueError, "signal_data must be a list of dictionaries"):
             Backtest(parameters = self.mock_parameters,
                                  static_stats = self.mock_static_stats,
-                                 regression_stats=self.mock_regression_stats,
-                                 timeseries_stats = self.mock_timeseries_stats,
+                                 period_timeseries_stats = self.mock_timeseries_stats,
+                                 daily_timeseries_stats = self.mock_timeseries_stats,
                                  trade_data = self.mock_trades,
                                  signal_data = "self.mock_signals")
 
