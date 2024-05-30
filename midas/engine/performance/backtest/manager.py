@@ -2,15 +2,14 @@ import logging
 import numpy as np
 import pandas as pd
 from typing import List, Dict
-from midas.client import DatabaseClient
-
-from ..base_manager import BasePerformanceManager
-
 from midas.shared.trade import Trade
-from midas.shared.backtest import Backtest
-from quantAnalytics.regression import RegressionAnalysis
+from midas.client import DatabaseClient
 from quantAnalytics.returns import Returns
+from midas.shared.backtest import Backtest
 from quantAnalytics.risk import RiskAnalysis
+from midas.shared.utils import resample_daily
+
+from midas.engine.performance import BasePerformanceManager
 
 
 class BacktestPerformanceManager(BasePerformanceManager):
@@ -18,7 +17,7 @@ class BacktestPerformanceManager(BasePerformanceManager):
     Manages and tracks the performance of trading strategies during backtesting, 
     including detailed statistical analysis and performance metrics.
     """
-    def __init__(self, database: DatabaseClient, logger: logging.Logger, params, granularity: str="D"):
+    def __init__(self, database:DatabaseClient, logger:logging.Logger, params):
         """
         Initializes the performance manager specifically for backtesting purposes with the ability to
         perform granular analysis and logging of trading performance.
@@ -27,13 +26,11 @@ class BacktestPerformanceManager(BasePerformanceManager):
         - database (DatabaseClient): Client for database operations related to performance data.
         - logger (logging.Logger): Logger for recording activity and debugging.
         - params (Parameters): Configuration parameters for the performance manager.
-        - granularity (str): The granularity of the data aggregation ('D' for daily, 'H' for hourly, etc.).
         """
         super().__init__(database, logger, params)
         self.static_stats : List[Dict] =  []
-        self.regression_stats : List[Dict] = []
-        self.timeseries_stats : pd.DataFrame = ()
-        self.granularity = granularity  # 'D' for daily, 'H' for hourly, etc.
+        self.daily_timeseries_stats : pd.DataFrame = None
+        self.period_timeseries_stats : pd.DataFrame = None
 
     def update_trades(self, trade: Trade) -> None:
         """
@@ -80,40 +77,7 @@ class BacktestPerformanceManager(BasePerformanceManager):
 
         return aggregated
 
-    def _timestamps_to_datetime(self, data: pd.DataFrame) -> pd.DataFrame:
-        """
-        Converts the 'timestamp' column from Unix nanoseconds to a datetime object and sets it as the index of the DataFrame.
-
-        Parameters:
-        - data (pd.DataFrame): DataFrame containing a 'timestamp' column in Unix nanoseconds.
-
-        Returns:
-        - pd.DataFrame: The modified DataFrame with 'timestamp' converted to datetime and set as index.
-        """
-        data['timestamp'] = pd.to_datetime(data['timestamp'], unit='ns')
-        data.set_index('timestamp', inplace=True)
-        return data
-
-    def _standardize_to_granularity(self, data: pd.DataFrame) -> pd.DataFrame:
-        """
-        Resamples the DataFrame to the specified granularity (e.g., daily, hourly) based on the 'timestamp' index,
-        taking the last value of the specified period. This method is typically used to standardize time series data for further analysis.
-
-        Parameters:
-        - data (pd.DataFrame): DataFrame with a datetime index.
-
-        Returns:
-        - pd.DataFrame: The resampled DataFrame according to the specified granularity.
-        """
-        # Resample to the specified granularity, taking the last value of the period
-        period_data = data.resample(self.granularity).last()
-
-        # Drop rows with NaN values that might have resulted from resampling
-        period_data.dropna(inplace=True)
-
-        return period_data
-
-    def _calculate_return_and_drawdown(self, data: pd.DataFrame) -> pd.DataFrame:
+    def _calculate_return_and_drawdown(self, data:pd.DataFrame) -> pd.DataFrame:
         """
         Calculates the period returns, cumulative returns, and drawdowns for a given equity curve.
 
@@ -128,7 +92,6 @@ class BacktestPerformanceManager(BasePerformanceManager):
         # Adjust daily_return to add a placeholder at the beginning
         period_returns = Returns.simple_returns(equity_curve)
         period_returns_adjusted = np.insert(period_returns, 0, 0)
-        print(period_returns_adjusted)
 
         # Adjust rolling_cumulative_return to add a placeholder at the beginning
         cumulative_returns = Returns.cumulative_returns(equity_curve)
@@ -140,52 +103,33 @@ class BacktestPerformanceManager(BasePerformanceManager):
         data.fillna(0, inplace=True)  # Replace NaN with 0 for the first element
         return data
     
-    def calculate_statistics(self, risk_free_rate: float= 0.04):
+    def calculate_statistics(self, risk_free_rate:float=0.04):
         """
         Calculates and logs a variety of statistical measures based on the backtest results, including
         regression analysis against a benchmark and time series statistics of returns.
 
         Parameters:
         - risk_free_rate (float): The risk-free rate to be used in performance calculations.
-        """
-        # Get Benchmark Data
-        data = self.database.get_bar_data(self.params.benchmark, self.params.test_start, self.params.test_end)
-        benchmark_data = [{'timestamp': item['timestamp'], 'close': item['close']} for item in data]
-        # benchmark_data = self.database.get_benchmark_data(self.params.benchmark, self.params.test_start, self.params.test_end)
-        benchmark_df = pd.DataFrame(benchmark_data)
-        benchmark_df["close"] = benchmark_df["close"].astype(float)
-        benchmark_df= self._timestamps_to_datetime(benchmark_df)
-        benchmark_df=benchmark_df.reset_index()
-        
+        """        
         # Aggregate Trades
         aggregated_trades = self._aggregate_trades()
 
-        # Normalize Equity Curve
+        # Equity Curve
         raw_equity_df = pd.DataFrame(self.equity_value)
-        raw_equity_df = self._timestamps_to_datetime(raw_equity_df)
-        standardized_equity_df = self._standardize_to_granularity(raw_equity_df.copy())
-        raw_equity_df=raw_equity_df.reset_index()
+        raw_equity_df.set_index("timestamp", inplace=True)
 
-        # Regression Analysis 
-        regression = RegressionAnalysis(raw_equity_df, benchmark_df)
-        regression.perform_regression_analysis()
-        regression_results = regression.compile_results()
-        self.regression_stats.append(regression_results)
+        # Daily Equity Curve
+        daily_equity_curve = resample_daily(raw_equity_df.copy(),'EST')
 
         # Calculate Timeseries Statistics
-        self.timeseries_stats = self._calculate_return_and_drawdown(standardized_equity_df)
-        daily_strategy_returns = regression.strategy_returns.to_frame(name='daily_strategy_return').round(6)
-        daily_benchmark_returns = regression.benchmark_returns.to_frame(name=f'daily_benchmark_return').round(6)
-        
-        # Merge the returns into the timeseries stats DataFrame
-        self.timeseries_stats = self.timeseries_stats.join(daily_strategy_returns, how='left')
-        self.timeseries_stats = self.timeseries_stats.join(daily_benchmark_returns, how='left')
-        self.timeseries_stats.fillna(0, inplace=True)  # Replace NaN with 0 for the first element
-        self.timeseries_stats.index = self.timeseries_stats.index.view('int64')
-        self.timeseries_stats = self.timeseries_stats.reset_index(names="timestamp")
+        self.period_timeseries_stats = self._calculate_return_and_drawdown(raw_equity_df.copy())
+        self.period_timeseries_stats.reset_index(inplace=True)
+        self.daily_timeseries_stats = self._calculate_return_and_drawdown(daily_equity_curve.copy())
+        self.daily_timeseries_stats.reset_index(inplace=True)
 
         # Convert the appropriate equity curve dataframes to numpy arrays for calculations
         raw_equity_curve = raw_equity_df['equity_value'].to_numpy()
+        daily_returns = self.daily_timeseries_stats["period_return"].to_numpy()
         
         try:
             self.validate_trade_log(aggregated_trades)
@@ -198,8 +142,8 @@ class BacktestPerformanceManager(BasePerformanceManager):
                 
                 # Percentages
                 "total_return": Returns.total_return(raw_equity_curve), # raw
-                "annual_standard_deviation_percentage": RiskAnalysis.annual_standard_deviation(np.array(daily_strategy_returns)), # raw
-                "max_drawdown_percentage": RiskAnalysis.max_drawdown(np.array(daily_strategy_returns)), # standardized
+                "annual_standard_deviation_percentage": RiskAnalysis.annual_standard_deviation(np.array(daily_returns)), # # may want as period not daily
+                "max_drawdown_percentage": RiskAnalysis.max_drawdown(np.array(daily_returns)), # may want as period not daily
                 "avg_win_percentage":self.avg_win_return_rate(aggregated_trades),
                 "avg_loss_percentage":self.avg_loss_return_rate(aggregated_trades),
                 "percent_profitable":self.profitability_ratio(aggregated_trades),
@@ -210,8 +154,8 @@ class BacktestPerformanceManager(BasePerformanceManager):
                 "number_losing_trades":self.total_losing_trades(aggregated_trades),
                 "profit_and_loss_ratio" :self.profit_and_loss_ratio(aggregated_trades),
                 "profit_factor":self.profit_factor(aggregated_trades),
-                "sharpe_ratio": RiskAnalysis.sharpe_ratio(np.array(daily_strategy_returns), risk_free_rate),
-                "sortino_ratio": RiskAnalysis.sortino_ratio(np.array(daily_strategy_returns)),
+                "sharpe_ratio": RiskAnalysis.sharpe_ratio(np.array(daily_returns), risk_free_rate),
+                "sortino_ratio": RiskAnalysis.sortino_ratio(np.array(daily_returns)),
             }
             self.static_stats.append(stats)
             self.logger.info(f"Backtest statistics successfully calculated.")
@@ -228,8 +172,8 @@ class BacktestPerformanceManager(BasePerformanceManager):
         # Create Backtest Object
         self.backtest = Backtest(parameters=self.params.to_dict(), 
                                  static_stats=self.static_stats,
-                                 regression_stats=self.regression_stats,
-                                 timeseries_stats=self.timeseries_stats.to_dict(orient='records'),
+                                 period_timeseries_stats=self.period_timeseries_stats.to_dict(orient='records'),
+                                 daily_timeseries_stats=self.daily_timeseries_stats.to_dict(orient='records'),
                                  trade_data=[trade.to_dict() for trade in self.trades],
                                  signal_data=self.signals
                                  )

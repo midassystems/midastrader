@@ -30,7 +30,7 @@ class TestPerformanceManager(unittest.TestCase):
             test_start= "2023-01-19", 
             test_end= "2024-01-19", 
             tickers= ["HE.n.0", "ZC.n.0"], 
-            benchmark= ["^GSPC"]
+            # benchmark= ["^GSPC"]
         )
 
         self.performance_manager = BacktestPerformanceManager(self.mock_db_client, self.mock_logger, self.mock_parameters)
@@ -237,62 +237,6 @@ class TestPerformanceManager(unittest.TestCase):
         self.assertEqual(trade_1.iloc[0]['pnl'], 30, "Incorrect net pnl for trade_id 1")
         self.assertEqual(trade_1.iloc[0]['gain/loss'], 0.30, "Incorrect gain/loss for trade_id 1")
 
-    def test_standardize_to_granularity(self):
-        self.equity_curve = [
-            EquityDetails(timestamp=1640995200000000000, equity_value=1000.0),
-            EquityDetails(timestamp=1641081600000000000, equity_value=99),
-            EquityDetails(timestamp=1641081600000000000, equity_value=1010.0),
-            EquityDetails(timestamp=1641168000000000000, equity_value=1005.0)
-        ]
-        
-        # Expected Data
-        data = {
-                'timestamp': pd.to_datetime(['2022-01-01', '2022-01-02', '2022-01-03']),
-                'equity_value': [1000.0, 1010.0, 1005.0],
-            }
-        expected_df = pd.DataFrame(data)
-        expected_df.set_index('timestamp', inplace=True)
-        expected_df.index.freq = 'D'  # Explicitly setting frequency to daily
-
-        # Test 
-        df_input = pd.DataFrame(self.equity_curve)
-        df_input= self.performance_manager._timestamps_to_datetime(df_input) # this happens in the calculate_statistics method
-        df = self.performance_manager._standardize_to_granularity(df_input)
-
-        # Validate
-        self.assertIsInstance(df, pd.DataFrame, "Equity values should be a dataframe.")
-        assert_frame_equal(df, expected_df)
-
-    def test_standardize_to_granularity_intraday_valid(self):
-        self.equity_curve = [
-            EquityDetails(timestamp= 1641047400000000000, equity_value= 1000.0),
-            EquityDetails(timestamp= 1641070800000000000, equity_value= 1005.0),
-            EquityDetails(timestamp= 1641133800000000000, equity_value= 1010.0),
-            EquityDetails(timestamp= 1641142800000000000, equity_value= 1012.0),
-            EquityDetails(timestamp= 1641157200000000000, equity_value= 1015.0),
-            EquityDetails(timestamp= 1641220200000000000, equity_value= 1005.0),
-            EquityDetails(timestamp= 1641225600000000000, equity_value= 1007.0),
-            EquityDetails(timestamp= 1641243600000000000, equity_value= 1010.0)
-        ]
-        
-        # Expected Data
-        data = {
-                'timestamp': pd.to_datetime(['2022-01-01', '2022-01-02', '2022-01-03']),
-                'equity_value': [1005.0, 1015.0, 1010.0],
-            }
-        expected_df = pd.DataFrame(data)
-        expected_df.set_index('timestamp', inplace=True)
-        expected_df.index.freq = 'D'  # Explicitly setting frequency to daily
-
-        # Test 
-        df_input = pd.DataFrame(self.equity_curve)
-        df_input= self.performance_manager._timestamps_to_datetime(df_input) # this happens in the calculate_statistics method
-        df = self.performance_manager._standardize_to_granularity(df_input)
-        
-        # Validate
-        self.assertIsInstance(df, pd.DataFrame, "Equity values should be a dataframe.")
-        assert_frame_equal(df, expected_df)
-
     def test_calculate_return_and_drawdown_valid(self):
         self.performance_manager.equity_value = [
             EquityDetails(timestamp=1640995200000000000, equity_value=1000.0),
@@ -303,9 +247,7 @@ class TestPerformanceManager(unittest.TestCase):
 
         # test
         df_input = pd.DataFrame(self.performance_manager.equity_value)
-        df_input= self.performance_manager._timestamps_to_datetime(df_input)
         df = self.performance_manager._calculate_return_and_drawdown(df_input)
-        print(df)
 
         # Validate
         self.assertTrue(isinstance(df, pd.DataFrame), "Result should be a pandas DataFrame")
@@ -369,9 +311,12 @@ class TestPerformanceManager(unittest.TestCase):
         self.performance_manager.calculate_statistics()
 
         # Validate timeseries_stats 
-        expected_columns = ['equity_value', 'period_return', 'cumulative_return', 'drawdown','daily_strategy_return', 'daily_benchmark_return']
+        expected_columns = ['equity_value', 'period_return', 'cumulative_return', 'drawdown']
         for column in expected_columns:
-            self.assertIn(column, self.performance_manager.timeseries_stats.columns)
+            self.assertIn(column, self.performance_manager.period_timeseries_stats.columns)
+
+        for column in expected_columns:
+            self.assertIn(column, self.performance_manager.daily_timeseries_stats.columns)
 
          # Validate that static_stats has non-null values and contains expected keys
         expected_static_keys = [
@@ -386,17 +331,6 @@ class TestPerformanceManager(unittest.TestCase):
         for key in expected_static_keys:
             self.assertIn(key, static_stats)
             self.assertIsNotNone(static_stats[key])
-
-        # Validate that regression_stats has non-null values and contains expected keys
-        expected_regression_keys = ["r_squared", "p_value_alpha", "p_value_beta", "risk_free_rate", "alpha", 
-                                    "beta", "market_contribution", "idiosyncratic_contribution", 
-                                    "total_contribution", "market_volatility", "idiosyncratic_volatility", 
-                                    "total_volatility", "portfolio_dollar_beta", "market_hedge_nmv"]
-        
-        regression_stats = self.performance_manager.regression_stats[0]
-        for key in expected_regression_keys:
-            self.assertIn(key, regression_stats)
-            self.assertIsNotNone(regression_stats[key])
 
     def test_create_backtest(self):
         # Signals
@@ -476,18 +410,13 @@ class TestPerformanceManager(unittest.TestCase):
             self.assertIn(key, expected_static_keys)
             self.assertIsNotNone(backtest.static_stats[0][key])
 
-        # regression stats
-        expected_reg_keys = {"r_squared", "p_value_alpha", "p_value_beta", "risk_free_rate", "alpha", "beta", "market_contribution", "idiosyncratic_contribution", 
-                            "total_contribution", "market_volatility", "idiosyncratic_volatility", "total_volatility", "portfolio_dollar_beta", "market_hedge_nmv"}
-
-        actual_reg_keys = set(backtest.regression_stats[0].keys())
-        self.assertEqual(actual_reg_keys, expected_reg_keys, "Regression stats keys do not match expected keys.")
-
         # timeseries stats
-        expected_timeseries_keys = {'timestamp', 'equity_value','period_return', 'cumulative_return', 'drawdown', 'daily_strategy_return', 'daily_benchmark_return'}  # Adjust based on your actual expected output
-        actual_timeseries_keys = set(backtest.timeseries_stats[0].keys())
+        expected_timeseries_keys = {'timestamp', 'equity_value','period_return', 'cumulative_return', 'drawdown'} 
+        actual_daily_timeseries_keys = set(backtest.daily_timeseries_stats[0].keys())
+        actual_period_timeseries_keys = set(backtest.period_timeseries_stats[0].keys())
         
-        self.assertEqual(actual_timeseries_keys, expected_timeseries_keys, "Timeseries stats keys do not match expected keys.")
+        self.assertEqual(actual_daily_timeseries_keys, expected_timeseries_keys, "Timeseries stats keys do not match expected keys.")
+        self.assertEqual(actual_period_timeseries_keys, expected_timeseries_keys, "Timeseries stats keys do not match expected keys.")
 
 
 if __name__ == "__main__":
