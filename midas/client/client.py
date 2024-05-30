@@ -773,18 +773,6 @@ class DatabaseClient:
         if response.status_code != 200:
             raise ValueError(f"Bar data update failed: {response.text}")
         return response.json()
-
-    # def get_benchmark_data(self, tickers: List[str], start_date: str, end_date: str):
-    #     """
-    #     Retrieves bar data by ticker and time range.  
-
-    #     Parameters:
-    #     - tickers (list(str)): List if tickers for which data is being retrieved.
-    #     - start_date (str): Start date expected in ISO 8601.
-    #     - end_date (str): End date expected in ISO 8601.
-    #     """
-    #     data = self.get_bar_data(tickers, start_date, end_date)
-    #     return [{'timestamp': item['timestamp'], 'close': item['close']} for item in data]
     
     # -- Backtest Data -- 
     def create_backtest(self, backtest: Backtest):
@@ -799,7 +787,7 @@ class DatabaseClient:
         
         url = f"{self.api_url}/api/backtest/"
         data=backtest.to_dict()
-        print(data)
+
         headers = {'Authorization': f'Token {self.api_key}'}
         response = requests.post(url, json=data, headers=headers)
         
@@ -832,6 +820,26 @@ class DatabaseClient:
         
         if response.status_code != 200:
             raise ValueError(f"Failed to retrieve backtest: {response.text}")
+        return response.json()
+
+    # -- Regresssion Data --
+    def create_regression_analysis(self, regression_results:dict):
+        """
+        Create a new backtest.
+
+        Parameters:
+        - backtest (Backtest): Backtest object to be created.
+        """
+        if not isinstance(regression_results, dict):
+            raise TypeError(f"regression_results must be of type dict.")
+        
+        url = f"{self.api_url}/api/regression_analysis/"
+
+        headers = {'Authorization': f'Token {self.api_key}'}
+        response = requests.post(url, json=regression_results, headers=headers)
+
+        if response.status_code != 201:
+            raise ValueError(f"Backtest creation failed: {response.text}")
         return response.json()
 
     # -- Live Session Data -- 
