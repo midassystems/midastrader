@@ -76,8 +76,7 @@ class TestConfig(unittest.TestCase):
                             train_end = "2023-12-31",
                             test_start = "2024-01-01",
                             test_end = "2024-01-19",
-                            symbols = self.valid_symbols,
-                            benchmark = ["^GSPC"])
+                            symbols = self.valid_symbols)
 
     # Basic Validation
     def test_live_connects(self):
