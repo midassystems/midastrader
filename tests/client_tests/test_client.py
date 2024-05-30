@@ -704,6 +704,127 @@ class TestBarDataMethods(unittest.TestCase):
         self.assertEqual(old_bar['id'], response['id'])
         self.assertEqual(Decimal(response['open']), new_bar.open)
 
+class TestRegressionMethods(unittest.TestCase):
+    def setUp(self) -> None:
+        self.client = DatabaseClient(DATABASE_KEY, DATABASE_URL) 
+        self.mock_parameters = {
+                                "strategy_name": "cointegrationzscore", 
+                                "capital": 100000, 
+                                "data_type": "BAR", 
+                                "train_start": 1526601600000000000, 
+                                "train_end": 1674086400000000000, 
+                                "test_start": 1674086400000000000, 
+                                "test_end": 1705622400000000000, 
+                                "tickers": ["AAPL"], 
+                                "benchmark": ["^GSPC"]
+                            }
+        self.mock_static_stats = [{
+                                "net_profit": 330.0, 
+                                "total_fees": 40.0, 
+                                "total_return": 0.33, 
+                                "ending_equity": 1330.0, 
+                                "max_drawdown": 0.0, 
+                                "total_trades": 2, 
+                                "num_winning_trades": 2, 
+                                "num_lossing_trades": 0, 
+                                "avg_win_percent": 0.45, 
+                                "avg_loss_percent": 0, 
+                                "percent_profitable": 1.0, 
+                                "profit_and_loss": 0.0, 
+                                "profit_factor": 0.0, 
+                                "avg_trade_profit": 165.0, 
+                                "sortino_ratio": 0.0
+                            }]
+        self.mock_timeseries_stats =  [
+                                {
+                                    "timestamp": 1702141200000000000,
+                                    "equity_value": 10000.0,
+                                    "percent_drawdown": 9.9, 
+                                    "cumulative_return": -0.09, 
+                                    "period_return": 79.9,
+                                    "daily_strategy_return": "0.330", 
+                                    "daily_benchmark_return": "0.00499"
+                                },
+                                {
+                                    "timestamp": 1702227600000000000,
+                                    "equity_value": 10000.0,
+                                    "percent_drawdown": 9.9, 
+                                    "cumulative_return": -0.09, 
+                                    "period_return": 79.9,
+                                    "daily_strategy_return": "0.087", 
+                                    "daily_benchmark_return": "0.009"
+                                }
+                            ]
+        self.mock_trades =  [{
+                                "trade_id": 1, 
+                                "leg_id": 1, 
+                                "timestamp": 1672704000000000000, 
+                                "ticker": "AAPL", 
+                                "quantity": 4, 
+                                "price": 130.74, 
+                                "cost": -522.96, 
+                                "action": "BUY", 
+                                "fees": 0.0
+                            }]
+        self.mock_signals =  [{
+                                "timestamp": 1672704000000000000, 
+                                "trade_instructions": [{
+                                    "ticker": "AAPL", 
+                                    "action": "BUY", 
+                                    "trade_id": 1, 
+                                    "leg_id": 1, 
+                                    "weight": 0.05
+                                }, 
+                                {
+                                    "ticker": "MSFT", 
+                                    "action": "SELL", 
+                                    "trade_id": 1, 
+                                    "leg_id": 2, 
+                                    "weight": 0.05
+                                }]
+                            }]
+        
+        self.backtest = Backtest(parameters = self.mock_parameters,
+                                 static_stats = self.mock_static_stats,
+                                 timeseries_stats = self.mock_timeseries_stats,
+                                 trade_data = self.mock_trades,
+                                 signal_data = self.mock_signals)
+        
+        response = self.client.create_backtest(self.backtest)
+        self.backtest_id = response['id']
+
+        self.mock_regression_stats={
+                                "backtest":self.backtest_id,
+                                "r_squared": "1.0", 
+                                "p_value_alpha": "0.5", 
+                                "p_value_beta": "0.09", 
+                                "risk_free_rate": "0.01", 
+                                "alpha": "16.4791", 
+                                "beta": "-66.6633", 
+                                "annualized_return": "39.0001", 
+                                "market_contribution": "-0.498",
+                                "idiosyncratic_contribution": "0.66319",
+                                "total_contribution": "0.164998", 
+                                "annualized_volatility": "3.7003", 
+                                "market_volatility": "-0.25608",
+                                "idiosyncratic_volatility": "7.85876", 
+                                "total_volatility": "0.23608", 
+                                "portfolio_dollar_beta": "-8862.27533", 
+                                "market_hedge_nmv": "88662.2533"
+                            }
+    def test_create_regression(self):
+        # test
+        response = self.client.create_regression_analysis(self.mock_regression_stats)
+
+        # validate
+        self.assertIn('backtest', response)
+        self.assertIn('r_squared', response) 
+        self.assertIn('p_value_alpha', response) 
+        self.assertIn('p_value_beta', response) 
+        self.assertIn('risk_free_rate', response) 
+        self.assertIn('alpha', response) 
+        self.assertIn('beta', response) 
+        
 class TestBacktestMethods(unittest.TestCase):
     def setUp(self) -> None:
         self.client = DatabaseClient(DATABASE_KEY, DATABASE_URL) 
