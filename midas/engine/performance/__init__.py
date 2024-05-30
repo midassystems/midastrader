@@ -1,1 +1,1 @@
-from .backtest.manager import BasePerformanceManager
+from .base_manager import BasePerformanceManager

@@ -59,8 +59,7 @@ class CointegrationzscoreConfig(Config):
                         continuous=True,
                         lastTradeDateOrContractMonth="202404")
                 # Future(ticker="ZS",data_ticker= "ZC.n.0", currency=Currency.USD,exchange=Exchange.CBOT,fees=0.85,lastTradeDateOrContractMonth="202403", multiplier=5000,tickSize=0.0025, initialMargin=2056.75),
-            ], 
-            benchmark=["^GSPC"]
+            ]
         )  
     
         super().__init__(session_id, mode, params, DATABASE_KEY, DATABASE_URL, None, logger_output, logger_level)

@@ -207,7 +207,8 @@ class TestRegressionMethods(unittest.TestCase):
         
         self.backtest = Backtest(parameters = self.mock_parameters,
                                  static_stats = self.mock_static_stats,
-                                 timeseries_stats = self.mock_timeseries_stats,
+                                 daily_timeseries_stats = self.mock_timeseries_stats,
+                                 period_timeseries_stats = self.mock_timeseries_stats,
                                  trade_data = self.mock_trades,
                                  signal_data = self.mock_signals)
         
@@ -347,8 +348,8 @@ class TestBacktestMethods(unittest.TestCase):
         
         self.backtest = Backtest(parameters = self.mock_parameters,
                                  static_stats = self.mock_static_stats,
-                                 regression_stats=self.mock_regression_stats,
-                                 timeseries_stats = self.mock_timeseries_stats,
+                                 daily_timeseries_stats = self.mock_timeseries_stats,
+                                 period_timeseries_stats = self.mock_timeseries_stats,
                                  trade_data = self.mock_trades,
                                  signal_data = self.mock_signals)
 
@@ -360,7 +361,8 @@ class TestBacktestMethods(unittest.TestCase):
         self.assertIn("parameters", response)
         self.assertIn("static_stats", response)
         self.assertIn("regression_stats", response)
-        self.assertIn("timeseries_stats", response)
+        self.assertIn("period_timeseries_stats", response)
+        self.assertIn("daily_timeseries_stats", response)
         self.assertIn("signals", response)
         self.assertIn("trades", response)
 
@@ -392,7 +394,8 @@ class TestBacktestMethods(unittest.TestCase):
         self.assertIn("parameters", response)
         self.assertIn("static_stats", response)
         self.assertIn("regression_stats", response)
-        self.assertIn("timeseries_stats", response)
+        self.assertIn("period_timeseries_stats", response)
+        self.assertIn("daily_timeseries_stats", response)
         self.assertIn("signals", response)
         self.assertIn("trades", response)
         self.assertIn("price_data", response)

@@ -32,7 +32,6 @@ class TestPerformanceManager(unittest.TestCase):
             test_start= "2023-01-19", 
             test_end= "2024-01-19", 
             tickers= ["HE.n.0", "ZC.n.0"], 
-            benchmark= ["^GSPC"]
         )
 
         self.performance_manager = LivePerformanceManager(self.mock_db_client, self.mock_logger, self.mock_parameters)
