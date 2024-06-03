@@ -137,7 +137,7 @@ class DatabaseClient:
         response = requests.post(url, json=data, headers=headers)
 
         if response.status_code != 201:
-            raise ValueError(f"Backtest creation failed: {response.text}")
+            raise ValueError(f"Regression analysis creation failed: {response.text}")
         return response.json()
 
     # -- Live Session Data -- 

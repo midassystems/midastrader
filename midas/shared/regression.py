@@ -23,10 +23,10 @@ class RegressionResults:
     total_volatility:float
     systematic_volatility:float
     idiosyncratic_volatility:float
-    vif:dict = field(default_factory=dict)
-    beta:dict = field(default_factory=dict)
-    p_value_beta:dict = field(default_factory=dict)
-    residuals: list = field(default_factory=list)
+    vif:dict 
+    beta:dict
+    p_value_beta:dict
+    timeseries_data:list
 
     def __post_init__(self):
         if not isinstance(self.vif, dict):
@@ -35,8 +35,8 @@ class RegressionResults:
             raise ValueError("beta must be a dictionary")
         if not isinstance(self.p_value_beta, dict):
             raise ValueError("p_value_beta must be a dictionary")
-        if not isinstance(self.residuals, list):
-            raise ValueError("residuals must be a list")
+        if not isinstance(self.timeseries_data, list):
+            raise ValueError("timeseries_data must be a list")
         for attr in ['risk_free_rate', 'r_squared', 'adj_r_squared', 'RMSE', 'MAE', 'f_statistic', 
                      'f_statistic_p_value', 'durbin_watson', 'jarque_bera', 'jarque_bera_p_value', 
                      'condition_number', 'alpha', 'p_value_alpha', 'total_contribution', 
@@ -72,5 +72,5 @@ class RegressionResults:
             "total_volatility": self.total_volatility,
             "systematic_volatility": self.systematic_volatility,
             "idiosyncratic_volatility": self.idiosyncratic_volatility,
-            "residuals": self.residuals,
+            "timeseries_data": self.timeseries_data
         }

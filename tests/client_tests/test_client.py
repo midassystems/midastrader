@@ -240,7 +240,18 @@ class TestRegressionMethods(unittest.TestCase):
             total_volatility=0.15,
             systematic_volatility=0.1,
             idiosyncratic_volatility=0.05,
-            residuals=[0.1, -0.2, 0.05, -0.1]
+            timeseries_data=[
+                {'timestamp': 1706850000000000000, 'daily_benchmark_return': 0.0}, 
+                {'timestamp': 1707109200000000000, 'daily_benchmark_return': 0.0024}, 
+                {'timestamp': 1707195600000000000, 'daily_benchmark_return': 0.0063}, 
+                {'timestamp': 1707282000000000000, 'daily_benchmark_return': 0.0056}, 
+                {'timestamp': 1707368400000000000, 'daily_benchmark_return': 0.0152}, 
+                {'timestamp': 1707454800000000000, 'daily_benchmark_return': 0.0052}, 
+                {'timestamp': 1707714000000000000, 'daily_benchmark_return': -0.0016}, 
+                {'timestamp': 1707800400000000000, 'daily_benchmark_return': 0.0022}, 
+                {'timestamp': 1707886800000000000, 'daily_benchmark_return': -0.0118}, 
+                {'timestamp': 1707973200000000000, 'daily_benchmark_return': 0.0061}
+            ]
         )
     def test_create_regression(self):
         # test
