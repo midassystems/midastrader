@@ -214,7 +214,7 @@ class Config:
         from midas.engine.gateways.backtest import (DataClient, BrokerClient, DummyBroker)
 
         # Performance
-        self.performance_manager = BacktestPerformanceManager(self.database, self.logger, self.params)
+        self.performance_manager = BacktestPerformanceManager(self.database, self.logger, None, self.params)
 
         # Gateways
         self.hist_data_client = DataClient(self.event_queue, self.database, self.order_book)
@@ -297,6 +297,6 @@ class Config:
             raise ValueError(f"'strategy' must be a class and a subclass of BaseStrategy.")
         try:
             self.strategy = strategy(symbols_map= self.symbols_map, historical_data = self.train_data, portfolio_server=self.portfolio_server, logger = self.logger, order_book = self.order_book, event_queue=self.event_queue)
-            
+            self.performance_manager.set_strategy(self.strategy)
         except:
             raise RuntimeError("Error creating strategy instance.")

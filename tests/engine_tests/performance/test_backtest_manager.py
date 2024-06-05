@@ -21,6 +21,7 @@ from midas.shared.symbol import Equity, Future, Currency, Venue, Symbol, Industr
 
 class TestPerformanceManager(unittest.TestCase):    
     def setUp(self) -> None:
+        self.strategy =Mock()
         self.mock_db_client = Mock()
         self.mock_logger = Mock()
         self.mock_parameters = Parameters(
@@ -70,7 +71,7 @@ class TestPerformanceManager(unittest.TestCase):
                     ]
         )
 
-        self.performance_manager = BacktestPerformanceManager(self.mock_db_client, self.mock_logger, self.mock_parameters)
+        self.performance_manager = BacktestPerformanceManager(self.mock_db_client, self.mock_logger, self.strategy, self.mock_parameters)
 
         # Valid Data
         self.mock_static_stats = [{

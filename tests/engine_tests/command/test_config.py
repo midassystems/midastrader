@@ -430,6 +430,9 @@ class TestConfig(unittest.TestCase):
                 pass
             def handle_market_data(self):
                 pass
+
+            def get_strategy_data(self) -> pd.DataFrame:
+                pass
         
         with ExitStack() as stack:
             mock_setup = stack.enter_context(patch.object(Config, 'setup'))
@@ -438,6 +441,7 @@ class TestConfig(unittest.TestCase):
             self.config.train_data = Mock()
             self.config.portfolio_server= Mock()
             self.config.order_book = Mock()
+            self.config.performance_manager = Mock()
 
             # Test
             self.config.set_strategy(TestStrategy)

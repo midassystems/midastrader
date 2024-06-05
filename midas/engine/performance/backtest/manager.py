@@ -7,6 +7,7 @@ from midas.client import DatabaseClient
 from quantAnalytics.returns import Returns
 from midas.shared.backtest import Backtest
 from quantAnalytics.risk import RiskAnalysis
+from midas.engine.strategies import BaseStrategy
 from midas.shared.utils import resample_daily, unix_to_iso
 
 from midas.engine.performance import BasePerformanceManager
@@ -17,7 +18,7 @@ class BacktestPerformanceManager(BasePerformanceManager):
     Manages and tracks the performance of trading strategies during backtesting, 
     including detailed statistical analysis and performance metrics.
     """
-    def __init__(self, database:DatabaseClient, logger:logging.Logger, params):
+    def __init__(self, database:DatabaseClient, logger:logging.Logger, strategy: BaseStrategy, params):
         """
         Initializes the performance manager specifically for backtesting purposes with the ability to
         perform granular analysis and logging of trading performance.
@@ -28,9 +29,13 @@ class BacktestPerformanceManager(BasePerformanceManager):
         - params (Parameters): Configuration parameters for the performance manager.
         """
         super().__init__(database, logger, params)
+        self.strategy = strategy
         self.static_stats : List[Dict] =  []
         self.daily_timeseries_stats : pd.DataFrame = None
         self.period_timeseries_stats : pd.DataFrame = None
+
+    def set_strategy(self, strategy: BaseStrategy):
+        self.strategy = strategy
 
     def update_trades(self, trade: Trade) -> None:
         """
@@ -209,6 +214,9 @@ class BacktestPerformanceManager(BasePerformanceManager):
         signals_df = self._flatten_trade_instructions(signals_df, 'trade_instructions')
         self._convert_timestamp(signals_df)
 
+        # Extract strategy-specific data
+        strategy_data = self.strategy.get_strategy_data()
+
         with pd.ExcelWriter(output_path + 'output.xlsx', engine='xlsxwriter') as writer:
             params_df.to_excel(writer, sheet_name='Parameters')
             static_stats_df.to_excel(writer, sheet_name='Static Stats')
@@ -216,6 +224,7 @@ class BacktestPerformanceManager(BasePerformanceManager):
             daily_timeseries_df.to_excel(writer, index=False, sheet_name='Daily Timeseries')
             trades_df.to_excel(writer, index=False, sheet_name='Trades')
             signals_df.to_excel(writer, index=False, sheet_name='Signals')
+            strategy_data.to_excel(writer, index=False, sheet_name='Strategy Data')
 
     def save(self) -> None:
         """
