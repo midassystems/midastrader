@@ -1,13 +1,13 @@
 import logging
+import pandas as pd
 from queue import Queue
 from typing import List, Union
 from abc import ABC, abstractmethod
 
 from midas.engine.order_book import OrderBook
+from midas.shared.signal import TradeInstruction
 from midas.engine.portfolio import PortfolioServer
 from midas.engine.events import  SignalEvent, MarketEvent
-
-from midas.shared.signal import TradeInstruction
 
 
 class BaseStrategy(ABC):
@@ -106,3 +106,10 @@ class BaseStrategy(ABC):
         This method typically involves a vectorized approach to signal generation.
         """
         pass
+
+    @abstractmethod
+    def get_strategy_data(self) -> pd.DataFrame:
+        """
+        Get strategy-specific data.
+        """
+        pass 

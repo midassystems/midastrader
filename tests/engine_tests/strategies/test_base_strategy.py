@@ -3,6 +3,8 @@ import numpy as np
 from decimal import Decimal
 from unittest.mock import Mock, patch
 
+from pandas.core.api import DataFrame as DataFrame
+
 from midas.engine.strategies import BaseStrategy
 from midas.engine.events import  SignalEvent, MarketEvent
 
@@ -26,6 +28,9 @@ class TestStrategy(BaseStrategy):
         pass
 
     def _asset_allocation(self):
+        pass
+
+    def get_strategy_data(self) -> DataFrame:
         pass
 
 class TestTestStrategy(unittest.TestCase):

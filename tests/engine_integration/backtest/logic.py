@@ -12,6 +12,7 @@ from midas.engine.order_book import OrderBook
 from midas.engine.strategies import BaseStrategy
 from midas.engine.portfolio import PortfolioServer
 from midas.shared.signal import TradeInstruction, OrderType, Action
+from midas.shared.utils import unix_to_iso
 
 from quantAnalytics.statistics import TimeseriesTests
 
@@ -71,9 +72,11 @@ class Cointegrationzscore(BaseStrategy):
 
         # Create Spread
         self.historical_spread = list(self._historic_spread(self.train_data, self.cointegration_vector))
+        # self.historical_data["spread"] = self.historical_spread
         
         # Create Z-Score
         self.historical_zscore = list(self._historic_zscore(self.zscore_lookback_period))
+        # self.historical_data["z-score"] = self.historical_zscore
         
         # Validation tests on spread/z-score data
         self._data_validation()
@@ -229,6 +232,7 @@ class Cointegrationzscore(BaseStrategy):
 
         # Calculate the new spread value
         new_spread_value = aligned_new_data.dot(cointegration_series)
+        # self.historical_data['spread'] = new_spread_value
         
         # Append the new spread value to the historical spread list
         self.historical_spread.append(new_spread_value.item())
@@ -246,6 +250,7 @@ class Cointegrationzscore(BaseStrategy):
 
         # Calculate and append the new z-score
         self.current_zscore = self._calculate_single_zscore(spread_lookback)
+        # self.historical_data['z-score'] = self.current_zscore
 
         # Update current z-score
         self.historical_zscore.append(self.current_zscore)
@@ -346,6 +351,7 @@ class Cointegrationzscore(BaseStrategy):
                                                  current_price=self.order_book.current_price(ticker), 
                                                  price_multiplier=self.symbols_map[ticker].price_multiplier, 
                                                  quantity_multiplier=self.symbols_map[ticker].quantity_multiplier)
+        
                 
                 trade_instructions.append(TradeInstruction(ticker=ticker, 
                                                            order_type=OrderType.MARKET, 
@@ -399,7 +405,6 @@ class Cointegrationzscore(BaseStrategy):
             # quantity *= 1 if action == Action.COVER else -1
         return quantity
     
-    
     def handle_market_data(self):
         """
         Entry class to handle the arrival of new market data. Creates a signal event that is then added to the
@@ -410,7 +415,8 @@ class Cointegrationzscore(BaseStrategy):
         
         # Get current prices from order_book class
         close_values = self.order_book.current_prices()
-        data = pd.DataFrame([close_values])
+        data = pd.DataFrame([close_values], index=[self.order_book.last_updated])
+        self.historical_data = pd.concat([self.historical_data, data], ignore_index=False)
 
         # Log price data
         log_data = self._log_prices(data)
@@ -431,3 +437,18 @@ class Cointegrationzscore(BaseStrategy):
         if trade_instructions:
             self.set_signal(trade_instructions, self.order_book.last_updated)
     
+    def get_strategy_data(self) -> pd.DataFrame:
+        """
+        Get strategy-specific data.
+        """
+        self.historical_data["spread"] = self.historical_spread
+        self.historical_data["z-score"] = self.historical_zscore
+        self.historical_data=self.historical_data.reset_index().rename(columns={'index': 'timestamp'})
+        print(self.historical_data.columns)
+        self._convert_timestamp(self.historical_data, "timestamp")
+        return self.historical_data
+
+    def _convert_timestamp(self, df:pd.DataFrame, column:str="timestamp") -> None:
+        df[column] = pd.to_datetime(df[column].map(lambda x: unix_to_iso(x, "EST")))
+        df[column]  = df[column].dt.tz_convert('America/New_York')
+        df[column] = df[column].dt.tz_localize(None)
