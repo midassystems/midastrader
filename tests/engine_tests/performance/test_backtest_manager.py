@@ -1,3 +1,4 @@
+import os
 import unittest
 import numpy as np
 import pandas as pd
@@ -14,6 +15,7 @@ from midas.shared.portfolio import  EquityDetails
 from midas.shared.orders import OrderType, Action
 from midas.shared.trade import Trade, ExecutionDetails
 from midas.shared.market_data import MarketData, BarData, QuoteData, MarketDataType
+from midas.shared.symbol import Equity, Future, Currency, Venue, Symbol, Industry, ContractUnits
 
 #TODO: edge cases
 
@@ -22,15 +24,50 @@ class TestPerformanceManager(unittest.TestCase):
         self.mock_db_client = Mock()
         self.mock_logger = Mock()
         self.mock_parameters = Parameters(
-            strategy_name="cointegrationzscore", 
-            capital= 100000, 
-            data_type= MarketDataType.BAR, 
-            train_start= "2018-05-18", 
-            train_end= "2023-01-18", 
-            test_start= "2023-01-19", 
-            test_end= "2024-01-19", 
-            tickers= ["HE.n.0", "ZC.n.0"], 
-            # benchmark= ["^GSPC"]
+            strategy_name="cointegrationzscore", # must match the directory name
+            missing_values_strategy="drop",
+            train_start="2021-01-01",
+            train_end="2024-01-01",
+            test_start="2024-01-02",
+            test_end="2024-05-07",
+            capital=1000000,
+            data_type = MarketDataType.BAR,
+            symbols = [
+                        Future(ticker="HE.n.0",
+                            data_ticker="HE.n.0",
+                            currency=Currency.USD,  
+                            exchange=Venue.CME,  
+                            fees=0.85,  
+                            initialMargin=5627.17,
+                            quantity_multiplier=40000,
+                            price_multiplier=0.01,
+                            product_code="HE",
+                            product_name="Lean Hogs",
+                            industry=Industry.AGRICULTURE,
+                            contract_size=40000,
+                            contract_units=ContractUnits.POUNDS,
+                            tick_size=0.00025,
+                            min_price_fluctuation=10.0,
+                            continuous=True,
+                            lastTradeDateOrContractMonth="202404"),
+                        Future(ticker="ZC.n.0",
+                            data_ticker = "ZC.n.0",
+                            currency=Currency.USD,
+                            exchange=Venue.CBOT,
+                            fees=0.85, 
+                            quantity_multiplier=5000,
+                            price_multiplier=0.01, 
+                            initialMargin=2075.36,
+                            product_code="ZC",
+                            product_name="Corn",
+                            industry=Industry.AGRICULTURE,
+                            contract_size=5000,
+                            contract_units=ContractUnits.BUSHELS,
+                            tick_size=0.0025,
+                            min_price_fluctuation=12.50,
+                            continuous=True,
+                            lastTradeDateOrContractMonth="202404")
+                    ]
         )
 
         self.performance_manager = BacktestPerformanceManager(self.mock_db_client, self.mock_logger, self.mock_parameters)
@@ -142,16 +179,18 @@ class TestPerformanceManager(unittest.TestCase):
                                                 action = Action.LONG,
                                                 trade_id = 2,
                                                 leg_id =  5,
-                                                weight = 0.5)
+                                                weight = 0.5,
+                                                quantity=2)
         self.valid_trade2 = TradeInstruction(ticker = 'TSLA',
                                                 order_type = OrderType.MARKET,
                                                 action = Action.LONG,
                                                 trade_id = 2,
                                                 leg_id =  6,
-                                                weight = 0.5)
+                                                weight = 0.5,
+                                                quantity=2)
         self.valid_trade_instructions = [self.valid_trade1,self.valid_trade2]
                         
-        signal_event = SignalEvent(np.uint64(1651500000), 10000,self.valid_trade_instructions)
+        signal_event = SignalEvent(np.uint64(1651500000), self.valid_trade_instructions)
         
         # test
         self.performance_manager.update_signals(signal_event)
@@ -166,21 +205,23 @@ class TestPerformanceManager(unittest.TestCase):
                                                 action = Action.LONG,
                                                 trade_id = 2,
                                                 leg_id =  5,
-                                                weight = 0.5)
+                                                weight = 0.5,
+                                                quantity=2)
         self.valid_trade2 = TradeInstruction(ticker = 'TSLA',
                                                 order_type = OrderType.MARKET,
                                                 action = Action.LONG,
                                                 trade_id = 2,
                                                 leg_id =  6,
-                                                weight = 0.5)
+                                                weight = 0.5,
+                                                quantity=2)
         self.valid_trade_instructions = [self.valid_trade1,self.valid_trade2]
                         
-        signal_event = SignalEvent(np.uint64(1651500000), 10000,self.valid_trade_instructions)
+        signal_event = SignalEvent(np.uint64(1717587686000000000), self.valid_trade_instructions)
         # test
         self.performance_manager.update_signals(signal_event)
 
         # validate
-        self.mock_logger.info.assert_called_once_with("\nSignals Updated:  {'timestamp': 1651500000, 'trade_instructions': [{'ticker': 'AAPL', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 5, 'weight': 0.5}, {'ticker': 'TSLA', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 6, 'weight': 0.5}]} \n")
+        self.mock_logger.info.assert_called_once_with("\nSignals Updated:  {'timestamp': 1717587686000000000, 'trade_instructions': [{'ticker': 'AAPL', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 5, 'weight': 0.5, 'quantity': 2}, {'ticker': 'TSLA', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 6, 'weight': 0.5, 'quantity': 2}]} \n")
 
     def test_update_equity_new_valid(self):
         equity = EquityDetails(
@@ -332,59 +373,102 @@ class TestPerformanceManager(unittest.TestCase):
             self.assertIn(key, static_stats)
             self.assertIsNotNone(static_stats[key])
 
-    def test_create_backtest(self):
-        # Signals
-        self.valid_trade1 = TradeInstruction(ticker = 'AAPL',
-                                                order_type = OrderType.MARKET,
-                                                action = Action.LONG,
-                                                trade_id = 2,
-                                                leg_id =  5,
-                                                weight = 0.5)
-        self.valid_trade2 = TradeInstruction(ticker = 'TSLA',
-                                                order_type = OrderType.MARKET,
-                                                action = Action.LONG,
-                                                trade_id = 2,
-                                                leg_id =  6,
-                                                weight = 0.5)
-        self.valid_trade_instructions = [self.valid_trade1,self.valid_trade2]
-                        
-        signal_event = SignalEvent(np.uint(1651500000000000000), 10000,self.valid_trade_instructions)
-
-        self.performance_manager.update_signals(signal_event)
-
+    def test_export_results(self):
         # Trades
-        self.trades = [
+        self.performance_manager.trades = [
             Trade(timestamp=np.uint64(1640995200000000000), trade_id=1, leg_id=1, ticker='XYZ', quantity=10, price=10, cost=-100,fees=10, action=Action.LONG.value),
             Trade(timestamp=np.uint64(1641081600000000000), trade_id=1, leg_id=1, ticker='XYZ', quantity=-10, price=15, cost=150, fees=10,action=Action.SELL.value),
             Trade(timestamp=np.uint64(1640995200000000000), trade_id=2, leg_id=1, ticker='HEJ4', quantity=-10, price=20, cost=500, fees=10,action=Action.SHORT.value),
             Trade(timestamp=np.uint64(1641081600000000000), trade_id=2, leg_id=1, ticker='HEJ4', quantity=10, price=18, cost=-180, fees=10,  action=Action.COVER.value)
         ]
 
-        for trade in self.trades:
-            self.performance_manager.update_trades(trade)
+        # Equity Curve
+        self.performance_manager.equity_value = [
+            EquityDetails(timestamp= 1641047400000000000, equity_value= 1000.0),
+            EquityDetails(timestamp= 1641070800000000000, equity_value= 1000.0),
+            EquityDetails(timestamp= 1641133800000000000, equity_value= 1030.0),
+            EquityDetails(timestamp= 1641142800000000000, equity_value= 1330.0),
+            EquityDetails(timestamp= 1641157200000000000, equity_value= 1330.0),
+            EquityDetails(timestamp= 1641220200000000000, equity_value= 1330.0),
+            EquityDetails(timestamp= 1641225600000000000, equity_value= 1330.0),
+            EquityDetails(timestamp= 1641243600000000000, equity_value= 1330.0)
+        ]
+
+        # Signals
+        self.valid_trade1 = TradeInstruction(ticker = 'AAPL',
+                                                order_type = OrderType.MARKET,
+                                                action = Action.LONG,
+                                                trade_id = 2,
+                                                leg_id =  5,
+                                                weight = 0.5,
+                                                quantity=2)
+        self.valid_trade2 = TradeInstruction(ticker = 'TSLA',
+                                                order_type = OrderType.MARKET,
+                                                action = Action.LONG,
+                                                trade_id = 2,
+                                                leg_id =  6,
+                                                weight = 0.5,
+                                                quantity=2)
+        self.valid_trade_instructions = [self.valid_trade1,self.valid_trade2]
+                        
+        signal_event = SignalEvent(np.uint64(1717587686000000000), self.valid_trade_instructions)
+        self.performance_manager.update_signals(signal_event)
+        
+        # Static Stats
+        self.performance_manager.calculate_statistics()
+
+        # Test 
+        self.performance_manager.export_results("")
+        
+        # Validate file creation
+        excel_file_path = os.path.join("", "output.xlsx")
+        assert os.path.exists(excel_file_path), "Excel file was not created"
+
+        # Validate contents
+    
+    def test_create_backtest(self):
+        # Trades
+        self.performance_manager.trades = [
+            Trade(timestamp=np.uint64(1640995200000000000), trade_id=1, leg_id=1, ticker='XYZ', quantity=10, price=10, cost=-100,fees=10, action=Action.LONG.value),
+            Trade(timestamp=np.uint64(1641081600000000000), trade_id=1, leg_id=1, ticker='XYZ', quantity=-10, price=15, cost=150, fees=10,action=Action.SELL.value),
+            Trade(timestamp=np.uint64(1640995200000000000), trade_id=2, leg_id=1, ticker='HEJ4', quantity=-10, price=20, cost=500, fees=10,action=Action.SHORT.value),
+            Trade(timestamp=np.uint64(1641081600000000000), trade_id=2, leg_id=1, ticker='HEJ4', quantity=10, price=18, cost=-180, fees=10,  action=Action.COVER.value)
+        ]
+        print(self.performance_manager.trades)
 
         # Equity Curve
         self.performance_manager.equity_value = [
-            EquityDetails(timestamp=np.uint64(1641047400000000000), equity_value=1000.0),  # Initial equity
-            EquityDetails(timestamp=np.uint64(1641070800000000000), equity_value=1000.0),  # No change, trades open
-            EquityDetails(timestamp=np.uint64(1641133800000000000), equity_value=1030.0),  # Reflecting Trade 1 PnL
-            EquityDetails(timestamp=np.uint64(1641142800000000000), equity_value=1330.0),  # Reflecting Trade 2 PnL
-            EquityDetails(timestamp=np.uint64(1641157200000000000), equity_value=1330.0),  # No additional trades
-            EquityDetails(timestamp=np.uint64(1641220200000000000), equity_value=1330.0),  # Assuming no further trades
-            EquityDetails(timestamp=np.uint64(1641225600000000000), equity_value=1330.0),
-            EquityDetails(timestamp=np.uint64(1641243600000000000), equity_value=1330.0)
+            EquityDetails(timestamp= 1641047400000000000, equity_value= 1000.0),
+            EquityDetails(timestamp= 1641070800000000000, equity_value= 1000.0),
+            EquityDetails(timestamp= 1641133800000000000, equity_value= 1030.0),
+            EquityDetails(timestamp= 1641142800000000000, equity_value= 1330.0),
+            EquityDetails(timestamp= 1641157200000000000, equity_value= 1330.0),
+            EquityDetails(timestamp= 1641220200000000000, equity_value= 1330.0),
+            EquityDetails(timestamp= 1641225600000000000, equity_value= 1330.0),
+            EquityDetails(timestamp= 1641243600000000000, equity_value= 1330.0)
         ]
 
-
-        # Benchmark Curve
-        self.mock_benchmark_data = [
-            {'timestamp': np.uint64(1640995200000000000), 'close': 2000.0},
-            {'timestamp': np.uint64(1641081600000000000), 'close': 2010.0},
-            {'timestamp': np.uint64(1641168000000000000), 'close': 2030.0},
-        ]
-
-        # Mock the get_benchmark_data method to return the mock benchmark data
-        self.mock_db_client.get_bar_data.return_value = self.mock_benchmark_data
+        # Signals
+        self.valid_trade1 = TradeInstruction(ticker = 'AAPL',
+                                                order_type = OrderType.MARKET,
+                                                action = Action.LONG,
+                                                trade_id = 2,
+                                                leg_id =  5,
+                                                weight = 0.5,
+                                                quantity=2)
+        self.valid_trade2 = TradeInstruction(ticker = 'TSLA',
+                                                order_type = OrderType.MARKET,
+                                                action = Action.LONG,
+                                                trade_id = 2,
+                                                leg_id =  6,
+                                                weight = 0.5,
+                                                quantity=2)
+        self.valid_trade_instructions = [self.valid_trade1,self.valid_trade2]
+                        
+        signal_event = SignalEvent(np.uint64(1717587686000000000), self.valid_trade_instructions)
+        self.performance_manager.update_signals(signal_event)
+        
+        # Static Stats
         self.performance_manager.calculate_statistics()
 
         # Test 
