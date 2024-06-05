@@ -16,19 +16,21 @@ class TestSignalEvent(unittest.TestCase):
                                                 action = Action.LONG,
                                                 trade_id = 2,
                                                 leg_id =  5,
-                                                weight = 0.5)
+                                                weight = 0.5,
+                                                quantity=10)
         self.valid_trade2 = TradeInstruction(ticker = 'TSLA',
                                                 order_type = OrderType.MARKET,
                                                 action = Action.LONG,
                                                 trade_id = 2,
                                                 leg_id =  6,
-                                                weight = 0.5)
+                                                weight = 0.5,
+                                                quantity=10)
         self.valid_trade_instructions = [self.valid_trade1,self.valid_trade2]
                         
     # Basic Validation
     def test_valid_construction(self):
         # test
-        signal = SignalEvent(self.valid_timestamp, self.valid_trade_capital, self.valid_trade_instructions)
+        signal = SignalEvent(self.valid_timestamp, self.valid_trade_instructions)
 
         # Validate timestamp
         self.assertEqual(signal.timestamp,self.valid_timestamp)
@@ -53,39 +55,22 @@ class TestSignalEvent(unittest.TestCase):
     def test_type_constraints(self):
         with self.assertRaisesRegex(TypeError, "timestamp must be of type np.uint64."):
             SignalEvent(timestamp=datetime(2024,1,1), 
-                            trade_capital=self.valid_trade_capital, 
                             trade_instructions=self.valid_trade_instructions)
-    
-        with self.assertRaisesRegex(TypeError, "'trade_capital' must be of type float or int."):
-            signal = SignalEvent(timestamp=self.valid_timestamp, 
-                                 trade_capital='10000',
-                                 trade_instructions=self.valid_trade_instructions)
             
         with self.assertRaisesRegex(TypeError, "'trade_instructions' must be of type list."):
-            signal = SignalEvent(timestamp=self.valid_timestamp, trade_capital=self.valid_trade_capital, trade_instructions=self.valid_trade1)
+            signal = SignalEvent(timestamp=self.valid_timestamp, trade_instructions=self.valid_trade1)
 
         with self.assertRaisesRegex(TypeError, "All trade instructions must be instances of TradeInstruction."):
-            signal = SignalEvent(timestamp=self.valid_timestamp, trade_capital=self.valid_trade_capital, trade_instructions=["sell", "long"])
+            signal = SignalEvent(timestamp=self.valid_timestamp, trade_instructions=["sell", "long"])
 
     # Constraint Check
     def test_value_constraints(self):
-        with self.assertRaisesRegex(ValueError, "'trade_capital' must be greater than zero."):
-            signal = SignalEvent(timestamp=self.valid_timestamp, 
-                                 trade_capital= -1000,
-                                 trade_instructions=self.valid_trade_instructions)
-
-        with self.assertRaisesRegex(ValueError, "'trade_capital' must be greater than zero."):
-            signal = SignalEvent(timestamp=self.valid_timestamp, 
-                                 trade_capital= 0,
-                                 trade_instructions=self.valid_trade_instructions)
-
         with self.assertRaisesRegex(ValueError, "Trade instructions list cannot be empty."):
             signal = SignalEvent(timestamp=self.valid_timestamp,  
-                                 trade_capital=self.valid_trade_capital, 
                                  trade_instructions=[])
 
     def test_to_dict(self):
-        signal = SignalEvent(timestamp=self.valid_timestamp, trade_capital=self.valid_trade_capital,  trade_instructions=self.valid_trade_instructions)
+        signal = SignalEvent(timestamp=self.valid_timestamp, trade_instructions=self.valid_trade_instructions)
         serialized_timestamp = datetime.fromtimestamp(self.valid_timestamp, timezone.utc).isoformat()
         
         # Test
