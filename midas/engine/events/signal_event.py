@@ -16,12 +16,10 @@ class SignalEvent:
 
     Attributes:
     - timestamp (np.uint64): The UNIX timestamp in nanoseconds when the signal was generated.
-    - trade_capital (Union[int, float]): The amount of capital allocated for executing the trade.
     - trade_instructions (List[TradeInstruction]): A list of detailed trade instructions.
     - type (str): A string identifier for the event type, set to 'SIGNAL'.
     """
     timestamp: np.uint64
-    trade_capital: Union[int, float]
     trade_instructions: List[TradeInstruction]
     type: str = field(init=False, default='SIGNAL')
 
@@ -31,14 +29,10 @@ class SignalEvent:
             raise TypeError("timestamp must be of type np.uint64.")
         if not isinstance(self.trade_instructions, list):
             raise TypeError(f"'trade_instructions' must be of type list.")
-        if not isinstance(self.trade_capital, (float,int)):
-            raise TypeError(f"'trade_capital' must be of type float or int.")
         if not all(isinstance(instruction, TradeInstruction) for instruction in self.trade_instructions):
             raise TypeError("All trade instructions must be instances of TradeInstruction.")
         
         # Constraint Check
-        if self.trade_capital <= 0:
-            raise ValueError("'trade_capital' must be greater than zero.")
         if len(self.trade_instructions) == 0:
             raise ValueError("Trade instructions list cannot be empty.")
         

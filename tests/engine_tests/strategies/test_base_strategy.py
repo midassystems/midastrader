@@ -57,13 +57,15 @@ class TestTestStrategy(unittest.TestCase):
                                                 action = Action.LONG,
                                                 trade_id = 2,
                                                 leg_id =  5,
-                                                weight = 0.5)
+                                                weight = 0.5,
+                                                quantity=2)
         self.valid_trade2 = TradeInstruction(ticker = 'TSLA',
                                                 order_type = OrderType.MARKET,
                                                 action = Action.LONG,
                                                 trade_id = 2,
                                                 leg_id =  6,
-                                                weight = 0.5)
+                                                weight = 0.5,
+                                                quantity=2)
         self.valid_trade_instructions = [self.valid_trade1,self.valid_trade2]
 
     # Basic Validation
@@ -74,7 +76,7 @@ class TestTestStrategy(unittest.TestCase):
         
     def test_set_signal(self):
         # Test
-        self.test_strategy.set_signal(self.valid_trade_instructions, self.valid_trade_capital, self.timestamp)
+        self.test_strategy.set_signal(self.valid_trade_instructions, self.timestamp)
 
         # Validation
         self.assertTrue(self.mock_event_queue.put.called, "The event_queue.put() method was not called.") # check that event_queue.put() was called
@@ -88,7 +90,7 @@ class TestTestStrategy(unittest.TestCase):
 
     def test_create_signal_event_invalid_trade_instructions(self):
         with self.assertRaisesRegex(RuntimeError, "Failed to create or queue SignalEvent due to input error"):
-            self.test_strategy.set_signal([], self.valid_trade_capital, self.timestamp)
+            self.test_strategy.set_signal([], self.timestamp)
 
 if __name__ == "__main__":
     unittest.main()

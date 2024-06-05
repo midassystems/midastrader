@@ -60,17 +60,16 @@ class BaseStrategy(ABC):
         """
         pass
 
-    def set_signal(self, trade_instructions: List[TradeInstruction], trade_capital: Union[int, float], timestamp: int):
+    def set_signal(self, trade_instructions: List[TradeInstruction], timestamp: int):
         """
         Creates and queues a signal event based on the strategy's trade instructions.
 
         Parameters:
         - trade_instructions (List[TradeInstruction]): Specific trade instructions to execute.
-        - trade_capital (Union[int, float]): The capital allocated for the trade.
         - timestamp (int): The time at which the signal is generated.
         """
         try:
-            signal_event = SignalEvent(timestamp, trade_capital, trade_instructions)
+            signal_event = SignalEvent(timestamp, trade_instructions)
             self._event_queue.put(signal_event)
         except (ValueError, TypeError) as e:
             raise RuntimeError(f"Failed to create or queue SignalEvent due to input error: {e}") from e
