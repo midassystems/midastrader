@@ -2,7 +2,7 @@
 from enum import Enum 
 from ibapi.order import Order
 
-
+# TODO: add a order value depending on the asset type FUT/EQ/ OPT
 class Action(Enum):
     """ Long and short are treated as entry actions and short/cover are treated as exit actions. """
     LONG = 'LONG'  # BUY

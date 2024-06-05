@@ -44,11 +44,10 @@ class OrderManager:
         if not isinstance(event, SignalEvent):
             raise TypeError("'event' must be of type SignalEvent instance.")
         
-        trade_capital = event.trade_capital
         trade_instructions = event.trade_instructions
         timestamp = event.timestamp
 
-        # Assuming get_active_order_tickers() gives us a list of tickers in active orders
+        # Get a list of tickers in active orders
         active_orders_tickers = self.portfolio_server.get_active_order_tickers()
         self.logger.info(f"Active order tickers {active_orders_tickers}")
         
@@ -57,9 +56,9 @@ class OrderManager:
             self.logger.info("One or more tickers in the trade instructions have active orders; ignoring signal.")
             return
         else:
-            self._handle_signal(timestamp,trade_capital, trade_instructions)
+            self._handle_signal(timestamp, trade_instructions)
 
-    def _handle_signal(self, timestamp: int, trade_capital: Union[int,float], trade_instructions: List[TradeInstruction])  -> None:
+    def _handle_signal(self, timestamp: int, trade_instructions: List[TradeInstruction])  -> None:
         """
         Process trade instructions to generate orders, checking if sufficient capital is available.
 
@@ -73,8 +72,7 @@ class OrderManager:
         total_capital_required = 0
 
         for trade in trade_instructions:
-            trade
-            order = self._order_details(trade, trade_capital)
+            order = self._create_order(trade)
 
             if isinstance(self.symbols_map[trade.ticker], Future):
                 order_value = self._future_order_value(order.quantity, trade.ticker)
@@ -126,64 +124,8 @@ class OrderManager:
         - float: The total value of the equity order.
         """
         return abs(quantity) * self.order_book.current_price(ticker)
-
-    def _order_details(self, trade_instruction: TradeInstruction, position_allocation: float) -> BaseOrder:
-        """
-        Generate order details based on trade instructions and capital allocation.
-
-        Parameters:
-        - trade_instruction (TradeInstruction): The specific trade instruction.
-        - position_allocation (float): The capital allocated to this particular trade.
-
-        Returns:
-        - BaseOrder: The generated order object.
-        """
-        ticker = trade_instruction.ticker
-        action = trade_instruction.action
-        weight = trade_instruction.weight
-        current_price = self.order_book.current_price(ticker=ticker)
-        
-        # Retrieve multipliers
-        price_multiplier = self.symbols_map[ticker].price_multiplier
-        quantity_multiplier = self.symbols_map[ticker].quantity_multiplier
-
-        # Order Capital
-        order_allocation = position_allocation * abs(weight) 
-        self.logger.info(f"\nOrder Allocation: {order_allocation}")
-
-        # Order Quantity
-        quantity = self._order_quantity(action,ticker,order_allocation,current_price,price_multiplier, quantity_multiplier)
-
-        return self._create_order(trade_instruction.order_type,action,quantity)
     
-    def _order_quantity(self, action: Action,ticker: str, order_allocation: float, current_price: float, price_multiplier: float , quantity_multiplier: int) -> float:
-        """
-        Calculate the order quantity based on allocation, price, and multipliers.
-
-        Parameters:
-        - action (Action): The trading action (LONG, SHORT, SELL, COVER).
-        - ticker (str): The ticker symbol for the order.
-        - order_allocation (float): The capital allocated for this order.
-        - current_price (float): The current price of the ticker.
-        - price_multiplier (float): The price adjustment factor for the ticker.
-        - quantity_multiplier (int): The quantity adjustment factor for the ticker.
-
-        Returns:
-        - float: The calculated quantity for the order.
-        """
-        # Adjust current price based on the price multiplier
-        adjusted_price = current_price * price_multiplier
-
-        # Adjust quantity based on the trade allocation
-        if action in [Action.LONG, Action.SHORT]:  # Entry signal
-            quantity = order_allocation / (adjusted_price * quantity_multiplier) 
-            # quantity *= 1 if action == Action.LONG else -1
-        elif action in [Action.SELL, Action.COVER]:  # Exit signal
-            quantity = self.portfolio_server.positions[ticker].quantity
-            # quantity *= 1 if action == Action.COVER else -1
-        return quantity
-    
-    def _create_order(self, order_type: OrderType, action : Action, quantity: float, limit_price: float=None, aux_price: float=None) -> float:
+    def _create_order(self, trade_instruction: TradeInstruction) -> BaseOrder:
         """
         Create an order object based on specified parameters.
 
@@ -198,14 +140,7 @@ class OrderManager:
         - BaseOrder: The created order object, ready for execution.
         """
         try:
-            if order_type == OrderType.MARKET:
-                return MarketOrder(action=action, quantity=quantity)
-            elif order_type == OrderType.LIMIT:    
-                return LimitOrder(action=action, quantity=quantity, limit_price=limit_price)
-            elif order_type == OrderType.STOPLOSS:
-                return StopLoss(action=action, quantity=quantity,aux_price=aux_price)
-            else:
-                raise ValueError(f"OrderType not of valid type : {order_type}")
+            return trade_instruction.to_order()
         except (ValueError, TypeError) as e:
             raise RuntimeError(f"Failed to create or queue SignalEvent due to input error: {e}") from e
     
