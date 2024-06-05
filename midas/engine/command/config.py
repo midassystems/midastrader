@@ -19,9 +19,6 @@ from midas.client import DatabaseClient
 from midas.shared.symbol import Symbol
 from midas.shared.utils.logger import SystemLogger
 
-# DATABASE_KEY = config('MIDAS_API_KEY')
-# DATABASE_URL = config('MIDAS_URL')
-
 class Mode(Enum):
     LIVE = "LIVE"
     BACKTEST = "BACKTEST"
@@ -299,7 +296,7 @@ class Config:
         if not isinstance(strategy, type) or not issubclass(strategy, BaseStrategy):
             raise ValueError(f"'strategy' must be a class and a subclass of BaseStrategy.")
         try:
-            self.strategy = strategy(symbols_map= self.symbols_map, train_data = self.train_data, portfolio_server=self.portfolio_server, logger = self.logger, order_book = self.order_book, event_queue=self.event_queue)
+            self.strategy = strategy(symbols_map= self.symbols_map, historical_data = self.train_data, portfolio_server=self.portfolio_server, logger = self.logger, order_book = self.order_book, event_queue=self.event_queue)
             
         except:
             raise RuntimeError("Error creating strategy instance.")

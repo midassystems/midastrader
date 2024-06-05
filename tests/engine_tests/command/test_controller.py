@@ -85,16 +85,18 @@ class TestController(unittest.TestCase):
                                                 action = Action.LONG,
                                                 trade_id = 2,
                                                 leg_id =  5,
-                                                weight = 0.5)
+                                                weight = 0.5,
+                                                quantity=2)
         self.valid_trade2 = TradeInstruction(ticker = 'TSLA',
                                                 order_type = OrderType.MARKET,
                                                 action = Action.LONG,
                                                 trade_id = 2,
                                                 leg_id =  6,
-                                                weight = 0.5)
+                                                weight = 0.5,
+                                                quantity=2)
         self.valid_trade_instructions = [self.valid_trade1,self.valid_trade2]
                         
-        signal_event = SignalEvent(np.uint64(1651500000), 10000,self.valid_trade_instructions)
+        signal_event = SignalEvent(np.uint64(1651500000), self.valid_trade_instructions)
         
         self.mock_config.hist_data_client.data_stream.side_effect = [True, False]# Simulates one iterations then stop
         self.event_controller.event_queue.put(signal_event)

@@ -418,7 +418,7 @@ class TestConfig(unittest.TestCase):
 
         # Strategies are subclasses of BaseStrategy
         class TestStrategy(BaseStrategy):
-            def __init__(self, symbols_map, train_data, portfolio_server, logger, order_book,event_queue):
+            def __init__(self, symbols_map, historical_data, portfolio_server, logger, order_book,event_queue):
                 pass
             def prepare(self):
                 pass 

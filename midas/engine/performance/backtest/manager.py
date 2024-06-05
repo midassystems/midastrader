@@ -7,7 +7,7 @@ from midas.client import DatabaseClient
 from quantAnalytics.returns import Returns
 from midas.shared.backtest import Backtest
 from quantAnalytics.risk import RiskAnalysis
-from midas.shared.utils import resample_daily
+from midas.shared.utils import resample_daily, unix_to_iso
 
 from midas.engine.performance import BasePerformanceManager
 
@@ -163,12 +163,68 @@ class BacktestPerformanceManager(BasePerformanceManager):
             raise ValueError(f"Error while calculcating statistics. {e}")
         except TypeError as e:
             raise TypeError(f"Error while calculcating statistics. {e}")
+        
+    def _convert_timestamp(self, df:pd.DataFrame, column:str="timestamp") -> None:
+        df[column] = pd.to_datetime(df[column].map(lambda x: unix_to_iso(x, "EST")))
+        df[column]  = df[column].dt.tz_convert('America/New_York')
+        df[column] = df[column].dt.tz_localize(None)
+
+    def _flatten_trade_instructions(self, df: pd.DataFrame, column:str) -> pd.DataFrame:
+        # Expand the 'trade_instructions' column into separate rows
+        expanded_rows = []
+        for _, row in df.iterrows():
+            for instruction in row[column]:
+                new_row = row.to_dict()
+                new_row.update(instruction)
+                expanded_rows.append(new_row)
+        expanded_df = pd.DataFrame(expanded_rows)
+        # Drop the original nested column
+        if column in expanded_df.columns:
+            expanded_df = expanded_df.drop(columns=[column])
+        return expanded_df
+ 
+    def export_results(self, output_path:str):
+        static_stats_df = pd.DataFrame(self.static_stats).T
+
+        params_df = pd.DataFrame(self.params.to_dict())
+        params_df['tickers'] = ', '.join(params_df['tickers'])
+        params_df = params_df.iloc[0:1] 
+    
+        columns  = ["train_start", "test_start", "train_end", "test_end"]
+        for column in columns: 
+            self._convert_timestamp(params_df, column)
+        params_df = params_df.T
+
+
+        trades_df = pd.DataFrame(self.trades)
+        self._convert_timestamp(trades_df)
+        
+        period_timeseries_df = self.period_timeseries_stats.copy()
+        self._convert_timestamp(period_timeseries_df)
+    
+        daily_timeseries_df = self.daily_timeseries_stats.copy()
+        self._convert_timestamp(daily_timeseries_df)
+
+        signals_df = pd.DataFrame(self.signals)
+        signals_df = self._flatten_trade_instructions(signals_df, 'trade_instructions')
+        self._convert_timestamp(signals_df)
+
+        with pd.ExcelWriter(output_path + 'output.xlsx', engine='xlsxwriter') as writer:
+            params_df.to_excel(writer, sheet_name='Parameters')
+            static_stats_df.to_excel(writer, sheet_name='Static Stats')
+            period_timeseries_df.to_excel(writer, index=False, sheet_name='Period Timeseries')
+            daily_timeseries_df.to_excel(writer, index=False, sheet_name='Daily Timeseries')
+            trades_df.to_excel(writer, index=False, sheet_name='Trades')
+            signals_df.to_excel(writer, index=False, sheet_name='Signals')
 
     def save(self) -> None:
         """
         Saves the collected performance data including the backtest configuration, trades, and signals
         to a database or other storage mechanism.
         """
+        # Export Results to Excel
+        self.export_results("")
+
         # Create Backtest Object
         self.backtest = Backtest(parameters=self.params.to_dict(), 
                                  static_stats=self.static_stats,

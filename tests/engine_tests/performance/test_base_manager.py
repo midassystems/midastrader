@@ -140,16 +140,18 @@ class TestBasePerformanceManager(unittest.TestCase):
                                                 action = Action.LONG,
                                                 trade_id = 2,
                                                 leg_id =  5,
-                                                weight = 0.5)
+                                                weight = 0.5,
+                                                quantity=2)
         self.valid_trade2 = TradeInstruction(ticker = 'TSLA',
                                                 order_type = OrderType.MARKET,
                                                 action = Action.LONG,
                                                 trade_id = 2,
                                                 leg_id =  6,
-                                                weight = 0.5)
+                                                weight = 0.5,
+                                                quantity=2)
         self.valid_trade_instructions = [self.valid_trade1,self.valid_trade2]
                         
-        signal_event = SignalEvent(np.uint64(1651500000), 10000,self.valid_trade_instructions)
+        signal_event = SignalEvent(np.uint64(1651500000), self.valid_trade_instructions)
         
         # test
         self.performance_manager.update_signals(signal_event)
@@ -164,22 +166,24 @@ class TestBasePerformanceManager(unittest.TestCase):
                                                 action = Action.LONG,
                                                 trade_id = 2,
                                                 leg_id =  5,
-                                                weight = 0.5)
+                                                weight = 0.5,
+                                                quantity=2)
         self.valid_trade2 = TradeInstruction(ticker = 'TSLA',
                                                 order_type = OrderType.MARKET,
                                                 action = Action.LONG,
                                                 trade_id = 2,
                                                 leg_id =  6,
-                                                weight = 0.5)
+                                                weight = 0.5,
+                                                quantity=2)
         self.valid_trade_instructions = [self.valid_trade1,self.valid_trade2]
                         
-        signal_event = SignalEvent(np.uint64(1651500000), 10000,self.valid_trade_instructions)
+        signal_event = SignalEvent(np.uint64(1651500000), self.valid_trade_instructions)
         
         # test
         self.performance_manager.update_signals(signal_event)
 
         # validate
-        self.mock_logger.info.assert_called_once_with("\nSignals Updated:  {'timestamp': 1651500000, 'trade_instructions': [{'ticker': 'AAPL', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 5, 'weight': 0.5}, {'ticker': 'TSLA', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 6, 'weight': 0.5}]} \n")
+        self.mock_logger.info.assert_called_once_with("\nSignals Updated:  {'timestamp': 1651500000, 'trade_instructions': [{'ticker': 'AAPL', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 5, 'weight': 0.5, 'quantity': 2}, {'ticker': 'TSLA', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 6, 'weight': 0.5, 'quantity': 2}]} \n")
 
     def test_update_equity_new_valid(self):
         equity = EquityDetails(
