@@ -66,125 +66,68 @@ class TestOrderManager(unittest.TestCase):
                                                 action = Action.LONG,
                                                 trade_id = 2,
                                                 leg_id =  5,
-                                                weight = 0.5)
+                                                weight = 0.5,
+                                                quantity=2)
         self.valid_trade_fut = TradeInstruction(ticker = 'HEJ4',
                                                 order_type = OrderType.MARKET,
                                                 action = Action.SHORT,
                                                 trade_id = 2,
                                                 leg_id =  6,
-                                                weight = 0.5)
+                                                weight = 0.5, 
+                                                quantity=-2)
+        
         self.valid_trade_instructions = [self.valid_trade_equity,self.valid_trade_fut]
-        self.valid_signal_event = SignalEvent(self.valid_timestamp,self.valid_trade_capital, self.valid_trade_instructions)                   
+        self.valid_signal_event = SignalEvent(self.valid_timestamp, self.valid_trade_instructions)                   
         
     # Basic Validation
     def test_create_marketorder_valid(self):
-        action = Action.LONG
-        quantity=-100
+        trade_instructions = self.valid_trade_equity 
 
         # Test 
-        order = self.order_manager._create_order(order_type=OrderType.MARKET, action=action, quantity=quantity)
+        order = self.order_manager._create_order(trade_instructions)
         
         # Validation
         self.assertEqual(type(order), MarketOrder)
-        self.assertEqual(order.order.action,action.to_broker_standard())
-        self.assertEqual(order.order.totalQuantity, abs(quantity))
+        self.assertEqual(order.order.action,trade_instructions.action.to_broker_standard())
+        self.assertEqual(order.order.totalQuantity, abs(trade_instructions.quantity))
 
     def test_create_limitorder_valid(self):
-        action = Action.SHORT
-        quantity=-100
-        limit_price = 90
+        trade_instructions = TradeInstruction(ticker = 'HEJ4',
+                                                order_type = OrderType.LIMIT,
+                                                action = Action.SHORT,
+                                                trade_id = 2,
+                                                leg_id =  6,
+                                                weight = 0.5, 
+                                                quantity=-2,
+                                                limit_price=90)
 
         # Test 
-        order = self.order_manager._create_order(order_type=OrderType.LIMIT, action=action, quantity=quantity, limit_price=limit_price)
+        order = self.order_manager._create_order(trade_instructions)
         
         # Validation
         self.assertEqual(type(order), LimitOrder)
-        self.assertEqual(order.order.action,action.to_broker_standard())
-        self.assertEqual(order.order.totalQuantity, abs(quantity))
-        self.assertEqual(order.order.lmtPrice, limit_price)
+        self.assertEqual(order.order.action,trade_instructions.action.to_broker_standard())
+        self.assertEqual(order.order.totalQuantity, abs(trade_instructions.quantity))
+        self.assertEqual(order.order.lmtPrice, trade_instructions.limit_price)
 
     def test_create_stoplossorder_valid(self):
-        action = Action.SELL
-        quantity=-100
-        aux_price = 90
+        trade_instructions = TradeInstruction(ticker = 'HEJ4',
+                                                order_type = OrderType.STOPLOSS,
+                                                action = Action.SHORT,
+                                                trade_id = 2,
+                                                leg_id =  6,
+                                                weight = 0.5, 
+                                                quantity=-2, 
+                                                aux_price=90)
 
         # Test
-        order = self.order_manager._create_order(order_type=OrderType.STOPLOSS, action=action, quantity=quantity, aux_price=aux_price)
+        order = self.order_manager._create_order(trade_instructions)
         
         # Validation
         self.assertEqual(type(order), StopLoss)
-        self.assertEqual(order.order.action,action.to_broker_standard())
-        self.assertEqual(order.order.totalQuantity, abs(quantity))
-        self.assertEqual(order.order.auxPrice, aux_price)
-
-    def test_order_quantity_valid(self):
-        order_allocation=10000
-        current_price=50
-        quantity_multiplier=100
-        price_multiplier=0.01
-
-        # Test Long Quantity
-        quantity = self.order_manager._order_quantity(action=Action.LONG, 
-                                                      ticker='AAPL', 
-                                                      order_allocation=order_allocation, 
-                                                      current_price=current_price, 
-                                                      quantity_multiplier=quantity_multiplier,
-                                                      price_multiplier=price_multiplier)
-        
-        # Validation
-        self.assertEqual(abs(quantity), order_allocation / (current_price * price_multiplier * quantity_multiplier))
-
-        # Test Short Quantity
-        quantity = self.order_manager._order_quantity(action=Action.SHORT,
-                                                      ticker='AAPL', 
-                                                      order_allocation=order_allocation, 
-                                                      current_price=current_price, 
-                                                      quantity_multiplier=quantity_multiplier,
-                                                      price_multiplier=price_multiplier)
-        # Validation
-        self.assertEqual(abs(quantity),order_allocation / (current_price * price_multiplier * quantity_multiplier))
-
-        # Test Sell Quantity
-        self.mock_portfolio_server.positions = {'AAPL': Mock(quantity=10)}
-        quantity = self.order_manager._order_quantity(action=Action.SELL,
-                                                      ticker='AAPL', 
-                                                      order_allocation=order_allocation, 
-                                                      current_price=current_price, 
-                                                      quantity_multiplier=quantity_multiplier,
-                                                      price_multiplier=price_multiplier)
-        # Validation
-        self.assertEqual(abs(quantity),10)
-
-        # Test Cover Quantity
-        self.mock_portfolio_server.positions = {'AAPL': Mock(quantity=-10)}
-        quantity = self.order_manager._order_quantity(action=Action.COVER,
-                                            ticker='AAPL', 
-                                            order_allocation=order_allocation, 
-                                            current_price=current_price, 
-                                            quantity_multiplier=quantity_multiplier,
-                                            price_multiplier=price_multiplier)
-        # Validation
-        self.assertEqual(abs(quantity),10)
-
-    def test_order_details_valid(self):
-        weight = 0.5
-        position_allocation = 10000.0
-        self.valid_future_instructions = TradeInstruction(ticker = 'HEJ4',
-                                                            order_type = OrderType.MARKET,
-                                                            action = Action.LONG,
-                                                            trade_id = 1,
-                                                            leg_id =  1,
-                                                            weight = weight)
-
-        self.mock_order_book.current_price.return_value = 150.0
-        expected_quantity = (weight * position_allocation)/ (150.0*self.valid_symbols_map['HEJ4'].price_multiplier *self.valid_symbols_map['HEJ4'].quantity_multiplier )
-        
-        # Test
-        order = self.order_manager._order_details(self.valid_future_instructions, position_allocation)
-        
-        # Validation
-        self.assertEqual(type(order), MarketOrder)
-        self.assertEqual(order.order.totalQuantity,expected_quantity)
+        self.assertEqual(order.order.action,trade_instructions.action.to_broker_standard())
+        self.assertEqual(order.order.totalQuantity, abs(trade_instructions.quantity))
+        self.assertEqual(order.order.auxPrice, trade_instructions.aux_price)
 
     def test_future_order_value(self):
         quantity = 10000.0
@@ -216,7 +159,7 @@ class TestOrderManager(unittest.TestCase):
 
         # Test Order Set b/c funds available
         with patch.object(self.order_manager, '_set_order') as mocked_method:
-            self.order_manager._handle_signal(timestamp=self.valid_timestamp,trade_capital=self.valid_trade_capital, trade_instructions=self.valid_trade_instructions)
+            self.order_manager._handle_signal(timestamp=self.valid_timestamp, trade_instructions=self.valid_trade_instructions)
             mocked_method.assert_called() # set_order should be called
 
         self.mock_portfolio_server.account['FullInitMarginReq'] = 1000
@@ -224,7 +167,7 @@ class TestOrderManager(unittest.TestCase):
 
         # Test Order set b/c no funds currently available
         with patch.object(self.order_manager, '_set_order') as mocked_method:
-            self.order_manager._handle_signal(timestamp=self.valid_timestamp,trade_capital=self.valid_trade_capital, trade_instructions=self.valid_trade_instructions)
+            self.order_manager._handle_signal(timestamp=self.valid_timestamp, trade_instructions=self.valid_trade_instructions)
             self.assertFalse(mocked_method.called) # set_order should not be called 
 
     def test_on_signal_valid(self):
@@ -263,21 +206,6 @@ class TestOrderManager(unittest.TestCase):
         self.assertTrue(self.mock_event_queue.put.called, "The event_queue.put() method was not called.") # check that event_queue.put() was called
         called_with_arg = self.mock_event_queue.put.call_args[0][0]   # Get the argument with which event_queue.put was called
         self.assertIsInstance(called_with_arg, OrderEvent, "The argument is not an instance of SignalEvent") # check arguemnt in event_queue.put() was an Order event
-
-    # Type/Constraint Check 
-    def test_create_order_invlaid_ordertype(self):
-        action = Action.LONG
-        quantity=-100
-        # Test
-        with self.assertRaisesRegex( RuntimeError,"OrderType not of valid type"):
-            self.order_manager._create_order(order_type='invalid', action=action, quantity=quantity)
-            
-    def test_create_order_error_in_order_class(self):
-        action = Action.LONG
-        quantity=-100
-        # Test
-        with self.assertRaisesRegex(RuntimeError,"Failed to create or queue SignalEvent due to input error"):
-            self.order_manager._create_order(order_type=OrderType.MARKET, action='LONG', quantity=quantity)
 
 
 if __name__ == "__main__":
