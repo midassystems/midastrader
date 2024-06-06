@@ -42,7 +42,7 @@ class BasePerformanceManager(PerformanceStatistics):
         """
         if trade not in self.trades:
             self.trades.append(trade)
-            self.logger.info(f"\nTrades Updated:\n  {self._output_trades()}")
+            self.logger.info(f"\nTRADES UPDATED:\n{self._output_trades()}")
 
     def _output_trades(self) -> str:
         """
@@ -51,7 +51,10 @@ class BasePerformanceManager(PerformanceStatistics):
         Returns:
         - str: String representation of all trades.
         """
-        return '\n'.join(str(trade) for trade in self.trades)
+        string = ""
+        for trade in self.trades:
+            string += f"  {trade.to_dict()}\n"
+        return string 
     
     def update_signals(self, signal: SignalEvent):
         """
@@ -61,7 +64,7 @@ class BasePerformanceManager(PerformanceStatistics):
             signal (SignalEvent): The signal event to be logged.
         """
         self.signals.append(signal.to_dict()) 
-        self.logger.info(f"\nSignals Updated: {self._output_signals()}")
+        self.logger.info(f"\nSIGNALS UPDATED: \n{self._output_signals()}")
         
     def _output_signals(self) -> str:
         """
@@ -72,7 +75,10 @@ class BasePerformanceManager(PerformanceStatistics):
         """
         string = ""
         for signals in self.signals:
-            string += f" {signals} \n"
+            string += f"  Timestamp: {signals['timestamp']} \n"
+            string += f"  Trade Instructions: \n"
+            for instruction in signals["trade_instructions"]:
+                string += f"    {instruction}\n"
         return string
     
     def update_account_log(self, account_details: AccountDetails):
@@ -94,7 +100,7 @@ class BasePerformanceManager(PerformanceStatistics):
         """
         if equity_details not in self.equity_value:
             self.equity_value.append(equity_details)
-            self.logger.info(f"\nEquity Updated: {self.equity_value[-1]}")
+            self.logger.info(f"\nEQUITY UPDATED: \n  {self.equity_value[-1]}\n")
 
     def save(self):
         """

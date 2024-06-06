@@ -1,11 +1,12 @@
 import unittest
+from datetime import datetime
 
 from midas.engine.events import EODEvent
 
 # TOOO : edge cases
 class TestExecutionEvent(unittest.TestCase):
     def setUp(self) -> None:
-        self.valid_timetamp = 1651500000
+        self.valid_timetamp = datetime(2024,10, 1)
 
     # Basic Validation
     def test_valid_construction(self):
@@ -14,7 +15,7 @@ class TestExecutionEvent(unittest.TestCase):
         
         # Validate
         self.assertEqual(event.timestamp, self.valid_timetamp)
-        self.assertEqual(event.type,"End-of-day")
+        self.assertEqual(event.type,"END-OF-DAY")
 
 if __name__=="__main__":
     unittest.main()

@@ -38,5 +38,5 @@ class MarketEvent:
     def __str__(self) -> str:
         string = f"\n{self.type} : \n"
         for contract, market_data in self.data.items():
-            string += f" {contract} : {market_data.__dict__}\n"
+            string += f"  {contract} : {market_data.__dict__}\n"
         return string

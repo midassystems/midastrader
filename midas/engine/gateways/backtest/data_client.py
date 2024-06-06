@@ -142,7 +142,7 @@ class DataClient(DatabaseClient):
 
         if self.current_day is None or next_day != self.current_day:
             if self.current_day is not None:
-            # Perform EOD operations for the previous day
+                # Perform EOD operations for the previous day
                 self.event_queue.put(EODEvent(timestamp=self.current_day))
             # Update the current day
             self.current_day = next_day                    

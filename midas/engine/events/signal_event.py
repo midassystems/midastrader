@@ -37,9 +37,9 @@ class SignalEvent:
             raise ValueError("Trade instructions list cannot be empty.")
         
     def __str__(self) -> str:
-        instructions_str = "\n  ".join(str(instruction) for instruction in self.trade_instructions)
+        instructions_str = "\n    ".join(str(instruction) for instruction in self.trade_instructions)
         iso_timestamp=unix_to_iso(self.timestamp, "US/Eastern")
-        return f"\n{self.type} Event: \n Timestamp: {iso_timestamp}\n Trade Instructions:\n{instructions_str}"
+        return f"\n{self.type} EVENT:\n  Timestamp: {self.timestamp}\n  Trade Instructions:\n    {instructions_str}"
     
     def to_dict(self):
         return {

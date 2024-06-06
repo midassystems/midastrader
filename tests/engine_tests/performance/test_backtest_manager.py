@@ -172,7 +172,7 @@ class TestPerformanceManager(unittest.TestCase):
         self.performance_manager.update_trades(trade)
         
         # validate
-        self.mock_logger.info.assert_called_once_with('\nTrades Updated: \nTimestamp: 1975-03-25T17:20:00+00:00\n  Trade ID: 2\n  Leg ID: 2\n  Ticker: HEJ4\n  Quantity: -10\n  Price: 50\n  Cost: -500\n  Action: SHORT\n  Fees: 70\n')
+        self.mock_logger.info.assert_called_once_with("\nTRADES UPDATED: \n  {'timestamp': 165000000000000000, 'trade_id': 2, 'leg_id': 2, 'ticker': 'HEJ4', 'quantity': -10, 'price': 50, 'cost': -500, 'action': 'SHORT', 'fees': 70}\n")
 
     def test_update_signals_valid(self):        
         self.valid_trade1 = TradeInstruction(ticker = 'AAPL',
@@ -222,7 +222,7 @@ class TestPerformanceManager(unittest.TestCase):
         self.performance_manager.update_signals(signal_event)
 
         # validate
-        self.mock_logger.info.assert_called_once_with("\nSignals Updated:  {'timestamp': 1717587686000000000, 'trade_instructions': [{'ticker': 'AAPL', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 5, 'weight': 0.5, 'quantity': 2}, {'ticker': 'TSLA', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 6, 'weight': 0.5, 'quantity': 2}]} \n")
+        self.mock_logger.info.assert_called_once_with("\nSIGNALS UPDATED: \n  Timestamp: 1717587686000000000 \n  Trade Instructions: \n    {'ticker': 'AAPL', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 5, 'weight': 0.5, 'quantity': 2}\n    {'ticker': 'TSLA', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 6, 'weight': 0.5, 'quantity': 2}\n")
 
     def test_update_equity_new_valid(self):
         equity = EquityDetails(
@@ -234,7 +234,7 @@ class TestPerformanceManager(unittest.TestCase):
         
         # validate
         self.assertEqual(self.performance_manager.equity_value[0], equity)
-        self.mock_logger.info.assert_called_once_with((f"\nEquity Updated: {equity}"))
+        self.mock_logger.info.assert_called_once_with("\nEQUITY UPDATED: \n  {'timestamp': 165500000, 'equity_value': 10000000.99}\n")
     
     def test_update_equity_old_valid(self):
         equity = EquityDetails(

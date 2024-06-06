@@ -45,6 +45,6 @@ class OrderEvent:
             raise TypeError("'order' must be of type BaseOrder.")
 
     def __str__(self) -> str:
-        string = f"\n{self.type} : \n Timestamp: {self.timestamp}\n Trade ID: {self.trade_id}\n Leg ID: {self.leg_id}\n Action: {self.action}\n Contract: {self.contract}\n Order: {self.order.__dict__}\n"
+        string = f"\n{self.type} EVENT:\n  Timestamp: {self.timestamp}\n  Trade ID: {self.trade_id}\n  Leg ID: {self.leg_id}\n  Action: {self.action}\n  Contract: {self.contract}\n  Order: {self.order.__dict__}\n"
         return string
     
