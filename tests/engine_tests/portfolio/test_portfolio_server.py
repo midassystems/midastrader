@@ -167,6 +167,38 @@ class TestPortfolioServer(unittest.TestCase):
         self.assertFalse(self.mock_logger.info.called)
         self.assertEqual(self.observer.tester, None)
 
+    def test_updated_positions_zero_quantity(self):
+        contract = Contract()
+        contract.symbol = 'AAPL'
+        position = Position(action='BUY', 
+                            avg_cost=10.9,
+                            quantity=100,
+                            total_cost=100000,
+                            market_value=10000,
+                            quantity_multiplier=1,
+                            price_multiplier=1,
+                            initial_margin=0)
+        
+        self.portfolio_server.positions[contract.symbol] = position
+        self.assertEqual(self.observer.tester, None)
+        
+        # Test
+        new_position = Position(action='BUY', 
+                            avg_cost=10.9,
+                            quantity=0,
+                            total_cost=100000,
+                            market_value=10000,
+                            quantity_multiplier=1,
+                            price_multiplier=1,
+                            initial_margin=0)
+        self.portfolio_server.update_positions(contract, new_position)
+
+        # Validation
+        self.assertEqual(self.portfolio_server.positions, {})
+        self.assertEqual(self.observer.tester, 1)
+        self.assertEqual(len(self.portfolio_server.pending_positions_update), 0)
+        self.mock_logger.info.assert_called_once()
+    
     def test_output_positions(self):
         contract = Contract()
         contract.symbol = 'AAPL'
