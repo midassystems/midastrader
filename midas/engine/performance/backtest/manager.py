@@ -46,7 +46,7 @@ class BacktestPerformanceManager(BasePerformanceManager):
         """
         if trade not in self.trades:
             self.trades.append(trade)
-            self.logger.info(f"\nTrades Updated: \n{self._output_trades()}")
+            self.logger.info(f"\nTRADES UPDATED: \n{self._output_trades()}")
             
     def _aggregate_trades(self) -> pd.DataFrame:
         """

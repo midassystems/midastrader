@@ -166,7 +166,7 @@ class TestPerformanceManager(unittest.TestCase):
         self.performance_manager.update_signals(signal_event)
 
         # validate
-        self.mock_logger.info.assert_called_once_with("\nSignals Updated:  {'timestamp': 1651500000, 'trade_instructions': [{'ticker': 'AAPL', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 5, 'weight': 0.5, 'quantity': 2}, {'ticker': 'TSLA', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 6, 'weight': 0.5, 'quantity': 2}]} \n")
+        self.mock_logger.info.assert_called_once_with("\nSIGNALS UPDATED: \n  Timestamp: 1651500000 \n  Trade Instructions: \n    {'ticker': 'AAPL', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 5, 'weight': 0.5, 'quantity': 2}\n    {'ticker': 'TSLA', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 6, 'weight': 0.5, 'quantity': 2}\n")
 
     def test_update_equity_new_valid(self):
         equity = EquityDetails(timestamp= 165500000, equity_value = 10000000.99)
@@ -175,7 +175,7 @@ class TestPerformanceManager(unittest.TestCase):
 
         # validate
         self.assertEqual(self.performance_manager.equity_value[0], equity)
-        self.mock_logger.info.assert_called_once_with((f"\nEquity Updated: {equity}"))
+        self.mock_logger.info.assert_called_once_with("\nEQUITY UPDATED: \n  {'timestamp': 165500000, 'equity_value': 10000000.99}\n")
     
     def test_update_equity_old_valid(self):
         equity = EquityDetails(timestamp= 165500000, equity_value = 10000000.99)

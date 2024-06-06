@@ -526,7 +526,11 @@ class DummyBroker:
 
             self.last_trade[contract] = trade
 
-        self.logger.info(f"\nPositions liquidate: \n{self.last_trade}\n")
+        string = f"Positions liquidate:"
+        for contract, trade in self.last_trade.items():
+            string += f"\n  {contract} : {trade}"
+        
+        self.logger.info(f"\n{string}")
     
     # Return functions to mimic data return from broker
     def return_positions(self) -> dict:

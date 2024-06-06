@@ -79,6 +79,8 @@ class EventController:
         of events such as market data, signals, orders, and execution updates. It ensures that all components are
         appropriately updated and that the system can handle user-initiated or system signals for stopping the trading.
         """
+        self.logger.info(f"\n{'='* 50}\n{' '* 20 +'LIVE TRADING START' + ' ' * 20}\n{'='* 50}")
+
         self.running = True  # Flag to control the loop
         signal.signal(signal.SIGINT, self.signal_handler)  # Register signal handler
         while self.running:
@@ -115,6 +117,8 @@ class EventController:
 
         It ensures that all trading activities are recorded and analyzed, with final results calculated and saved.
         """
+        self.logger.info(f"\n{'='* 50}\n{' '* 20 +'BACKTEST START' + ' ' * 20}\n{'='* 50}")
+
         while self.hist_data_client.data_stream():
             while not self.event_queue.empty():
                 event = self.event_queue.get()
@@ -138,7 +142,7 @@ class EventController:
                     self.broker_client.eod_update()
         
         # Perform cleanup here
-        self.logger.info("Backtest complete. Finalizing results ...")
+        self.logger.info(f"\n{'='* 50}\n{' '* 20 +'BACKTEST COMPLETE' + ' ' * 20}\n{'='* 50}")
        
         # Perform EOD operations for the last trading day
         self.broker_client.eod_update()

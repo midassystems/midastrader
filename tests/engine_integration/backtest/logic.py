@@ -1,3 +1,4 @@
+import math
 import logging
 import numpy as np
 import pandas as pd
@@ -52,6 +53,7 @@ class Cointegrationzscore(BaseStrategy):
         self.last_signal = None  # 0: no position, 1: long, -1: short
         self.current_zscore = None
         self.hedge_ratio = None
+        self.asset_allocation = None
 
         # set-up
         self.prepare(self.historical_data)
@@ -67,8 +69,8 @@ class Cointegrationzscore(BaseStrategy):
         # Hedge Ratios
         standardized_vector = self._standardize_coint_vector_auto_min(cointegration_vector)
         self.cointegration_vector = self._adjust_hedge_ratios(standardized_vector)
-        self.hedge_ratio = self._asset_allocation(symbols, self.cointegration_vector)
-        self.logger.info(f"Hedge Ratios : {self.hedge_ratio}")
+        self.hedge_ratio, self.asset_allocation = self._asset_allocation(symbols, self.cointegration_vector)
+        self.logger.info(f"\nHEDGE RATIOS : \n  {self.hedge_ratio}")
 
         # Create Spread
         self.historical_spread = list(self._historic_spread(self.train_data, self.cointegration_vector))
@@ -159,7 +161,7 @@ class Cointegrationzscore(BaseStrategy):
 
         return whole_number_ratios
         
-    def _asset_allocation(self, symbols:list, cointegration_vector:np.ndarray) -> dict:
+    def _asset_allocation(self, symbols:list, cointegration_vector:np.ndarray) -> tuple[dict, dict]:
         """
         Create a dictionary of hedge ratios for each ticker.
 
@@ -174,7 +176,13 @@ class Cointegrationzscore(BaseStrategy):
             raise ValueError("Length of cointegration vector must match the number of symbols.")
 
         # Create a dictionary of symbols and corresponding hedge ratios
-        return {symbol: ratio for symbol, ratio in zip(symbols, cointegration_vector)}
+        asset_allocation = {}
+        hedge_ratios = {}
+        for symbol, ratio in zip(symbols, cointegration_vector):
+            asset_allocation[symbol]= abs(ratio/abs(cointegration_vector).sum())
+            hedge_ratios[symbol] = ratio
+
+        return hedge_ratios, asset_allocation
 
     def _historic_spread(self, train_data:pd.DataFrame, cointegration_vector:np.array) -> list:
         new_spread = train_data.dot(cointegration_vector) # produces a pd.Series
@@ -226,9 +234,11 @@ class Cointegrationzscore(BaseStrategy):
         """
         # Convert the hedge ratio dictionary to a pandas Series
         cointegration_series = pd.Series(self.hedge_ratio)
+        # print(cointegration_series)
 
         # Ensure the new_data DataFrame is aligned with the cointegration vector
         aligned_new_data = new_data[cointegration_series.index]
+        # print(aligned_new_data)
 
         # Calculate the new spread value
         new_spread_value = aligned_new_data.dot(cointegration_series)
@@ -285,11 +295,11 @@ class Cointegrationzscore(BaseStrategy):
         if not any(ticker in self.portfolio_server.positions for ticker in self.symbols_map.keys()):
             if z_score >= entry_threshold: # overvalued
                 self.last_signal = Signal.Overvalued
-                self.logger.info(f"Entry signal z_score : {z_score} // entry_threshold : {entry_threshold} // action : {self.last_signal}")
+                self.logger.info(f"\nEntry Signal:\n  z_score : {z_score}\n  entry_threshold : {entry_threshold}\n  action : {self.last_signal}")
                 return True
             elif z_score <= -entry_threshold:
                 self.last_signal = Signal.Undervalued
-                self.logger.info(f"Entry signal z_score : {z_score} // entry_threshold : {entry_threshold} // action : {self.last_signal}")
+                self.logger.info(f"\nEntry Signal:\n  z_score : {z_score}\n  entry_threshold : {entry_threshold}\n  action : {self.last_signal}")
                 return True
         else:
             return False
@@ -308,61 +318,14 @@ class Cointegrationzscore(BaseStrategy):
         if any(ticker in self.portfolio_server.positions for ticker in self.symbols_map.keys()):
             if self.last_signal == Signal.Undervalued and z_score >= -exit_threshold:
                 self.last_signal = Signal.Exit_Undervalued
-                self.logger.info(f"Exit signal z_score : {z_score} // entry_threshold : {exit_threshold} // action : {self.last_signal}")
+                self.logger.info(f"\nExit Signal:\n  z_score : {z_score}\n  entry_threshold : {exit_threshold}\n  action : {self.last_signal}")
                 return True
             elif self.last_signal == Signal.Overvalued and z_score <= exit_threshold:
                 self.last_signal = Signal.Exit_Overvalued
-                self.logger.info(f"Exit signal z_score : {z_score} // entry_threshold : {exit_threshold} // action : {self.last_signal}")
+                self.logger.info(f"\nExit Signal:\n  z_score : {z_score}\n  entry_threshold : {exit_threshold}\n  action : {self.last_signal}")
                 return True
         else: 
             return False
-    
-    def generate_trade_instructions(self, signal:Signal, trade_capital:float) -> List[TradeInstruction]:
-        """
-        Generate trade instructions list.
-
-        Parameters:
-        - signal (Signal): Enum value representing the direction of the signal.
-
-        Returns:
-        - List[TradeInstruction] : A list of objects of the trade instructions.
-        """
-        trade_instructions = []
-        leg_id = 1
-
-        for ticker, hedge_ratio in self.hedge_ratio.items():
-            if signal in [Signal.Overvalued, Signal.Exit_Undervalued]:
-                if hedge_ratio < 0:
-                    action = Action.LONG if signal == Signal.Overvalued else Action.COVER
-                    hedge_ratio *= -1
-                elif hedge_ratio > 0:
-                    action = Action.SHORT if signal == Signal.Overvalued else Action.SELL
-                    hedge_ratio *= -1
-            elif signal in [Signal.Undervalued, Signal.Exit_Overvalued]:
-                if hedge_ratio > 0:
-                    action = Action.LONG if signal == Signal.Undervalued else Action.COVER
-                elif hedge_ratio < 0:
-                    action = Action.SHORT if signal == Signal.Undervalued else Action.SELL
-            
-            if action:
-                quantity = self._order_quantity(action, 
-                                                ticker, 
-                                                trade_capital, 
-                                                 current_price=self.order_book.current_price(ticker), 
-                                                 price_multiplier=self.symbols_map[ticker].price_multiplier, 
-                                                 quantity_multiplier=self.symbols_map[ticker].quantity_multiplier)
-        
-                
-                trade_instructions.append(TradeInstruction(ticker=ticker, 
-                                                           order_type=OrderType.MARKET, 
-                                                           action=action,
-                                                           trade_id=self.trade_id, 
-                                                           leg_id=leg_id, 
-                                                           weight=hedge_ratio,
-                                                           quantity=quantity))
-            leg_id += 1
-            
-        return trade_instructions 
     
     def trade_capital(self, trade_allocation:float) -> float:
         """
@@ -375,8 +338,71 @@ class Cointegrationzscore(BaseStrategy):
         - float : The dollar value allocated.
         """
         trade_capital = self.portfolio_server.capital * trade_allocation
-        self.logger.info(f"Trade Capital: {trade_capital}")
+        self.logger.info(f"\nTRADE CAPITAL ALLOCATION : {trade_capital}")
         return trade_capital
+    
+    def generate_trade_instructions(self, signal:Signal, trade_capital:float) -> List[TradeInstruction]:
+        """
+        Generate trade instructions list.
+
+        Parameters:
+        - signal (Signal): Enum value representing the direction of the signal.
+
+        Returns:
+        - List[TradeInstruction] : A list of objects of the trade instructions.
+        """
+        quantities = self.order_quantities_on_margin(trade_capital)
+
+        trade_instructions = []
+        leg_id = 1
+
+        for ticker, hedge_ratio in self.hedge_ratio.items():
+            if signal in [Signal.Overvalued, Signal.Exit_Undervalued]:
+                if hedge_ratio < 0:
+                    action = Action.LONG if signal == Signal.Overvalued else Action.COVER
+                    quantity = quantities[ticker]
+                    hedge_ratio = abs(hedge_ratio)
+                else:
+                    action = Action.SHORT if signal == Signal.Overvalued else Action.SELL
+                    quantity = -quantities[ticker]
+                    hedge_ratio = -abs(hedge_ratio)
+            elif signal in [Signal.Undervalued, Signal.Exit_Overvalued]:
+                if hedge_ratio > 0:
+                    action = Action.LONG if signal == Signal.Undervalued else Action.COVER
+                    quantity = quantities[ticker]
+                else:
+                    action = Action.SHORT if signal == Signal.Undervalued else Action.SELL
+                    quantity = -quantities[ticker]        
+                
+            trade_instructions.append(TradeInstruction(ticker=ticker, 
+                                                        order_type=OrderType.MARKET, 
+                                                        action=action,
+                                                        trade_id=self.trade_id, 
+                                                        leg_id=leg_id, 
+                                                        weight=hedge_ratio,
+                                                        quantity=quantity))
+            leg_id += 1
+            
+        return trade_instructions 
+
+    def order_quantities_on_margin(self, trade_capital: float):
+        quantities = {}
+
+        for ticker, percent in self.asset_allocation.items():
+            trade_allocation = trade_capital * percent
+            quantities[ticker] = math.floor(trade_allocation / self.symbols_map[ticker].initialMargin)
+
+        return quantities
+
+    def order_quantities_on_notional(self, trade_capital: float):
+        quantities = {}
+        for ticker, percent in self.asset_allocation.items():
+            ticker_allocation = trade_capital * percent
+            price = self.order_book.current_price(ticker)
+            notional_value = price * self.symbols_map[ticker].price_multiplier * self.symbols_map[ticker].quantity_multiplier
+            quantities[ticker] = math.floor(ticker_allocation / notional_value)
+        
+        return quantities
     
     def _order_quantity(self, action: Action,ticker: str, order_allocation: float, current_price: float, price_multiplier: float , quantity_multiplier: int) -> float:
         """
@@ -444,7 +470,6 @@ class Cointegrationzscore(BaseStrategy):
         self.historical_data["spread"] = self.historical_spread
         self.historical_data["z-score"] = self.historical_zscore
         self.historical_data=self.historical_data.reset_index().rename(columns={'index': 'timestamp'})
-        print(self.historical_data.columns)
         self._convert_timestamp(self.historical_data, "timestamp")
         return self.historical_data
 

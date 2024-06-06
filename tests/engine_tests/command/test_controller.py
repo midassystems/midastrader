@@ -7,6 +7,7 @@ from decimal import Decimal
 from ibapi.order import Order
 from ibapi.contract import Contract
 from unittest.mock import Mock, patch
+from datetime import datetime
 
 from midas.engine.command import EventController, Mode
 from midas.engine.events import MarketEvent, OrderEvent, SignalEvent, ExecutionEvent, EODEvent
@@ -159,7 +160,7 @@ class TestController(unittest.TestCase):
         self.event_controller = EventController(self.mock_config)
         self.mock_config.hist_data_client.data_stream.side_effect = [True, False]# Simulates one iterations then stop
         
-        eod_event = EODEvent(11111)
+        eod_event = EODEvent(datetime(2024,10, 1))
         self.event_controller.event_queue.put(eod_event)
         
         # test

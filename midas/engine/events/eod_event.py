@@ -1,5 +1,6 @@
 import numpy as np
 from dataclasses import dataclass, field
+from datetime import date
 
 @dataclass
 class EODEvent:
@@ -14,14 +15,14 @@ class EODEvent:
     - timestamp (np.uint64): The UNIX timestamp marking the exact end-of-day moment, in nanoseconds.
     - type (str): Automatically set to 'End-of-day' to signify the type of event.
     """
-    timestamp: np.uint64
-    type: str = field(init=False, default='End-of-day')
+    timestamp: date
+    type: str = field(init=False, default='END-OF-DAY')
 
-    # def __post_init__(self):
-    #     # Type Check
-    #     # if not isinstance(self.timestamp, (float,int)):
-    #     #     raise TypeError(f"'timestamp' should be in UNIX format of type float or int, got {type(self.timestamp).__name__}")
+    def __post_init__(self):
+        # Type Check
+        if not isinstance(self.timestamp, date):
+            raise TypeError(f"'timestamp' should be an datetime.date instance, got {type(self.timestamp).__name__}")
 
-    # def __str__(self) -> str:
-    #     string = f"\n{self.type} : \n Timestamp: {self.timestamp}\n Action: {self.action}\n Contract: {self.contract}\n Execution Details: {self.trade_details}\n"
-    #     return string
+    def __str__(self) -> str:
+        string = f"\n{self.type} EVENT:\n  Timestamp: {self.timestamp}\n"
+        return string

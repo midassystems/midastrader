@@ -75,13 +75,13 @@ class PortfolioServer(Subject):
             del self.positions[contract.symbol]
             self.pending_positions_update.discard(contract.symbol)
             self.notify(EventType.POSITION_UPDATE)  # update database
-            self.logger.info(f"\nPositions Updated: \n{self._output_positions()}")
+            self.logger.info(f"\nPOSITIONS UPDATED: \n{self._output_positions()}")
         else:
             # Update the position and log the change
             self.positions[contract.symbol] = new_position
             self.pending_positions_update.discard(contract.symbol)
             self.notify(EventType.POSITION_UPDATE)  # update database
-            self.logger.info(f"\nPositions Updated: \n{self._output_positions()}")
+            self.logger.info(f"\nPOSITIONS UPDATED: \n{self._output_positions()}")
 
     def _output_positions(self) -> str:
         """
@@ -92,7 +92,7 @@ class PortfolioServer(Subject):
         """
         string =""
         for contract, position in self.positions.items():
-            string += f" {contract}: {position.__dict__} \n"
+            string += f"  {contract}: {position.__dict__}\n"
         return string
     
     def update_orders(self, order: ActiveOrder) -> None:
@@ -116,7 +116,7 @@ class PortfolioServer(Subject):
                 self.active_orders[order['orderId']].update(order)
         
         self.notify(EventType.ORDER_UPDATE)  # udpate dataabase
-        self.logger.info(f"\nOrder Updated: \n{self._ouput_orders()}")
+        self.logger.info(f"\nORDERS UPDATED: \n{self._ouput_orders()}")
 
     def _ouput_orders(self) -> str:        
         """
@@ -140,7 +140,7 @@ class PortfolioServer(Subject):
         self.account = account_details
         self.capital = float(self.account['FullAvailableFunds'])
         self.notify(EventType.ACCOUNT_DETAIL_UPDATE)  
-        self.logger.info(f"\nAccount Updated: \n{self._output_account()}")
+        self.logger.info(f"\nACCOUNT UPDATED: \n{self._output_account()}")
     
     def _output_account(self) -> str:
         """
@@ -151,7 +151,7 @@ class PortfolioServer(Subject):
         """
         string = ""
         for key, value in self.account.items():
-            string += f" {key} : {value} \n"
+            string += f"  {key} : {value} \n"
         return string
     
 

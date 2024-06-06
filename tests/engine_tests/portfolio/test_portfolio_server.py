@@ -215,7 +215,7 @@ class TestPortfolioServer(unittest.TestCase):
         self.portfolio_server.update_positions(contract, position)
 
         # Validation
-        self.mock_logger.info.assert_called_once_with("\nPositions Updated: \n AAPL: {'action': 'BUY', 'avg_cost': 10.9, 'quantity': 100, 'total_cost': 100000, 'market_value': 10000, 'quantity_multiplier': 1, 'price_multiplier': 1, 'initial_margin': 0} \n")
+        self.mock_logger.info.assert_called_once_with("\nPOSITIONS UPDATED: \n  AAPL: {'action': 'BUY', 'avg_cost': 10.9, 'quantity': 100, 'total_cost': 100000, 'market_value': 10000, 'quantity_multiplier': 1, 'price_multiplier': 1, 'initial_margin': 0}\n")
 
     def test_update_account_details_valid(self):
         account_info = AccountDetails(FullAvailableFunds = 100000.0, 
@@ -247,7 +247,7 @@ class TestPortfolioServer(unittest.TestCase):
         self.portfolio_server.update_account_details(account_info)
 
         # Validation
-        self.mock_logger.info.assert_called_once_with('\nAccount Updated: \n FullAvailableFunds : 100000.0 \n FullInitMarginReq : 100000.0 \n NetLiquidation : 100000.0 \n UnrealizedPnL : 100000.0 \n FullMaintMarginReq : 100000.0 \n Currency : USD \n')
+        self.mock_logger.info.assert_called_once_with('\nACCOUNT UPDATED: \n  FullAvailableFunds : 100000.0 \n  FullInitMarginReq : 100000.0 \n  NetLiquidation : 100000.0 \n  UnrealizedPnL : 100000.0 \n  FullMaintMarginReq : 100000.0 \n  Currency : USD \n')
         
     def test_update_orders_new_valid(self):
         order_id = 10
@@ -486,7 +486,7 @@ class TestPortfolioServer(unittest.TestCase):
         self.portfolio_server.update_orders(active_order)
 
         # Validation
-        self.mock_logger.info.assert_called_once_with("\nOrder Updated: \n {'permId': 10, 'clientId': 1, 'orderId': 10, 'account': 'account_name', 'symbol': 'AAPL', 'secType': 'STK', 'exchange': 'NASDAQ', 'action': 'BUY', 'orderType': 'MKT', 'totalQty': 100, 'cashQty': 100909, 'lmtPrice': 0, 'auxPrice': 0, 'status': 'PreSubmitted'} \n")
+        self.mock_logger.info.assert_called_once_with("\nORDERS UPDATED: \n {'permId': 10, 'clientId': 1, 'orderId': 10, 'account': 'account_name', 'symbol': 'AAPL', 'secType': 'STK', 'exchange': 'NASDAQ', 'action': 'BUY', 'orderType': 'MKT', 'totalQty': 100, 'cashQty': 100909, 'lmtPrice': 0, 'auxPrice': 0, 'status': 'PreSubmitted'} \n")
 
 if __name__ == "__main__":
     unittest.main()

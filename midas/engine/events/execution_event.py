@@ -40,5 +40,5 @@ class ExecutionEvent:
             raise TypeError("'contract' must be of type Contract instance.")
 
     def __str__(self) -> str:
-        string = f"\n{self.type} : \n Timestamp: {self.timestamp}\n Action: {self.action}\n Contract: {self.contract}\n Execution Details: {self.trade_details}\n"
+        string = f"\n{self.type} EVENT:\n  Timestamp: {self.timestamp}\n  Action: {self.action}\n  Contract: {self.contract}\n  Execution Details: {self.trade_details}\n"
         return string
