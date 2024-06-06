@@ -316,7 +316,7 @@ class DummyBroker:
 
             # If nets the old position ot 0 the position no longer exists
             if net_quantity == 0:
-                del self.positions[contract]
+                self.positions[contract]["quantity"] = 0
 
             # Adding to the old position
             elif action == current_position['action']:
@@ -536,7 +536,13 @@ class DummyBroker:
         Returns:
         - dict: Dictionary containing current positions.
         """
-        return self.positions
+        positions = self.positions.copy()  # Create a copy to return the original positions
+        keys_to_remove = [contract for contract, position in self.positions.items() if position["quantity"] == 0]
+        
+        for contract in keys_to_remove:
+            del self.positions[contract]
+        
+        return positions
     
     def return_account(self) -> dict:
         """

@@ -636,7 +636,8 @@ class TestDummyClient(unittest.TestCase):
         self.dummy_broker._update_positions(contract,exit_action,exit_quantity, exit_price)
         
         # validate
-        self.assertEqual(self.dummy_broker.positions, {}) # position should be removed
+        valid_position["quantity"] = 0
+        self.assertEqual(self.dummy_broker.positions, {contract:valid_position}) # position quantity set to zero will be removed once returned to the broker client
 
     def test_update_positions_add_to_OLD(self):
         # Variables
@@ -1118,6 +1119,68 @@ class TestDummyClient(unittest.TestCase):
             self.assertTrue(mock_calculate_commission_fees.called)
             self.assertTrue(mock_update_trades.called)
             self.assertTrue(mock_set_execution.called)
+
+    def test_return_positions_quantity_not_zero(self):
+        # Variables
+        ticker = 'HEJ4'
+        contract = Contract()
+        contract.symbol = ticker
+        quantity_multiplier= self.valid_symbols_map[ticker].quantity_multiplier
+        price_multiplier= self.valid_symbols_map[ticker].price_multiplier
+        
+        action = Action.SHORT
+        quantity = -10
+        entry_price = 50
+        
+        valid_position = PositionDetails(
+                action='SELL',
+                quantity= quantity,
+                avg_cost=round(entry_price*price_multiplier*quantity_multiplier,4),
+                quantity_multiplier= self.valid_symbols_map[ticker].quantity_multiplier,  
+                price_multiplier= self.valid_symbols_map[ticker].price_multiplier,  
+                initial_margin = self.valid_symbols_map[ticker].initialMargin,
+                unrealizedPnL=0
+        )
+        self.dummy_broker.positions[contract] = valid_position
+
+        # test
+        result =self.dummy_broker.return_positions()
+
+        # valdiate
+        self.assertEqual(self.dummy_broker.positions[contract], valid_position)
+        self.assertEqual(result, {contract:valid_position})
+
+    def test_return_positions_quantity_zero(self):
+        # Variables
+        ticker = 'HEJ4'
+        contract = Contract()
+        contract.symbol = ticker
+        quantity_multiplier= self.valid_symbols_map[ticker].quantity_multiplier
+        price_multiplier= self.valid_symbols_map[ticker].price_multiplier
+        
+        action = Action.SHORT
+        quantity =  0
+        entry_price = 50
+        
+        valid_position = PositionDetails(
+                action='SELL',
+                quantity= quantity,
+                avg_cost=round(entry_price*price_multiplier*quantity_multiplier,4),
+                quantity_multiplier= self.valid_symbols_map[ticker].quantity_multiplier,  
+                price_multiplier= self.valid_symbols_map[ticker].price_multiplier,  
+                initial_margin = self.valid_symbols_map[ticker].initialMargin,
+                unrealizedPnL=0
+        )
+        self.dummy_broker.positions[contract] = valid_position
+
+        # test
+        result =self.dummy_broker.return_positions()
+
+        # valdiate
+
+        self.assertEqual(result, {contract: valid_position})
+        self.assertEqual(self.dummy_broker.positions, {})
+
 
     # Type and Constraint Validation
     def test_slippage_adjust_price(self):
