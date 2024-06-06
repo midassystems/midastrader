@@ -71,6 +71,11 @@ class PortfolioServer(Subject):
         # Check if this position exists and is equal to the new position
         if contract.symbol in self.positions and self.positions[contract.symbol] == new_position:
             return  # Positions are identical, do nothing
+        elif contract.symbol in self.positions and new_position.quantity == 0:
+            del self.positions[contract.symbol]
+            self.pending_positions_update.discard(contract.symbol)
+            self.notify(EventType.POSITION_UPDATE)  # update database
+            self.logger.info(f"\nPositions Updated: \n{self._output_positions()}")
         else:
             # Update the position and log the change
             self.positions[contract.symbol] = new_position
