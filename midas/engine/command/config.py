@@ -1,23 +1,23 @@
 import queue
 import logging
+import threading
 from enum import Enum
+import pandas as pd
 from typing import Union
 from decouple import config
+from abc import ABC, abstractmethod
 
-from .parameters import Parameters
+from midas.client import DatabaseClient
 from midas.engine.observer import EventType
 from midas.engine.order_book import OrderBook
 from midas.engine.strategies import BaseStrategy
 from midas.engine.risk_model import BaseRiskModel
 from midas.engine.data_sync import DatabaseUpdater
+from midas.shared.utils.logger import SystemLogger
 from midas.engine.portfolio import PortfolioServer
 from midas.engine.order_manager import OrderManager
+from midas.engine.command.parameters import Parameters
 from midas.engine.performance import BasePerformanceManager
-
-from midas.client import DatabaseClient
-
-from midas.shared.symbol import Symbol
-from midas.shared.utils.logger import SystemLogger
 
 class Mode(Enum):
     LIVE = "LIVE"
@@ -57,13 +57,8 @@ class Config:
     Raises:
     - ValueError: If the `mode` or `params` are not of the expected type.
     """
-    def __init__(self, session_id: int,mode: Mode, params: Parameters, database_key: str, database_url: str, risk_model: BaseRiskModel = None, logger_output="file", logger_level=logging.INFO):
-        if not isinstance(mode, Mode):
-            raise ValueError(f"'mode' must be of type Mode enum.")
-        
-        if not isinstance(params, Parameters):
-            raise ValueError(f"'params' must be of type Parameters instance.")
-        
+    def __init__(self, session_id: int, mode: Mode, params: Parameters, database_key: str, database_url: str, risk_model: BaseRiskModel = None, logger_output="file", logger_level=logging.INFO):
+        # User Variables
         self.session_id = session_id
         self.mode = mode
         self.params = params
@@ -73,17 +68,12 @@ class Config:
 
         # Handlers
         self.order_book: OrderBook
-        self.strategy: BaseStrategy
+        self.strategy: BaseStrategy = None
         self.order_manager: OrderManager
         self.portfolio_server: PortfolioServer
         self.performance_manager: BasePerformanceManager
         self.risk_model: BaseRiskModel
         self.db_updater: DatabaseUpdater = None
-
-        if risk_model:
-            self.risk_model = risk_model()
-        else:
-            self.risk_model = None
 
         # Variables
         self.live_data_client = None
@@ -93,36 +83,28 @@ class Config:
         self.contract_handler = None
         self.symbols_map = {}
         self.data_ticker_map = {}
+        self.train_data : pd.DataFrame
+        self.eod_event_flag = None
 
         # Set-up
-        self.setup()
+        self._set_risk_model(risk_model)
+        self._map_symbols()
 
-    def setup(self):
-        """
-        Configures the initial environment for the trading session.
+        # Initialize based on mode
+        if mode == Mode.LIVE:
+            self.environment = LiveEnvironment(self)
+        elif mode == Mode.BACKTEST:
+            self.environment = BacktestEnvironment(self)
+        
+        self.environment.initialize_handlers()
 
-        This method maps ticker symbols to their respective symbols, initializes trading components,
-        and pre-loads necessary data based on the operational mode. It sets up data subscriptions for live data or loads
-        historical data for backtesting, based on the 'mode' attribute.
-        """
-        # Map ticker to symbol object
-        for symbol in self.params.symbols:
-            self.map_symbol(symbol)
+    def _set_risk_model(self,  risk_model: BaseRiskModel) -> None:
+        if not risk_model or not issubclass(risk_model, BaseRiskModel):
+            self.risk_model = None
+            return
+        self.risk_model = risk_model()
 
-        # Initialize components
-        self._initialize_components()
-
-        # Load historical data if the strategy requires a train period
-        if self.params.train_start:
-            self.load_train_data()
-
-        # Set-up data subscriptions based on mode
-        if self.mode == Mode.LIVE:
-            self.load_live_data()
-        elif self.mode == Mode.BACKTEST:
-            self.load_backtest_data()
-
-    def map_symbol(self, symbol: Symbol):
+    def _map_symbols(self) -> None:
         """
         Maps a trading symbol to its respective ticker and stores in internal mappings.
 
@@ -131,156 +113,10 @@ class Config:
 
         This method updates the internal dictionaries used for tracking symbols throughout the system.
         """
-        self.data_ticker_map[symbol.data_ticker] = symbol.ticker
-        self.symbols_map[symbol.ticker] = symbol
-
-    def _initialize_components(self):
-        """
-        Initializes core components of the trading system including the order book, portfolio server, and order manager.
-
-        Based on the operational mode specified during initialization (live or backtest), this method sets up
-        the appropriate environment by initializing observer patterns and setting up the live or backtest environment accordingly.
-        This ensures that all necessary components are ready and configured before the trading activities start.
-        """
-        self.order_book = OrderBook(data_type=self.params.data_type, event_queue=self.event_queue)
-        self.portfolio_server = PortfolioServer(self.symbols_map, self.logger, self.database)
-        self.order_manager = OrderManager(self.symbols_map, self.event_queue, self.order_book, self.portfolio_server, self.logger)
-
-        if self.mode == Mode.LIVE:
-            self._initialize_observer_patterns()
-            self._set_live_environment()
-        elif self.mode == Mode.BACKTEST:
-            self._set_backtest_environment()
-
-    def _initialize_observer_patterns(self):
-        """
-        Configures observer patterns for updating database and managing risk based on trading events.
-
-        This method attaches various components such as the database updater and risk model (if available)
-        as observers to critical system events. This setup allows for seamless integration of data updates
-        and risk management across the trading system components.
-        """
-        self.db_updater = DatabaseUpdater(self.database, self.session_id)
-        
-        # Attach the DatabaseUpdater as an observer to OrderBook and PortfolioServer
-        self.order_book.attach(self.db_updater, EventType.MARKET_EVENT)
-        self.portfolio_server.attach(self.db_updater, EventType.POSITION_UPDATE)
-        self.portfolio_server.attach(self.db_updater, EventType.ORDER_UPDATE)
-        self.portfolio_server.attach(self.db_updater, EventType.ACCOUNT_DETAIL_UPDATE)
-
-        if self.risk_model:
-            # Attach the DatabaseUpdater as an observer to RiskModel
-            self.risk_model.attach(self.db_updater, EventType.RISK_MODEL_UPDATE)
-
-            # Attach the risk model as an observer to OrderBook and PortfolioServer
-            self.order_book.attach(self.risk_model, EventType.MARKET_EVENT)
-            self.portfolio_server.attach(self.risk_model, EventType.POSITION_UPDATE)
-            self.portfolio_server.attach(self.risk_model, EventType.ORDER_UPDATE)
-            self.portfolio_server.attach(self.risk_model, EventType.ACCOUNT_DETAIL_UPDATE)
-
-    def _set_live_environment(self):
-        """
-        Sets up the environment necessary for live trading, including performance management and live data and broker clients.
-
-        This method initializes performance managers and gateways required for live trading. It ensures that all
-        connections to live data feeds and brokerage services are established and operational before trading begins.
-        """
-        from midas.engine.performance.live import LivePerformanceManager
-        from midas.engine.gateways.live import (DataClient, BrokerClient, ContractManager)
-        
-        # Performance
-        self.performance_manager = LivePerformanceManager(self.database, self.logger, self.params)
-
-        # Gateways
-        self.live_data_client = DataClient(self.event_queue, self.order_book, self.logger)
-        self.broker_client = BrokerClient(self.event_queue, self.logger, self.portfolio_server, self.performance_manager)
-        self._connect_live_clients()
-    
-        # Contract Handler
-        self.contract_handler = ContractManager(self.live_data_client, self.logger) # TODO: CAN ADD to the Data CLIENT AND/OR TRADE CLIENT
-
-        for ticker, symbol in self.symbols_map.items():
-            if not self.contract_handler.validate_contract(symbol.contract):
-                raise RuntimeError(f"{ticker} invalid contract.")
-
-    def _set_backtest_environment(self):
-        """
-        Configures the environment for backtesting, including performance management and historical data clients.
-
-        This setup provides all necessary components to simulate trading using historical data, allowing the system
-        to test trading strategies under historical market conditions.
-        """
-        from midas.engine.performance.backtest import BacktestPerformanceManager
-        from midas.engine.gateways.backtest import (DataClient, BrokerClient, DummyBroker)
-
-        # Performance
-        self.performance_manager = BacktestPerformanceManager(self.database, self.logger, None, self.params)
-
-        # Gateways
-        self.hist_data_client = DataClient(self.event_queue, self.database, self.order_book)
-        self.dummy_broker = DummyBroker(self.symbols_map, self.event_queue, self.order_book, self.params.capital, self.logger)
-        self.broker_client = BrokerClient(self.event_queue, self.logger, self.portfolio_server, self.performance_manager, self.dummy_broker)
-        
-    def _connect_live_clients(self):
-        """
-        Establishes connections with live data and brokerage service clients.
-        """
-        self.live_data_client.connect()
-        self.broker_client.connect()
-
-    def load_live_data(self):
-        """
-        Loads and subscribes to live data feeds for the symbols in the trading strategy.
-
-        This method sets up the data client connections and begins receiving real-time data, which is essential
-        for live trading environments. It handles the dynamic connection to data sources and begins the data streaming
-        to the system components.
-        """
-        try:
-            for _, symbol in self.symbols_map.items():
-                self.live_data_client.get_data(data_type=self.params.data_type, contract=symbol.contract) 
-        except ValueError:
-            raise ValueError(f"Error loading live data for symbol {symbol.ticker}.")
-
-    def load_backtest_data(self):
-        """
-        Loads historical data for the period specified in the parameters for backtesting.
-
-        Retrieves and processes historical data needed to simulate trading in a backtest environment. This data is used
-        to feed into the system as if it were live, allowing the strategy to make decisions based on historical market conditions.
-        """
-        tickers = list(self.data_ticker_map.keys())
-        response  = self.hist_data_client.get_data(tickers, self.params.test_start, self.params.test_end,self.params.missing_values_strategy)
-
-        if response:
-            self.logger.info(f"Backtest data loaded.")
-        else:
-            raise RuntimeError("Backtest data did not load.")
-
-    def load_train_data(self):
-        """
-        Retrieves and formats historical data used for training the trading strategy.
-
-        Loads the necessary historical data for the training period specified in the parameters. This data is essential for
-        strategy initialization and calibration before live trading or detailed backtesting begins.
-        """
-        # If live the dataclient from teh backtest need to get historical dat
-        if not self.hist_data_client:
-            from midas.engine.gateways.backtest import (DataClient)
-            self.hist_data_client = DataClient(self.event_queue, self.database, self.order_book)
-
-        # Get historical data
-        tickers = list(self.data_ticker_map.keys())
-        self.hist_data_client.get_data(tickers, self.params.train_start, self.params.train_end, self.params.missing_values_strategy)
-        train_data = self.hist_data_client.data
-
-        # # Extract contract details for mapping
-        contracts_map = {symbol.data_ticker: symbol.ticker for symbol in self.symbols_map.values()}
-        train_data['symbol'] = train_data['symbol'].map(contracts_map)
-
-        # # Sorting the DataFrame by the 'timestamp' column in ascending order
-        train_data = train_data.sort_values(by='timestamp', ascending=True).reset_index(drop=True)
-        self.train_data = train_data.pivot(index='timestamp', columns='symbol', values='close')
+        # Map ticker to symbol object
+        for symbol in self.params.symbols:
+            self.data_ticker_map[symbol.data_ticker] = symbol.ticker
+            self.symbols_map[symbol.ticker] = symbol
 
     def set_strategy(self, strategy: Union[BaseStrategy, type]):
         """
@@ -300,3 +136,169 @@ class Config:
             self.performance_manager.set_strategy(self.strategy)
         except:
             raise RuntimeError("Error creating strategy instance.")
+
+class BaseEnvironment(ABC):
+    def __init__(self, config:Config):
+        self.config = config
+
+    def initialize_handlers(self):
+        self.config.order_book = OrderBook(data_type=self.config.params.data_type, event_queue=self.config.event_queue)
+        self.config.portfolio_server = PortfolioServer(self.config.symbols_map, self.config.logger, self.config.database)
+        self.config.order_manager = OrderManager(self.config.symbols_map, self.config.event_queue, self.config.order_book, self.config.portfolio_server, self.config.logger)
+
+    def _load_train_data(self):
+        """
+        Retrieves and formats historical data used for training the trading strategy.
+
+        Loads the necessary historical data for the training period specified in the parameters. This data is essential for
+        strategy initialization and calibration before live trading or detailed backtesting begins.
+        """
+        # Get historical data
+        tickers = list(self.config.data_ticker_map.keys())
+        self.config.hist_data_client.get_data(tickers, self.config.params.train_start, self.config.params.train_end, self.config.params.missing_values_strategy)
+        train_data = self.config.hist_data_client.data
+
+        # # Extract contract details for mapping
+        contracts_map = {symbol.data_ticker: symbol.ticker for symbol in self.config.symbols_map.values()}
+        train_data['symbol'] = train_data['symbol'].map(contracts_map)
+
+        # # Sorting the DataFrame by the 'timestamp' column in ascending order
+        self.config.train_data = train_data.sort_values(by='timestamp', ascending=True).reset_index(drop=True)
+
+    @abstractmethod
+    def _set_environment(self):
+        pass
+
+    @abstractmethod
+    def _load_data(self):
+        pass
+
+class LiveEnvironment(BaseEnvironment):
+    def __init__(self, config:Config):
+        self.config = config
+
+    def initialize_handlers(self):
+        super().initialize_handlers()
+        self._initialize_observer_patterns()
+        self._set_environment()
+        self._load_train_data()
+        self._load_data()
+
+    def _initialize_observer_patterns(self):
+        """
+        Configures observer patterns for updating database and managing risk based on trading events.
+
+        This method attaches various components such as the database updater and risk model (if available)
+        as observers to critical system events. This setup allows for seamless integration of data updates
+        and risk management across the trading system components.
+        """
+        self.config.db_updater = DatabaseUpdater(self.config.database, self.config.session_id)
+        
+        # Attach the DatabaseUpdater as an observer to OrderBook and PortfolioServer
+        self.config.order_book.attach(self.config.db_updater, EventType.MARKET_EVENT)
+        self.config.portfolio_server.attach(self.config.db_updater, EventType.POSITION_UPDATE)
+        self.config.portfolio_server.attach(self.config.db_updater, EventType.ORDER_UPDATE)
+        self.config.portfolio_server.attach(self.config.db_updater, EventType.ACCOUNT_DETAIL_UPDATE)
+
+        if self.config.risk_model:
+            # Attach the DatabaseUpdater as an observer to RiskModel
+            self.config.risk_model.attach(self.config.db_updater, EventType.RISK_MODEL_UPDATE)
+
+            # Attach the risk model as an observer to OrderBook and PortfolioServer
+            self.config.order_book.attach(self.config.risk_model, EventType.MARKET_EVENT)
+            self.config.portfolio_server.attach(self.config.risk_model, EventType.POSITION_UPDATE)
+            self.config.portfolio_server.attach(self.config.risk_model, EventType.ORDER_UPDATE)
+            self.config.portfolio_server.attach(self.config.risk_model, EventType.ACCOUNT_DETAIL_UPDATE)
+
+    def _set_environment(self):
+        """
+        Sets up the environment necessary for live trading, including performance management and live data and broker clients.
+
+        This method initializes performance managers and gateways required for live trading. It ensures that all
+        connections to live data feeds and brokerage services are established and operational before trading begins.
+        """
+        from midas.engine.performance.live import LivePerformanceManager
+        from midas.engine.gateways.live import (DataClient, BrokerClient, ContractManager)
+        from midas.engine.gateways.backtest import DataClient as HistoricalDataClient 
+        
+        # Performance
+        self.config.performance_manager = LivePerformanceManager(self.config.database, self.config.logger, self.config.params)
+
+        # Gateways
+        self.config.hist_data_client = HistoricalDataClient(self.config.event_queue, self.config.database, self.config.order_book, self.config.eod_event_flag)
+        self.config.live_data_client = DataClient(self.config.event_queue, self.config.order_book, self.config.logger)
+        self.config.broker_client = BrokerClient(self.config.event_queue, self.config.logger, self.config.portfolio_server, self.config.performance_manager)
+        self._connect_live_clients()
+    
+        # Contract Handler
+        self.config.contract_handler = ContractManager(self.config.live_data_client, self.config.logger) # TODO: CAN ADD to the Data CLIENT AND/OR TRADE CLIENT
+
+        for ticker, symbol in self.config.symbols_map.items():
+            if not self.config.contract_handler.validate_contract(symbol.contract):
+                raise RuntimeError(f"{ticker} invalid contract.")
+            
+    def _connect_live_clients(self):
+        """
+        Establishes connections with live data and brokerage service clients.
+        """
+        self.config.live_data_client.connect()
+        self.config.broker_client.connect()
+
+    def _load_data(self):
+        """
+        Loads and subscribes to live data feeds for the symbols in the trading strategy.
+
+        This method sets up the data client connections and begins receiving real-time data, which is essential
+        for live trading environments. It handles the dynamic connection to data sources and begins the data streaming
+        to the system components.
+        """
+        try:
+            for _, symbol in self.config.symbols_map.items():
+                self.config.live_data_client.get_data(data_type=self.config.params.data_type, contract=symbol.contract) 
+        except ValueError:
+            raise ValueError(f"Error loading live data for symbol {symbol.ticker}.")
+
+class BacktestEnvironment(BaseEnvironment):
+    def __init__(self, config:Config):
+        self.config = config
+
+    def initialize_handlers(self):
+        super().initialize_handlers()
+        self._set_environment()
+        self._load_train_data()
+        self._load_data()
+
+    def _set_environment(self):
+        """
+        Configures the environment for backtesting, including performance management and historical data clients.
+
+        This setup provides all necessary components to simulate trading using historical data, allowing the system
+        to test trading strategies under historical market conditions.
+        """
+        from midas.engine.performance.backtest import BacktestPerformanceManager
+        from midas.engine.gateways.backtest import (DataClient, BrokerClient, DummyBroker)
+        # EOD Event Handling
+        self.config.eod_event_flag = threading.Event()
+
+        # Performance
+        self.config.performance_manager = BacktestPerformanceManager(self.config.database, self.config.logger, None, self.config.params)
+
+        # Gateways
+        self.config.hist_data_client = DataClient(self.config.event_queue, self.config.database, self.config.order_book, self.config.eod_event_flag)
+        self.config.dummy_broker = DummyBroker(self.config.symbols_map, self.config.event_queue, self.config.order_book, self.config.params.capital, self.config.logger)
+        self.config.broker_client = BrokerClient(self.config.event_queue, self.config.logger, self.config.portfolio_server, self.config.performance_manager, self.config.dummy_broker, self.config.eod_event_flag)
+        
+    def _load_data(self):
+        """
+        Loads historical data for the period specified in the parameters for backtesting.
+
+        Retrieves and processes historical data needed to simulate trading in a backtest environment. This data is used
+        to feed into the system as if it were live, allowing the strategy to make decisions based on historical market conditions.
+        """
+        tickers = list(self.config.data_ticker_map.keys())
+        response = self.config.hist_data_client.get_data(tickers, self.config.params.test_start, self.config.params.test_end,self.config.params.missing_values_strategy)
+
+        if response:
+            self.config.logger.info(f"Backtest data loaded.")
+        else:
+            raise RuntimeError("Backtest data did not load.")

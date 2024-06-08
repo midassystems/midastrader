@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 from typing import List, Literal
 from dataclasses import dataclass, field
@@ -5,6 +6,8 @@ from dataclasses import dataclass, field
 from midas.shared.symbol import Symbol
 from midas.shared.utils.unix import iso_to_unix
 from midas.shared.market_data import MarketDataType
+from midas.shared.symbol import Symbol, Equity, Future, Option, Index
+from midas.shared.symbol import Currency, Venue, SecurityType, Industry, ContractUnits, Right
 
 @dataclass
 class Parameters:
@@ -106,3 +109,74 @@ class Parameters:
             "tickers": self.tickers
         }   
     
+    @classmethod
+    def from_file(cls, config_file: str) -> 'Parameters':
+        with open(config_file, 'r') as file:
+            data = json.load(file)
+        
+        # Validate data_type
+        data_type = cls._validate_data_type(data['data_type'])
+        
+        # Parse and map symbols
+        symbols = cls._parse_symbols(data['symbols'])
+        
+        # Create and return Parameters instance
+        return cls(
+            strategy_name=data['strategy_name'],
+            capital=data['capital'],
+            data_type=data_type,
+            test_start=data['test_start'],
+            test_end=data['test_end'],
+            missing_values_strategy=data['missing_values_strategy'],
+            symbols=symbols,
+            train_start=data.get('train_start'),
+            train_end=data.get('train_end')
+        )
+
+    @classmethod
+    def _validate_data_type(cls, data_type_str: str) -> MarketDataType:
+        if data_type_str not in MarketDataType.__members__:
+            raise ValueError(f"Invalid data_type '{data_type_str}' in configuration file. Must be one of {list(MarketDataType.__members__.keys())}.")
+        return MarketDataType[data_type_str]
+    
+    @classmethod
+    def _parse_symbols(cls, symbols_data: list) -> List[Symbol]:
+        symbols = []
+        for symbol_data in symbols_data:
+            symbol_type = symbol_data.pop('type')
+            symbol_class = cls._get_symbol_class(symbol_type)
+            symbol_data = cls._map_symbol_enum_fields(symbol_data)
+            symbols.append(symbol_class(**symbol_data))
+        return symbols
+
+    @classmethod
+    def _get_symbol_class(cls, symbol_type: str):
+        symbol_classes = {
+            'Equity': Equity,
+            'Future': Future,
+            'Option': Option,
+            'Index': Index
+        }
+        if symbol_type not in symbol_classes:
+            raise ValueError(f"Invalid symbol type '{symbol_type}' in configuration file.")
+        return symbol_classes[symbol_type]
+
+    @classmethod
+    def _map_symbol_enum_fields(cls, symbol_data: dict) -> dict:
+        symbol_data['security_type'] = cls._map_enum(SecurityType, symbol_data['security_type'])
+        symbol_data['currency'] = cls._map_enum(Currency, symbol_data['currency'])
+        symbol_data['exchange'] = cls._map_enum(Venue, symbol_data['exchange'])
+        if 'industry' in symbol_data:
+            symbol_data['industry'] = cls._map_enum(Industry, symbol_data['industry'])
+        if 'contract_units' in symbol_data:
+            symbol_data['contract_units'] = cls._map_enum(ContractUnits, symbol_data['contract_units'])
+        if 'option_type' in symbol_data:
+            symbol_data['option_type'] = cls._map_enum(Right, symbol_data['option_type'])
+        return symbol_data
+    
+    @staticmethod
+    def _map_enum(enum_class, value):
+        try:
+            return enum_class[value]
+        except KeyError:
+            raise ValueError(f"Invalid value '{value}' for enum {enum_class.__name__}")

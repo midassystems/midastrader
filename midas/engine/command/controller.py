@@ -1,10 +1,10 @@
 import time
 import signal
-
-from .config import Config, Mode
+from abc import ABC, abstractmethod
+from midas.engine.command.config import Config
 from midas.engine.events import MarketEvent, OrderEvent, SignalEvent, ExecutionEvent, EODEvent
 
-class EventController:
+class BaseEventController(ABC):
     """
     Controls the event-driven mechanisms of the trading system, handling both live and backtest modes.
 
@@ -46,20 +46,57 @@ class EventController:
         self.performance_manager = config.performance_manager
         self.database_updater = config.db_updater
         self.logger = config.logger
-        
+    
+    @abstractmethod
+    def _set_up(self):
+        pass
+
+    @abstractmethod
+    def _clean_up(self):
+        pass
+
+    @abstractmethod
+    def _handle_event(self, event):
+        pass
+
+    @abstractmethod
     def run(self):
-        """
-        Initiates the processing of events based on the trading mode.
+        pass
 
-        Depending on the configuration, this method starts the event processing for either live trading or backtesting.
-        It handles the main loop of event processing, dispatching to specific routines for live or backtest modes.
-        """
-        if self.mode == Mode.LIVE:
-            self._run_live()
-        elif self.mode == Mode.BACKTEST:
-            self._run_backtest()
+class LiveEventController(BaseEventController):
+    def __init__(self, config:Config):
+        # Initialize instance variables
+        self.event_queue = config.event_queue
+        
+        # Gateways
+        self.broker_client = config.broker_client
+        
+        # Core Components
+        self.strategy = config.strategy
+        self.order_manager = config.order_manager
 
-    def signal_handler(self, signum, frame):
+        # Supporting Components
+        self.performance_manager = config.performance_manager
+        self.database_updater = config.db_updater
+        self.logger = config.logger
+        self.running = False
+
+    def _set_up(self):
+        self.logger.info(f"\n{'='* 50}\n{' '* 20 +'LIVE TRADING START' + ' ' * 20}\n{'='* 50}")
+        self.running= True
+        signal.signal(signal.SIGINT, self._signal_handler)  # Register signal handler
+
+    def _clean_up(self):
+        # Perform cleanup here
+        self.logger.info("Live trading stopped. Performing cleanup...")
+        self.database_updater.delete_session()
+        
+        # Finalize and save to database
+        self.broker_client.request_account_summary()
+        time.sleep(5) # buffer to allow time for final account summary request (could possibly be shorter)
+        self.performance_manager.save()
+
+    def _signal_handler(self, signum, frame):
         """
         This method is triggered by signals like SIGINT, allowing the system to perform cleanup and save state
         before a complete shutdown.
@@ -70,8 +107,20 @@ class EventController:
         """
         self.logger.info("Signal received, preparing to shut down.")
         self.running = False  # Clear the flag to stop the loop
+
+    def _handle_event(self, event):
+        if isinstance(event, MarketEvent):
+            self.strategy.handle_market_data()
+
+        elif isinstance(event, SignalEvent):
+            self.performance_manager.update_signals(event)
+            self.order_manager.on_signal(event)
+
+        elif isinstance(event, OrderEvent):
+            self.broker_client.on_order(event)
+
   
-    def _run_live(self):
+    def run(self):
         """
         Manages the event loop for live trading sessions.
 
@@ -79,68 +128,39 @@ class EventController:
         of events such as market data, signals, orders, and execution updates. It ensures that all components are
         appropriately updated and that the system can handle user-initiated or system signals for stopping the trading.
         """
-        self.logger.info(f"\n{'='* 50}\n{' '* 20 +'LIVE TRADING START' + ' ' * 20}\n{'='* 50}")
+        self._set_up()
 
-        self.running = True  # Flag to control the loop
-        signal.signal(signal.SIGINT, self.signal_handler)  # Register signal handler
         while self.running:
+            print(self.running)
             while not self.event_queue.empty():
+                print("test")
                 event = self.event_queue.get()
                 self.logger.info(event)
+                self._handle_event(event)
 
-                if isinstance(event, MarketEvent):
-                    self.strategy.handle_market_data()
+        self._clean_up()
 
-                elif isinstance(event, SignalEvent):
-                    self.performance_manager.update_signals(event)
-                    self.order_manager.on_signal(event)
-
-                elif isinstance(event, OrderEvent):
-                    self.broker_client.on_order(event)
-
-        # Perform cleanup here
-        self.logger.info("Live trading stopped. Performing cleanup...")
-        self.database_updater.delete_session()
+class BacktestEventController(BaseEventController):
+    def __init__(self, config:Config):
+        # Initialize instance variables
+        self.event_queue = config.event_queue
         
-        # Finalize and save to database
-        self.broker_client.request_account_summary()
-        time.sleep(5) # buffer to allow time for final account summary request (could possibly be shorter)
-        self.performance_manager.save()
+        # Gateways
+        self.hist_data_client = config.hist_data_client
+        self.broker_client = config.broker_client
+        
+        # Core Components
+        self.strategy = config.strategy
+        self.order_manager = config.order_manager
 
-    def _run_backtest(self):
-        """
-        Manages the event loop for backtesting sessions.
+        # Supporting Components
+        self.performance_manager = config.performance_manager
+        self.logger = config.logger
 
-        Processes all events that simulate the market conditions during a backtest. This involves responding to
-        market, signal, order, execution, and end-of-day events, allowing the system to emulate a live trading
-        environment using historical data.
-
-        It ensures that all trading activities are recorded and analyzed, with final results calculated and saved.
-        """
+    def _set_up(self):
         self.logger.info(f"\n{'='* 50}\n{' '* 20 +'BACKTEST START' + ' ' * 20}\n{'='* 50}")
 
-        while self.hist_data_client.data_stream():
-            while not self.event_queue.empty():
-                event = self.event_queue.get()
-                self.logger.info(event)
-
-                if isinstance(event, MarketEvent):
-                    self.broker_client.update_equity_value() # Updates equity value of the account with every new price change
-                    self.strategy.handle_market_data()
-
-                elif isinstance(event, SignalEvent):
-                    self.performance_manager.update_signals(event)
-                    self.order_manager.on_signal(event)
-
-                elif isinstance(event, OrderEvent):
-                    self.broker_client.on_order(event)
-
-                elif isinstance(event, ExecutionEvent):
-                    self.broker_client.on_execution(event)
-
-                elif isinstance(event, EODEvent):
-                    self.broker_client.eod_update()
-        
+    def _clean_up(self):
         # Perform cleanup here
         self.logger.info(f"\n{'='* 50}\n{' '* 20 +'BACKTEST COMPLETE' + ' ' * 20}\n{'='* 50}")
        
@@ -151,3 +171,43 @@ class EventController:
         # Finalize and save to database
         self.performance_manager.calculate_statistics() 
         self.performance_manager.save()
+
+    def _handle_event(self, event):
+        if isinstance(event, MarketEvent):
+            self.broker_client.update_equity_value() # Updates equity value of the account with every new price change
+            self.strategy.handle_market_data()
+
+        elif isinstance(event, SignalEvent):
+            self.performance_manager.update_signals(event)
+            self.order_manager.on_signal(event)
+
+        elif isinstance(event, OrderEvent):
+            self.broker_client.on_order(event)
+
+        elif isinstance(event, ExecutionEvent):
+            self.broker_client.on_execution(event)
+
+        elif isinstance(event, EODEvent):
+            self.broker_client.eod_update()
+
+    def run(self):
+        """
+        Manages the event loop for backtesting sessions.
+
+        Processes all events that simulate the market conditions during a backtest. This involves responding to
+        market, signal, order, execution, and end-of-day events, allowing the system to emulate a live trading
+        environment using historical data.
+
+        It ensures that all trading activities are recorded and analyzed, with final results calculated and saved.
+        """
+        self._set_up()
+
+        while self.hist_data_client.data_stream():
+            while not self.event_queue.empty():
+                event = self.event_queue.get()
+                self.logger.info(event)
+                self._handle_event(event)
+        
+        self._clean_up()
+
+        
