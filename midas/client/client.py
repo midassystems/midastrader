@@ -4,9 +4,9 @@ from typing import List
 from midas.shared.symbol import *
 from midas.shared.market_data import *
 from midas.shared.backtest import Backtest
-from midas.shared.utils import iso_to_unix, unix_to_iso
-from midas.shared.live_session import LiveTradingSession
+from midas.shared.utils import iso_to_unix
 from midas.shared.regression import RegressionResults
+from midas.shared.live_session import LiveTradingSession
 
 class DatabaseClient:
     def __init__(self, api_key:str, api_url:str ='http://127.0.0.1:8000'):
@@ -225,7 +225,8 @@ class DatabaseClient:
         
         if response.status_code != 204:
             raise ValueError(f"Session deletion failed: {response.text}")
-
+        return {'status_code': response.status_code}
+    
     def create_positions(self, session_id: int, data: dict):
         """
         Creates position for a live session.
