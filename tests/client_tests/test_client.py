@@ -4,15 +4,13 @@ import unittest
 from decimal import Decimal
 from decouple import config
 
-from midas.client import DatabaseClient
-from midas.client import AdminDatabaseClient
-
+from midas.shared.symbol import *
 from midas.shared.market_data import *
+from midas.client import DatabaseClient
 from midas.shared.backtest import Backtest
+from midas.client import AdminDatabaseClient
 from midas.shared.regression import RegressionResults
 from midas.shared.live_session import LiveTradingSession
-from midas.shared.symbol import Symbol, Equity, SecurityType, Currency, Future, Option, Index, AssetClass, ContractUnits, Venue, Industry, Right
-
 
 DATABASE_KEY = config('LOCAL_API_KEY')
 DATABASE_URL = config('LOCAL_URL')
@@ -20,15 +18,18 @@ DATABASE_URL = config('LOCAL_URL')
 class TestBarDataMethods(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        # Database clients
         cls.client = DatabaseClient(DATABASE_KEY, DATABASE_URL) 
         cls.admin_client = AdminDatabaseClient(DATABASE_KEY, DATABASE_URL) 
-        cls.ticker="AAPL4"
 
+        # Create details for test symbol 
         cls.admin_client.create_security_type(SecurityType.STOCK)
         cls.admin_client.create_currency(Currency.USD)
         cls.admin_client.create_venue(Venue.NASDAQ)
         cls.admin_client.create_industry(Industry.TECHNOLOGY)
 
+        # Create test symbol
+        cls.ticker="AAPL4"
         cls.equity = Equity(ticker="AAPL4",
                                 security_type=SecurityType.STOCK,
                                 company_name="Apple Inc.",
@@ -43,9 +44,30 @@ class TestBarDataMethods(unittest.TestCase):
                                 price_multiplier=1)
         cls.symbol=cls.admin_client.create_symbol(cls.equity)
 
+    def test_get_bar_data_w_ticker_and_dates(self):
+        # Create bardata
+        bar=BarData(ticker="AAPL4",
+                    timestamp=np.uint64(1712400000000000000),
+                    open=Decimal('99.9999'),
+                    high=Decimal('100.9999'),
+                    low=Decimal('100.9999'),
+                    close=Decimal('100.9999'),
+                    volume=np.uint64(100),
+                    )
+        self.admin_client.create_bar_data(bar)
+        
+        # Test
+        tickers=[self.ticker]
+        start_date="2020-01-01"
+        end_date="2025-02-02"
+        response=self.client.get_bar_data(tickers, start_date, end_date)
+
+        # Valdiate
+        self.assertGreaterEqual(len(response), 1)
+
     @classmethod
     def tearDownClass(cls) -> None:
-        # delete symbol details
+        # Delete symbol details created in setup
         resources = [
             ("asset classes", cls.admin_client.get_asset_classes, cls.admin_client.delete_asset_class),
             ("security types", cls.admin_client.get_security_types, cls.admin_client.delete_security_type),
@@ -66,7 +88,7 @@ class TestBarDataMethods(unittest.TestCase):
             except Exception as e:
                 pass
 
-        # delete symbols
+        # Delete symbol created in setup
         def delete_symbol(symbol: Symbol):
             try:
                 response = cls.admin_client.get_symbol_by_ticker(symbol.ticker)
@@ -87,49 +109,13 @@ class TestBarDataMethods(unittest.TestCase):
 
         delete_symbol(cls.equity)
     
-    def setUp(self) -> None:
-        self.bar=BarData(ticker="AAPL4",
-                            timestamp=np.uint64(1711100000000000000),
-                            open=Decimal('99.9999'),
-                            high=Decimal('100.9999'),
-                            low=Decimal('100.9999'),
-                            close=Decimal('100.9999'),
-                            volume=np.uint64(100),
-                            )
-        
-        self.bar2 = copy.deepcopy(self.bar)
-        self.bar2.timestamp = np.uint64(1711200000000000000)
-
-        self.bar3 = copy.deepcopy(self.bar)
-        self.bar3.timestamp = np.uint64(1711300000000000000)
-
-        self.bars = [self.bar2,self.bar3]
-
-    def test_get_bar_data_ticker_and_dates(self):
-
-        bar=BarData(ticker="AAPL4",
-                    timestamp=np.uint64(1712400000000000000),
-                    open=Decimal('99.9999'),
-                    high=Decimal('100.9999'),
-                    low=Decimal('100.9999'),
-                    close=Decimal('100.9999'),
-                    volume=np.uint64(100),
-                    )
-        self.admin_client.create_bar_data(bar)
-        tickers=[self.ticker]
-        start_date="2020-01-01"
-        end_date="2025-02-02"
-        
-        # test
-        response=self.client.get_bar_data(tickers, start_date, end_date)
-
-        # valdiate
-        self.assertGreaterEqual(len(response), 1)
-
 class TestRegressionMethods(unittest.TestCase):
     def setUp(self) -> None:
+        # Database client
         self.client = DatabaseClient(DATABASE_KEY, DATABASE_URL) 
-        self.mock_parameters = {
+
+        # Create mock backtest
+        self.parameters = {
                                 "strategy_name": "cointegrationzscore", 
                                 "capital": 100000, 
                                 "data_type": "BAR", 
@@ -140,7 +126,7 @@ class TestRegressionMethods(unittest.TestCase):
                                 "tickers": ["AAPL"], 
                                 "benchmark": ["^GSPC"]
                             }
-        self.mock_static_stats = [{
+        self.static_stats = [{
                                 "net_profit": 330.0, 
                                 "total_fees": 40.0, 
                                 "total_return": 0.33, 
@@ -157,7 +143,7 @@ class TestRegressionMethods(unittest.TestCase):
                                 "avg_trade_profit": 165.0, 
                                 "sortino_ratio": 0.0
                             }]
-        self.mock_timeseries_stats =  [
+        self.timeseries_stats =  [
                                 {
                                     "timestamp": 1702141200000000000,
                                     "equity_value": 10000.0,
@@ -177,7 +163,7 @@ class TestRegressionMethods(unittest.TestCase):
                                     "daily_benchmark_return": "0.009"
                                 }
                             ]
-        self.mock_trades =  [{
+        self.trades =  [{
                                 "trade_id": 1, 
                                 "leg_id": 1, 
                                 "timestamp": 1672704000000000000, 
@@ -188,7 +174,7 @@ class TestRegressionMethods(unittest.TestCase):
                                 "action": "BUY", 
                                 "fees": 0.0
                             }]
-        self.mock_signals =  [{
+        self.signals =  [{
                                 "timestamp": 1672704000000000000, 
                                 "trade_instructions": [{
                                     "ticker": "AAPL", 
@@ -206,17 +192,20 @@ class TestRegressionMethods(unittest.TestCase):
                                 }]
                             }]
         
-        self.backtest = Backtest(parameters = self.mock_parameters,
-                                 static_stats = self.mock_static_stats,
-                                 daily_timeseries_stats = self.mock_timeseries_stats,
-                                 period_timeseries_stats = self.mock_timeseries_stats,
-                                 trade_data = self.mock_trades,
-                                 signal_data = self.mock_signals)
+        self.backtest_obj = Backtest(parameters = self.parameters,
+                                 static_stats = self.static_stats,
+                                 daily_timeseries_stats = self.timeseries_stats,
+                                 period_timeseries_stats = self.timeseries_stats,
+                                 trade_data = self.trades,
+                                 signal_data = self.signals)
         
-        response = self.client.create_backtest(self.backtest)
-        self.backtest_id = response['id']
+        response = self.client.create_backtest(self.backtest_obj)
+        
+        # Id for mocked backtest
+        self.backtest_id = response['id'] 
 
-        self.mock_regression_stats = RegressionResults(
+        # Mock regression object
+        self.regression_obj = RegressionResults(
             backtest= self.backtest_id,
             risk_free_rate=0.02,
             r_squared=0.95,
@@ -253,11 +242,12 @@ class TestRegressionMethods(unittest.TestCase):
                 {'timestamp': 1707973200000000000, 'daily_benchmark_return': 0.0061}
             ]
         )
+    
     def test_create_regression(self):
-        # test
-        response = self.client.create_regression_analysis(self.mock_regression_stats)
+        # Test
+        response = self.client.create_regression_analysis(self.regression_obj)
 
-        # validate
+        # Validate
         self.assertIn('backtest', response)
         self.assertIn('r_squared', response) 
         self.assertIn('p_value_alpha', response) 
@@ -268,8 +258,11 @@ class TestRegressionMethods(unittest.TestCase):
         
 class TestBacktestMethods(unittest.TestCase):
     def setUp(self) -> None:
+        # Database client
         self.client = DatabaseClient(DATABASE_KEY, DATABASE_URL) 
-        self.mock_parameters = {
+
+        # Create mock backtest object
+        self.parameters = {
                                 "strategy_name": "cointegrationzscore", 
                                 "capital": 100000, 
                                 "data_type": "BAR", 
@@ -280,7 +273,7 @@ class TestBacktestMethods(unittest.TestCase):
                                 "tickers": ["AAPL"], 
                                 "benchmark": ["^GSPC"]
                             }
-        self.mock_static_stats = [{
+        self.static_stats = [{
                                 "net_profit": 330.0, 
                                 "total_fees": 40.0, 
                                 "total_return": 0.33, 
@@ -297,7 +290,7 @@ class TestBacktestMethods(unittest.TestCase):
                                 "avg_trade_profit": 165.0, 
                                 "sortino_ratio": 0.0
                             }]
-        self.mock_regression_stats=[{
+        self.regression_stats=[{
                                 "r_squared": "1.0", 
                                 "p_value_alpha": "0.5", 
                                 "p_value_beta": "0.09", 
@@ -316,7 +309,7 @@ class TestBacktestMethods(unittest.TestCase):
                                 "portfolio_dollar_beta": "-8862.27533", 
                                 "market_hedge_nmv": "88662.2533"
                             }]
-        self.mock_timeseries_stats =  [
+        self.timeseries_stats =  [
                                 {
                                     "timestamp": 1702141200000000000,
                                     "equity_value": 10000.0,
@@ -336,7 +329,7 @@ class TestBacktestMethods(unittest.TestCase):
                                     "daily_benchmark_return": "0.009"
                                 }
                             ]
-        self.mock_trades =  [{
+        self.trades =  [{
                                 "trade_id": 1, 
                                 "leg_id": 1, 
                                 "timestamp": 1672704000000000000, 
@@ -347,7 +340,7 @@ class TestBacktestMethods(unittest.TestCase):
                                 "action": "BUY", 
                                 "fees": 0.0
                             }]
-        self.mock_signals =  [{
+        self.signals =  [{
                                 "timestamp": 1672704000000000000, 
                                 "trade_instructions": [{
                                     "ticker": "AAPL", 
@@ -365,18 +358,18 @@ class TestBacktestMethods(unittest.TestCase):
                                 }]
                             }]
         
-        self.backtest = Backtest(parameters = self.mock_parameters,
-                                 static_stats = self.mock_static_stats,
-                                 daily_timeseries_stats = self.mock_timeseries_stats,
-                                 period_timeseries_stats = self.mock_timeseries_stats,
-                                 trade_data = self.mock_trades,
-                                 signal_data = self.mock_signals)
+        self.backtest_obj = Backtest(parameters = self.parameters,
+                                 static_stats = self.static_stats,
+                                 daily_timeseries_stats = self.timeseries_stats,
+                                 period_timeseries_stats = self.timeseries_stats,
+                                 trade_data = self.trades,
+                                 signal_data = self.signals)
 
     def test_create_backtest(self):
-        # test
-        response =self.client.create_backtest(self.backtest)
+        # Test
+        response = self.client.create_backtest(self.backtest_obj)
 
-        # validate
+        # Validate
         self.assertIn("parameters", response)
         self.assertIn("static_stats", response)
         self.assertIn("regression_stats", response)
@@ -386,10 +379,10 @@ class TestBacktestMethods(unittest.TestCase):
         self.assertIn("trades", response)
 
     def test_get_backtest(self):
-        # test
+        # Test
         response=self.client.get_backtests()
 
-        # validate
+        # Validate
         self.assertGreaterEqual(len(response), 1)
         self.assertIn("id", response[0])
         self.assertIn("strategy_name", response[0])
@@ -403,12 +396,14 @@ class TestBacktestMethods(unittest.TestCase):
         self.assertIn("capital", response[0])
     
     def test_get_backtest_by_id(self):
-        response =self.client.create_backtest(self.backtest)
+        # Create backtest to have its ID
+        response = self.client.create_backtest(self.backtest_obj)
+        id = response['id']
 
-        # test
-        response=self.client.get_specific_backtest(response['id'])
+        # Test
+        response=self.client.get_specific_backtest(backtest_id=id)
 
-        # validate
+        # Validate
         self.assertGreaterEqual(len(response), 1)
         self.assertIn("parameters", response)
         self.assertIn("static_stats", response)
@@ -421,8 +416,11 @@ class TestBacktestMethods(unittest.TestCase):
 
 class TestTradingSessioMethods(unittest.TestCase):
     def setUp(self) -> None:
+        # Database client
         self.client = DatabaseClient(DATABASE_KEY, DATABASE_URL) 
-        self.mock_parameters = {
+
+        # Create test trading session object
+        self.parameters = {
                                 "strategy_name": "cointegrationzscore", 
                                 "capital": 100000, 
                                 "data_type": "BAR", 
@@ -433,31 +431,7 @@ class TestTradingSessioMethods(unittest.TestCase):
                                 "tickers": ["HE", "ZC"], 
                                 "benchmark": ["^GSPC"]
                             }
-        
-        ac = [{
-                'start_BuyingPower': '2533616.6400', 
-                'currency': 'USD', 
-                'start_ExcessLiquidity': '761628.7100', 
-                'start_FullAvailableFunds': '760084.9900', 
-                'start_FullInitMarginReq': '8009.9500', 
-                'start_FullMaintMarginReq': '6466.2300', 
-                'start_FuturesPNL': '-510.3400', 
-                'start_NetLiquidation': '768094.9400', 
-                'start_TotalCashBalance': '-11655.0816', 
-                'start_UnrealizedPnL': '1.2100', 
-                'start_timestamp': 1713976287714991104, 
-                'end_BuyingPower': '2534489.4700', 
-                'end_ExcessLiquidity': '761890.0500', 
-                'end_FullAvailableFunds': '760346.8400', 
-                'end_FullInitMarginReq': '8004.0200', 
-                'end_FullMaintMarginReq': '6460.8000', 
-                'end_FuturesPNL': '-373.7300', 
-                'end_NetLiquidation': '768350.8600', 
-                'end_TotalCashBalance': '766337.6224', 
-                'end_UnrealizedPnL': '137.8300', 
-                'end_timestamp': 1713976770533925120
-            }]
-        self.mock_acount = [{
+        self.acount = [{
                                 "start_BuyingPower": "2557567.234", 
                                 "currency": "USD", 
                                 "start_ExcessLiquidity": "767270.345", 
@@ -480,11 +454,11 @@ class TestTradingSessioMethods(unittest.TestCase):
                                 "end_UnrealizedPnL": "-28.99", 
                                 "end_timestamp": 1712850137000000000
                             }]
-        self.mock_trades =  [
+        self.trades =  [
                                 {"timestamp": 1712850060000000000, "ticker": "HE", "quantity": "1", "cumQty": "1", "price": "91.45", "AvPrice": "91.45", "action": "SELL", "cost": "0", "currency": "USD", "fees": "2.97"}, 
                                 {"timestamp": 1712850060000000000, "ticker": "ZC", "quantity": "1", "cumQty": "1", "price": "446.25", "AvPrice": "446.25", "action": "BUY", "cost": "0", "currency": "USD", "fees": "2.97"}
                             ]
-        self.mock_signals =  [
+        self.signals =  [
                                 {
                                     "timestamp": 1712850060000000000, 
                                     "trade_instructions": [
@@ -508,26 +482,26 @@ class TestTradingSessioMethods(unittest.TestCase):
                                 }
                             ]
 
-        self.session = LiveTradingSession(parameters = self.mock_parameters,
-                                          account_data = self.mock_acount,
-                                          trade_data = self.mock_trades,
-                                          signal_data = self.mock_signals)
+        self.session_obj = LiveTradingSession(parameters = self.parameters,
+                                          account_data = self.acount,
+                                          trade_data = self.trades,
+                                          signal_data = self.signals)
 
     def test_create_live_session(self):
-        # test
-        response =self.client.create_live_session(self.session)
+        # Test
+        response =self.client.create_live_session(self.session_obj)
 
-        # validate
+        # Validate
         self.assertIn("parameters", response)
         self.assertIn("account_data", response)
         self.assertIn("trades", response)
         self.assertIn("signals", response)
 
     def test_get_live_session(self):
-        # test
+        # Test
         response=self.client.get_live_sessions()
 
-        # validate
+        # Validate
         self.assertGreaterEqual(len(response), 1)
         self.assertIn("id", response[0])
         self.assertIn("strategy_name", response[0])
@@ -541,12 +515,14 @@ class TestTradingSessioMethods(unittest.TestCase):
         self.assertIn("capital", response[0])
     
     def test_get_specific_session(self):
-        response =self.client.create_live_session(self.session)
+        # Create  session for ID
+        response =self.client.create_live_session(self.session_obj)
+        id = response['id']
 
-        # test
-        response=self.client.get_specific_live_session(response['id'])
+        # Test
+        response=self.client.get_specific_live_session(live_session_id=id)
 
-        # validate
+        # Validate
         self.assertGreaterEqual(len(response), 1)
         self.assertIn("parameters", response)
         self.assertIn("account_data", response)
@@ -556,31 +532,39 @@ class TestTradingSessioMethods(unittest.TestCase):
 
 class TestPortfolioDataMethods(unittest.TestCase):
     def setUp(self) -> None:
+        # Database client
         self.client = DatabaseClient(DATABASE_KEY, DATABASE_URL)     
+
+        # Create Session
+        self.session_id = 12345
+        self.client.create_session(self.session_id)
     
     def test_create_session(self):
-        session_id = 12345
+        session_id = 12346
 
-        # test
+        # Test
         response = self.client.create_session(session_id)
 
-        # validation
+        # Validation
         self.assertEqual(response, { "session_id": session_id })
 
-        # clean up
+        # Clean-up
         self.client.delete_session(session_id)
 
     def test_delete_session(self):
-        session_id = 12345
+        session_id = 12346
+
+        # Create session to be deleted
         self.client.create_session(session_id)
         
-        # test
-        self.client.delete_session(session_id)
+        # Test
+        response = self.client.delete_session(session_id)
+
+        # Validate
+        self.assertEqual(response["status_code"], 204)
 
     def test_create_position(self):
-        session_id = 12345
-        self.client.create_session(session_id)
-        data = {
+        position = {
                 "data": {
                     "action" : "BUY",
                     "avg_cost" : 150,
@@ -593,20 +577,18 @@ class TestPortfolioDataMethods(unittest.TestCase):
                     "price" : 160
                     }       
                 }
-        # test
-        response = self.client.create_positions(session_id, data)
 
-        # validation
-        expected_data = {'action': 'BUY', 'avg_cost': 150, 'quantity': 100, 'total_cost': 15000.0, 'market_value': 160000.11, 'multiplier': 1, 'initial_margin': 0.0, 'ticker': 'AAPL', 'price': 160}
+
+        # Test
+        response = self.client.create_positions(self.session_id, position)
+
+        # Validation
+        expected_data = position["data"] 
         self.assertEqual(response['data'], expected_data)
-
-        # clean up
-        self.client.delete_session(session_id)
 
     def test_update_position(self):
-        session_id = 12345
-        self.client.create_session(session_id)
-        data = {
+        # Create position
+        position = {
                 "data": {
                     "action" : "BUY",
                     "avg_cost" : 150,
@@ -619,22 +601,18 @@ class TestPortfolioDataMethods(unittest.TestCase):
                     "price" : 160
                     }       
                 }
-        self.client.create_positions(session_id, data)
+        self.client.create_positions(self.session_id, position)
 
-        # test
-        data['data']['action'] = "SELL"
-        response = self.client.update_positions(session_id, data)
+        # Test
+        position['data']['action'] = "SELL"
+        response = self.client.update_positions(self.session_id, position)
 
-        # validation
-        expected_data = {'action': 'SELL', 'avg_cost': 150, 'quantity': 100, 'total_cost': 15000.0, 'market_value': 160000.11, 'multiplier': 1, 'initial_margin': 0.0, 'ticker': 'AAPL', 'price': 160}
+        # Validation
+        expected_data = position["data"]
         self.assertEqual(response['data'], expected_data)
 
-        # clean up
-        self.client.delete_session(session_id)
-
     def test_get_position(self):
-        session_id = 12345
-        self.client.create_session(session_id)
+        # Create position
         data = {
                 "data": {
                     "action" : "BUY",
@@ -648,20 +626,15 @@ class TestPortfolioDataMethods(unittest.TestCase):
                     "price" : 160
                     }       
                 }
-        self.client.create_positions(session_id, data)
+        self.client.create_positions(self.session_id, data)
 
-        # test
-        response = self.client.get_positions(session_id)
+        # Test
+        response = self.client.get_positions(self.session_id)
 
-        # validation
+        # Validation
         self.assertEqual(response['data'], data['data'])
-
-        # clean up
-        self.client.delete_session(session_id)
 
     def test_create_order(self):
-        session_id = 12345
-        self.client.create_session(session_id)
         data = {
                 "data" : {
                     "permId" : 1,
@@ -688,18 +661,14 @@ class TestPortfolioDataMethods(unittest.TestCase):
                 }
             }
         
-        # test
-        response = self.client.create_orders(session_id, data)
+        # Test
+        response = self.client.create_orders(self.session_id, data)
 
-        # validation
+        # Validation
         self.assertEqual(response['data'], data['data'])
-
-        # clean up
-        self.client.delete_session(session_id)
 
     def test_update_order(self):
-        session_id = 12345
-        self.client.create_session(session_id)
+        # Create order
         data = {
                 "data" : {
                     "permId" : 1,
@@ -726,21 +695,17 @@ class TestPortfolioDataMethods(unittest.TestCase):
                 }
             }
         
-        self.client.create_orders(session_id, data)
+        self.client.create_orders(self.session_id, data)
 
-        # test
+        # Test
         data['data']['permId'] = 100
-        response = self.client.update_orders(session_id, data)
+        response = self.client.update_orders(self.session_id, data)
 
-        # validation
+        # Validation
         self.assertEqual(response['data'], data['data'])
-
-        # clean up
-        self.client.delete_session(session_id)
 
     def test_get_order(self):
-        session_id = 12345
-        self.client.create_session(session_id)
+        # Create order
         data = {
                 "data" : {
                     "permId" : 1,
@@ -767,20 +732,15 @@ class TestPortfolioDataMethods(unittest.TestCase):
                 }
             }
         
-        self.client.create_orders(session_id, data)
+        self.client.create_orders(self.session_id, data)
 
-        # test
-        response = self.client.get_orders(session_id)
+        # Test
+        response = self.client.get_orders(self.session_id)
 
-        # validation
+        # Validation
         self.assertEqual(response['data'], data['data'])
-
-        # clean up
-        self.client.delete_session(session_id)
 
     def test_create_account(self):
-        session_id = 12345
-        self.client.create_session(session_id)
         data = {
                 "data" : {
                     "Timestamp" : "2024-01-01",
@@ -797,18 +757,14 @@ class TestPortfolioDataMethods(unittest.TestCase):
                 }
             }
         
-        # test
-        response = self.client.create_account(session_id, data)
+        # Test
+        response = self.client.create_account(self.session_id, data)
 
-        # validation
+        # Validation
         self.assertEqual(response['data'], data['data'])
-
-        # clean up
-        self.client.delete_session(session_id)
 
     def test_update_account(self):
-        session_id = 12345
-        self.client.create_session(session_id)
+        # Create account
         data = {
                 "data" : {
                     "Timestamp" : "2024-01-01",
@@ -825,21 +781,17 @@ class TestPortfolioDataMethods(unittest.TestCase):
                 }
             }
         
-        self.client.create_account(session_id, data)
+        self.client.create_account(self.session_id, data)
 
-        # test
+        # Test
         data['data']['FullAvailableFunds'] = 1111.99
-        response = self.client.update_account(session_id, data)
+        response = self.client.update_account(self.session_id, data)
 
-        # validation
+        # Validation
         self.assertEqual(response['data'], data['data'])
-
-        # clean up
-        self.client.delete_session(session_id)
 
     def test_get_account(self):
-        session_id = 12345
-        self.client.create_session(session_id)
+        # Create account
         data = {
                 "data" : {
                     "Timestamp" : "2024-01-01",
@@ -856,17 +808,17 @@ class TestPortfolioDataMethods(unittest.TestCase):
                 }
             }
         
-        self.client.create_account(session_id, data)
+        self.client.create_account(self.session_id, data)
 
-        # test
-        response = self.client.get_account(session_id)
+        # Test
+        response = self.client.get_account(self.session_id)
 
-        # validation
+        # Validation
         self.assertEqual(response['data'], data['data'])
-
-        # clean up
-        self.client.delete_session(session_id)
-        
+       
+    def tearDown(self) -> None:
+        # Delete Session
+        self.client.delete_session(self.session_id) 
 
 if __name__ == "__main__":
     unittest.main()
