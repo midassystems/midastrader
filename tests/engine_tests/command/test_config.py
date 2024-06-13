@@ -2,7 +2,6 @@ import random
 import threading
 import unittest
 import pandas as pd
-from decouple import config
 from contextlib import ExitStack
 from unittest.mock import Mock, patch
 
@@ -11,9 +10,9 @@ from midas.engine.order_book import OrderBook
 from midas.engine.strategies import BaseStrategy
 from midas.engine.risk_model import BaseRiskModel
 from midas.engine.portfolio import PortfolioServer
+from midas.engine.data_sync import DatabaseUpdater
 from midas.engine.order_manager import OrderManager
 from midas.shared.market_data import MarketDataType
-from midas.engine.gateways.live import ContractManager
 from midas.engine.command.parameters import Parameters
 from midas.engine.gateways.backtest import DummyBroker
 from midas.engine.performance.live import LivePerformanceManager
@@ -23,22 +22,42 @@ from midas.engine.performance.backtest import BacktestPerformanceManager
 from midas.engine.gateways.backtest import DataClient as HistoricalDataClient
 from midas.engine.gateways.backtest import BrokerClient  as BacktestBrokerClient
 from midas.shared.symbol import Future, Currency, Venue, Industry, ContractUnits, Currency
-from midas.engine.command.config import Config, Mode, BacktestEnvironment, LiveEnvironment, BaseEnvironment
-from midas.engine.data_sync import DatabaseUpdater
+from midas.engine.command.config import Config, Mode, BacktestEnvironment, LiveEnvironment
 
 
 DATABASE_KEY = "MIDAS_API_KEY"
 DATABASE_URL = "MIDAS_URL"
 
+class TestRiskModel(BaseRiskModel):
+    def __init__(self):
+        pass
+class TestStrategy(BaseStrategy):
+    def __init__(self, symbols_map, historical_data, portfolio_server, logger, order_book,event_queue):
+        pass
+    def prepare(self):
+        pass 
+    def _asset_allocation(self):
+        pass
+    def _entry_signal(self):
+        pass
+    def _exit_signal(self):
+        pass
+    def handle_market_data(self):
+        pass
+
+    def get_strategy_data(self) -> pd.DataFrame:
+        pass
+
 class TestConfig(unittest.TestCase):   
     def setUp(self) -> None:
-        self.valid_symbols = [
+        # Test symbols objects
+        self.symbols = [
             Future(ticker = "HE",
                 data_ticker = "HE.n.0",
                 currency = Currency.USD,  
                 exchange = Venue.CME,  
                 fees = 0.85,  
-                initialMargin =4564.17,
+                initial_margin =4564.17,
                 quantity_multiplier=40000,
                 price_multiplier=0.01,
                 product_code="HE",
@@ -55,7 +74,7 @@ class TestConfig(unittest.TestCase):
                 currency = Currency.USD,  
                 exchange = Venue.CBOT,  
                 fees = 0.85,  
-                initialMargin =2056.75,
+                initial_margin =2056.75,
                 quantity_multiplier=40000,
                 price_multiplier=0.01,
                 product_code="ZC",
@@ -68,6 +87,8 @@ class TestConfig(unittest.TestCase):
                 continuous=False,
                 lastTradeDateOrContractMonth="202406")
         ]
+        
+        # Test parameters object
         self.params = Parameters(strategy_name = "Testing",
                             capital = 1000000,
                             data_type = random.choice([MarketDataType.BAR, MarketDataType.QUOTE]),
@@ -76,18 +97,14 @@ class TestConfig(unittest.TestCase):
                             train_end = "2023-12-31",
                             test_start = "2024-01-01",
                             test_end = "2024-01-19",
-                            symbols = self.valid_symbols)
+                            symbols = self.symbols)
 
     # Basic Validation 
     def test_set_risk_model(self):
         mode = Mode.BACKTEST
 
-        class TestRiskModel(BaseRiskModel):
-            def __init__(self):
-                pass
-
+        # Test
         with ExitStack() as stack:
-            mock_live_env = stack.enter_context(patch.object(LiveEnvironment, 'initialize_handlers'))
             mock_backtest_env = stack.enter_context(patch.object(BacktestEnvironment, 'initialize_handlers'))
 
             # Initialize Config
@@ -100,21 +117,16 @@ class TestConfig(unittest.TestCase):
                 risk_model=TestRiskModel
             )
 
-            # Validate
-            self.assertIsInstance(config.risk_model, BaseRiskModel)
-
-            # Ensure initialize_handlers was called
-            if mode == Mode.LIVE:
-                mock_live_env.assert_called_once()
-            elif mode == Mode.BACKTEST:
-                mock_backtest_env.assert_called_once()
+        # Validate
+        self.assertIsInstance(config.risk_model, BaseRiskModel)
+        mock_backtest_env.assert_called_once()
 
     def test_set_risk_model_null(self):
-        mode = Mode.BACKTEST
+        mode = Mode.LIVE
 
+        # Test
         with ExitStack() as stack:
             mock_live_env = stack.enter_context(patch.object(LiveEnvironment, 'initialize_handlers'))
-            mock_backtest_env = stack.enter_context(patch.object(BacktestEnvironment, 'initialize_handlers'))
 
             # Initialize Config
             config = Config(
@@ -125,18 +137,14 @@ class TestConfig(unittest.TestCase):
                 database_url=DATABASE_URL
             )
 
-            # Validate
-            self.assertEqual(config.risk_model, None)
-
-            # Ensure initialize_handlers was called
-            if mode == Mode.LIVE:
-                mock_live_env.assert_called_once()
-            elif mode == Mode.BACKTEST:
-                mock_backtest_env.assert_called_once()
+        # Validate
+        self.assertEqual(config.risk_model, None)
+        mock_live_env.assert_called_once()
 
     def test_symbols_map(self):
         mode = Mode.BACKTEST
-    
+
+        # Test
         with ExitStack() as stack:
             mock_live_env = stack.enter_context(patch.object(LiveEnvironment, 'initialize_handlers'))
             mock_backtest_env = stack.enter_context(patch.object(BacktestEnvironment, 'initialize_handlers'))
@@ -150,30 +158,15 @@ class TestConfig(unittest.TestCase):
                 database_url=DATABASE_URL
             )
 
-            # validate
-            for symbol in self.valid_symbols:
-                self.assertEqual(config.data_ticker_map[symbol.data_ticker], symbol.ticker) # check data_ticker_map filled correctly
-                self.assertEqual(config.symbols_map[symbol.ticker], symbol) # check symbols_map filled correctly
+        # Validate
+        for symbol in self.symbols:
+            self.assertEqual(config.data_ticker_map[symbol.data_ticker], symbol.ticker) 
+            self.assertEqual(config.symbols_map[symbol.ticker], symbol) 
 
     def test_set_strategy_clean(self):
         mode = Mode.BACKTEST
-        class TestStrategy(BaseStrategy):
-            def __init__(self, symbols_map, historical_data, portfolio_server, logger, order_book,event_queue):
-                pass
-            def prepare(self):
-                pass 
-            def _asset_allocation(self):
-                pass
-            def _entry_signal(self):
-                pass
-            def _exit_signal(self):
-                pass
-            def handle_market_data(self):
-                pass
-
-            def get_strategy_data(self) -> pd.DataFrame:
-                pass
         
+        # Test
         with ExitStack() as stack:
             mock_live_env = stack.enter_context(patch.object(LiveEnvironment, 'initialize_handlers'))
             mock_backtest_env = stack.enter_context(patch.object(BacktestEnvironment, 'initialize_handlers'))
@@ -194,14 +187,13 @@ class TestConfig(unittest.TestCase):
             # Test
             config.set_strategy(TestStrategy)
             
-            # Validation
-            self.assertIsInstance(config.strategy, TestStrategy) # check strategy instantiated correctly
+        # Validate
+        self.assertIsInstance(config.strategy, TestStrategy)
 
     def test_set_strategy_exceptiom(self):
         mode = Mode.BACKTEST
         
         with ExitStack() as stack:
-            mock_live_env = stack.enter_context(patch.object(LiveEnvironment, 'initialize_handlers'))
             mock_backtest_env = stack.enter_context(patch.object(BacktestEnvironment, 'initialize_handlers'))
 
             # Initialize Config
@@ -214,7 +206,7 @@ class TestConfig(unittest.TestCase):
             )
 
             # Test
-            with self.assertRaisesRegex(RuntimeError, "Error creating strategy instance."): # error raised if strategy not a subclass of BaseStrategy
+            with self.assertRaisesRegex(RuntimeError, "Error creating strategy instance."): 
                 config.set_strategy(BaseStrategy)
 
     def test_setup_live(self):
@@ -222,7 +214,6 @@ class TestConfig(unittest.TestCase):
         
         with ExitStack() as stack:
             mock_live_env = stack.enter_context(patch.object(LiveEnvironment, 'initialize_handlers'))
-            mock_backtest_env = stack.enter_context(patch.object(BacktestEnvironment, 'initialize_handlers'))
 
             # Initialize Config
             config = Config(
@@ -257,13 +248,14 @@ class TestConfig(unittest.TestCase):
 
 class TestBacktestEnvironment(unittest.TestCase):
     def setUp(self) -> None:
-        self.valid_symbols = [
+        # Test symbols objects
+        self.symbols = [
             Future(ticker = "HE",
                 data_ticker = "HE.n.0",
                 currency = Currency.USD,  
                 exchange = Venue.CME,  
                 fees = 0.85,  
-                initialMargin =4564.17,
+                initial_margin =4564.17,
                 quantity_multiplier=40000,
                 price_multiplier=0.01,
                 product_code="HE",
@@ -280,7 +272,7 @@ class TestBacktestEnvironment(unittest.TestCase):
                 currency = Currency.USD,  
                 exchange = Venue.CBOT,  
                 fees = 0.85,  
-                initialMargin =2056.75,
+                initial_margin =2056.75,
                 quantity_multiplier=40000,
                 price_multiplier=0.01,
                 product_code="ZC",
@@ -293,6 +285,8 @@ class TestBacktestEnvironment(unittest.TestCase):
                 continuous=False,
                 lastTradeDateOrContractMonth="202406")
         ]
+        
+        # Test parameters object
         self.params = Parameters(strategy_name = "Testing",
                             capital = 1000000,
                             data_type = random.choice([MarketDataType.BAR, MarketDataType.QUOTE]),
@@ -301,12 +295,12 @@ class TestBacktestEnvironment(unittest.TestCase):
                             train_end = "2023-12-31",
                             test_start = "2024-01-01",
                             test_end = "2024-01-19",
-                            symbols = self.valid_symbols)
+                            symbols = self.symbols)
         
+        # Mock Instantiate Config
         mode = Mode.BACKTEST
         with ExitStack() as stack:
             self.init_handlers = stack.enter_context(patch.object(BacktestEnvironment, 'initialize_handlers'))
-
 
             # Initialize Config
             self.config = Config(
@@ -317,6 +311,7 @@ class TestBacktestEnvironment(unittest.TestCase):
                 database_url=DATABASE_URL
             )
 
+            # Create BacktestEnvironment object
             self.environment = BacktestEnvironment(self.config)
     
     def test_initialize_handlers(self):
@@ -324,10 +319,10 @@ class TestBacktestEnvironment(unittest.TestCase):
         self.environment._load_train_data = Mock()
         self.environment._load_data = Mock()
 
-        # test
+        # Test
         self.environment.initialize_handlers()
 
-        # validate
+        # Validate
         self.assertIsInstance(self.config.order_book, OrderBook)
         self.assertIsInstance(self.config.portfolio_server, PortfolioServer)
         self.assertIsInstance(self.config.order_manager, OrderManager)
@@ -339,10 +334,11 @@ class TestBacktestEnvironment(unittest.TestCase):
         self.config.order_book = Mock()
         self.config.portfolio_server = Mock()
         self.config.order_manager = Mock()
-        # test
+        
+        # Test
         self.environment._set_environment()
 
-        # validate
+        # Validate
         self.assertIsInstance(self.config.performance_manager, BacktestPerformanceManager)
         self.assertIsInstance(self.config.hist_data_client, HistoricalDataClient)
         self.assertIsInstance(self.config.dummy_broker, DummyBroker)
@@ -354,15 +350,15 @@ class TestBacktestEnvironment(unittest.TestCase):
         self.config.logger = Mock()
         self.config.hist_data_client.get_data = Mock(return_value = True) 
 
-        # test
+        # Test
         self.environment._load_data()
 
-        # validate
+        # Validate
         self.config.hist_data_client.get_data.assert_called_once()
         self.config.logger.info.assert_called_once_with(f"Backtest data loaded.")
    
     def test_load_train_data(self):
-        # Mock data
+        # Create mock df 
         data = {
             'timestamp': [
                 1684414800000000000, 1684414800000000000, 1684418400000000000,
@@ -389,34 +385,36 @@ class TestBacktestEnvironment(unittest.TestCase):
                 3978, 24363, 1808, 20583, 3019, 8174, 554, 11980
             ]
         }
-
         mock_df = pd.DataFrame(data)
+        
+        # Mock methods
         self.config.hist_data_client = Mock()
         self.config.hist_data_client.get_data = Mock()
         self.config.hist_data_client.data = mock_df
 
-        # test
+        # Test
         self.environment._load_train_data()
 
-        # expected
+        # Expected
         data["symbol"] = [
                 'HE', 'ZC', 'HE', 'ZC',
                   'HE', 'ZC', 'HE', 'ZC'
         ]
         expected_df = pd.DataFrame(data)
 
-        # validate
+        # Validate
         pd.testing.assert_frame_equal(self.config.train_data, expected_df)
 
 class TestLiveEnvironment(unittest.TestCase):
     def setUp(self) -> None:
-        self.valid_symbols = [
+        # Test sybmol objects
+        self.symbols = [
             Future(ticker = "HE",
                 data_ticker = "HE.n.0",
                 currency = Currency.USD,  
                 exchange = Venue.CME,  
                 fees = 0.85,  
-                initialMargin =4564.17,
+                initial_margin =4564.17,
                 quantity_multiplier=40000,
                 price_multiplier=0.01,
                 product_code="HE",
@@ -433,7 +431,7 @@ class TestLiveEnvironment(unittest.TestCase):
                 currency = Currency.USD,  
                 exchange = Venue.CBOT,  
                 fees = 0.85,  
-                initialMargin =2056.75,
+                initial_margin =2056.75,
                 quantity_multiplier=40000,
                 price_multiplier=0.01,
                 product_code="ZC",
@@ -446,6 +444,8 @@ class TestLiveEnvironment(unittest.TestCase):
                 continuous=False,
                 lastTradeDateOrContractMonth="202406")
         ]
+        
+        # Test parameter objet
         self.params = Parameters(strategy_name = "Testing",
                             capital = 1000000,
                             data_type = random.choice([MarketDataType.BAR, MarketDataType.QUOTE]),
@@ -454,7 +454,7 @@ class TestLiveEnvironment(unittest.TestCase):
                             train_end = "2023-12-31",
                             test_start = "2024-01-01",
                             test_end = "2024-01-19",
-                            symbols = self.valid_symbols)
+                            symbols = self.symbols)
         
         with ExitStack() as stack:
             self.init_handlers = stack.enter_context(patch.object(LiveEnvironment, 'initialize_handlers'))
@@ -476,10 +476,10 @@ class TestLiveEnvironment(unittest.TestCase):
         self.environment._load_data = Mock()
         self.environment._initialize_observer_patterns = Mock()
 
-        # test
+        # Test
         self.environment.initialize_handlers()
 
-        # validate
+        # Validate
         self.assertIsInstance(self.config.order_book, OrderBook)
         self.assertIsInstance(self.config.portfolio_server, PortfolioServer)
         self.assertIsInstance(self.config.order_manager, OrderManager)
@@ -489,19 +489,21 @@ class TestLiveEnvironment(unittest.TestCase):
         self.environment._initialize_observer_patterns.assert_called_once() 
 
     def test_set_environment(self):
+        from midas.engine.gateways.live import ContractManager
+
         self.config.order_book = Mock()
         self.config.portfolio_server = Mock()
         self.config.order_manager = Mock()
         self.environment._connect_live_clients = Mock()
         self.config.contract_handler = Mock()
 
-        # test
+        # Test
         with ExitStack() as stack:
             contract_handler = stack.enter_context(patch.object(ContractManager, 'validate_contract', return_value=True))
 
             self.environment._set_environment()
 
-        # validate
+        # Validate
         self.assertIsInstance(self.config.performance_manager, LivePerformanceManager)
         self.assertIsInstance(self.config.hist_data_client, HistoricalDataClient)
         self.assertIsInstance(self.config.live_data_client, LiveDataClient)
@@ -512,14 +514,14 @@ class TestLiveEnvironment(unittest.TestCase):
         self.config.live_data_client = Mock()
         self.config.live_data_client.get_data = Mock() 
 
-        # test
+        # Test
         self.environment._load_data()
 
-        # validate
-        self.assertEqual(self.config.live_data_client.get_data.call_count, len(self.valid_symbols))
+        # Validate
+        self.assertEqual(self.config.live_data_client.get_data.call_count, len(self.symbols))
    
     def test_load_train_data(self):
-        # Mock data
+        # Mock dataframe
         data = {
             'timestamp': [
                 1684414800000000000, 1684414800000000000, 1684418400000000000,
@@ -546,30 +548,29 @@ class TestLiveEnvironment(unittest.TestCase):
                 3978, 24363, 1808, 20583, 3019, 8174, 554, 11980
             ]
         }
-
         mock_df = pd.DataFrame(data)
+
+        # Mock methods
         self.config.hist_data_client = Mock()
         self.config.hist_data_client.get_data = Mock()
         self.config.hist_data_client.data = mock_df
 
-        # test
+        # Test
         self.environment._load_train_data()
 
-        # expected
+        # Expected
         data["symbol"] = [
                 'HE', 'ZC', 'HE', 'ZC',
                   'HE', 'ZC', 'HE', 'ZC'
         ]
         expected_df = pd.DataFrame(data)
 
-        # validate
+        # Validate
         pd.testing.assert_frame_equal(self.config.train_data, expected_df)
 
     def test_initialize_observer_patterns(self):
         self.config.order_book = Mock()
         self.config.portfolio_server = Mock()
-
-        # test
         mock_db_updater = Mock()
 
         # Mock the __init__ to set the return value properly
@@ -577,10 +578,10 @@ class TestLiveEnvironment(unittest.TestCase):
             with patch('midas.engine.data_sync.database_updater.DatabaseUpdater') as MockDatabaseUpdater:
                 MockDatabaseUpdater.return_value = mock_db_updater
 
-                # Run the method under test
+                # Test
                 self.environment._initialize_observer_patterns()
 
-            # validate
+            # Validate
             self.config.order_book.attach.assert_called_with(self.config.db_updater,EventType.MARKET_EVENT)
             self.config.portfolio_server.attach.assert_any_call(self.config.db_updater, EventType.POSITION_UPDATE)
             self.config.portfolio_server.attach.assert_any_call(self.config.db_updater, EventType.ORDER_UPDATE)

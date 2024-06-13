@@ -4,11 +4,9 @@ import threading
 from queue import Queue
 from decouple import config
 from ibapi.contract import Contract
-
-from .wrapper import DataApp
 from midas.engine.order_book import OrderBook
-
 from midas.shared.market_data import MarketDataType
+from midas.engine.gateways.live.data_client.wrapper import DataApp
 
 class DataClient:
     """

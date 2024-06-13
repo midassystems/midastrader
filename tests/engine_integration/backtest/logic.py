@@ -44,6 +44,7 @@ class Cointegrationzscore(BaseStrategy):
         self.trade_allocation=0.5 # percentage of all cash available
         
         # data
+        historical_data = historical_data.pivot(index='timestamp', columns='symbol', values='close')
         self.historical_data = convert_decimals_to_floats(historical_data)
         self.train_data : pd.DataFrame = None
         self.cointegration_vector = None
@@ -351,7 +352,14 @@ class Cointegrationzscore(BaseStrategy):
         Returns:
         - List[TradeInstruction] : A list of objects of the trade instructions.
         """
-        quantities = self.order_quantities_on_margin(trade_capital)
+
+        if signal in [Signal.Overvalued, Signal.Undervalued]:
+            quantities = self.order_quantities_on_margin(trade_capital)
+        else:
+            quantities = {}
+            for ticker, position in self.portfolio_server.positions.items():
+                quantities[ticker] = position.quantity * -1
+
 
         trade_instructions = []
         leg_id = 1
@@ -390,7 +398,7 @@ class Cointegrationzscore(BaseStrategy):
 
         for ticker, percent in self.asset_allocation.items():
             trade_allocation = trade_capital * percent
-            quantities[ticker] = math.floor(trade_allocation / self.symbols_map[ticker].initialMargin)
+            quantities[ticker] = math.floor(trade_allocation / self.symbols_map[ticker].initial_margin)
 
         return quantities
 

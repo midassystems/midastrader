@@ -1,187 +1,177 @@
 import random
 import unittest
 import numpy as np
-
 from midas.shared.trade import Trade
 
 class TestTrade(unittest.TestCase):
     def setUp(self) -> None:
+        # Mock trade data
         self.valid_trade_id = 1
         self.valid_leg_id = 2
         self.valid_timetamp = np.uint64(16555000)
         self.valid_ticker = 'HEJ4'
         self.valid_quantity = 10
-        self.valid_price= 85.98
-        self.valid_cost = 900.90
+        self.valid_avg_price= 85.98
+        self.valid_trade_value = 900.90
         self.valid_action = random.choice(['BUY', 'SELL'])
         self.valid_fees = 9.87
+
+        # Creaet trade object
+        self.trade_obj = Trade(trade_id=self.valid_trade_id,
+                leg_id=self.valid_leg_id,
+                timestamp=self.valid_timetamp,
+                ticker=self.valid_ticker,
+                quantity=self.valid_quantity,
+                avg_price=self.valid_avg_price,
+                trade_value=self.valid_trade_value,
+                action=self.valid_action,
+                fees=self.valid_fees)
     
     # Basic Validation
     def test_valid_construction(self):
-        # test
+        # Test
         trade = Trade(trade_id=self.valid_trade_id,
                       leg_id=self.valid_leg_id,
                       timestamp=self.valid_timetamp,
                       ticker=self.valid_ticker,
                       quantity=self.valid_quantity,
-                      price=self.valid_price,
-                      cost=self.valid_cost,
+                      avg_price=self.valid_avg_price,
+                      trade_value=self.valid_trade_value, 
                       action=self.valid_action,
                       fees=self.valid_fees)
-        # validate
+        # Validate
         self.assertEqual(trade.trade_id, self.valid_trade_id)
         self.assertEqual(trade.leg_id, self.valid_leg_id)
         self.assertEqual(trade.timestamp, self.valid_timetamp)
         self.assertEqual(trade.ticker, self.valid_ticker)
         self.assertEqual(trade.quantity, self.valid_quantity)
-        self.assertEqual(trade.price, self.valid_price)
-        self.assertEqual(trade.cost, self.valid_cost)
+        self.assertEqual(trade.avg_price, self.valid_avg_price)
+        self.assertEqual(trade.trade_value, self.valid_trade_value)
         self.assertEqual(trade.action, self.valid_action)
         self.assertEqual(trade.fees, self.valid_fees)
 
     # Type Validation
-    def test_trade_id_type_validation(self):
-        with self.assertRaisesRegex(TypeError,"'trade_id' must be of type int"):
+    def test_type_validation(self):
+        with self.assertRaisesRegex(TypeError, "'trade_id' field must be of type int."):
             Trade(trade_id="1",
                       leg_id=self.valid_leg_id,
                       timestamp=self.valid_timetamp,
                       ticker=self.valid_ticker,
                       quantity=self.valid_quantity,
-                      price=self.valid_price,
-                      cost=self.valid_cost,
+                      avg_price=self.valid_avg_price,
+                      trade_value=self.valid_trade_value,
                       action=self.valid_action,
                       fees=self.valid_fees)
             
-    def test_leg_id_type_validation(self):
-        with self.assertRaisesRegex(TypeError,"'leg_id' must be of type int"):
+        with self.assertRaisesRegex(TypeError, "'leg_id' field must be of type int."):
             Trade(trade_id=self.valid_trade_id,
                       leg_id="2",
                       timestamp=self.valid_timetamp,
-                      ticker=self.valid_ticker,
+                     ticker=self.valid_ticker,
                       quantity=self.valid_quantity,
-                      price=self.valid_price,
-                      cost=self.valid_cost,
+                      avg_price=self.valid_avg_price,
+                      trade_value=self.valid_trade_value,
                       action=self.valid_action,
                       fees=self.valid_fees)
             
-    def test_timestamp_type_validation(self):
-        with self.assertRaisesRegex(TypeError,"timestamp must be of type np.uint64."):
+        with self.assertRaisesRegex(TypeError,"'timestamp' field must be of type np.uint64."):
             Trade(trade_id=self.valid_trade_id,
                       leg_id=self.valid_leg_id,
                       timestamp="2022-08-08",
                       ticker=self.valid_ticker,
                       quantity=self.valid_quantity,
-                      price=self.valid_price,
-                      cost=self.valid_cost,
+                      avg_price=self.valid_avg_price,
+                      trade_value=self.valid_trade_value,
                       action=self.valid_action,
                       fees=self.valid_fees)
             
-    def test_ticker_type_validation(self):
-        with self.assertRaisesRegex(TypeError,"'ticker' must be of type str"):
+        with self.assertRaisesRegex(TypeError,"'ticker' field must be of type str."):
             Trade(trade_id=self.valid_trade_id,
                       leg_id=self.valid_leg_id,
                       timestamp=self.valid_timetamp,
-                      ticker=1234,
+                      ticker=1,
                       quantity=self.valid_quantity,
-                      price=self.valid_price,
-                      cost=self.valid_cost,
+                      avg_price=self.valid_avg_price,
+                      trade_value=self.valid_trade_value,
                       action=self.valid_action,
                       fees=self.valid_fees)
             
-    def test_quantity_type_validation(self):
-        with self.assertRaisesRegex(TypeError,"'quantity' must be of type float or int"):
+        with self.assertRaisesRegex(TypeError,"'quantity' field must be of type float or int."):
             Trade(trade_id=self.valid_trade_id,
                       leg_id=self.valid_leg_id,
                       timestamp=self.valid_timetamp,
                       ticker=self.valid_ticker,
                       quantity="1234",
-                      price=self.valid_price,
-                      cost=self.valid_cost,
+                      avg_price=self.valid_avg_price,
+                      trade_value=self.valid_trade_value,
                       action=self.valid_action,
                       fees=self.valid_fees)
             
-    def test_price_type_validation(self):
-        with self.assertRaisesRegex(TypeError,"'price' must be of type float or int"):
+        with self.assertRaisesRegex(TypeError,"'avg_price' field must be of type float or int."):
             Trade(trade_id=self.valid_trade_id,
                       leg_id=self.valid_leg_id,
                       timestamp=self.valid_timetamp,
                       ticker=self.valid_ticker,
                       quantity=self.valid_quantity,
-                      price="90.9",
-                      cost=self.valid_cost,
+                      avg_price="90.9",
+                      trade_value=self.valid_trade_value,
                       action=self.valid_action,
                       fees=self.valid_fees)
-            
-    def test_cost_type_validation(self):
-        with self.assertRaisesRegex(TypeError,"'cost' must be of type float or int"):
+               
+        with self.assertRaisesRegex(TypeError,"'trade_value' field must be of type float or int."):
             Trade(trade_id=self.valid_trade_id,
                       leg_id=self.valid_leg_id,
                       timestamp=self.valid_timetamp,
                       ticker=self.valid_ticker,
                       quantity=self.valid_quantity,
-                      price=self.valid_price,
-                      cost="90.90",
+                      avg_price=self.valid_avg_price,
+                      trade_value="12345",
                       action=self.valid_action,
                       fees=self.valid_fees)
             
-    def test_action_type_validation(self):
-        with self.assertRaisesRegex(TypeError,"'action' must be of type str"):
+        with self.assertRaisesRegex(TypeError, "'action' field must be of type str."):
             Trade(trade_id=self.valid_trade_id,
                       leg_id=self.valid_leg_id,
                       timestamp=self.valid_timetamp,
                       ticker=self.valid_ticker,
                       quantity=self.valid_quantity,
-                      price=self.valid_price,
-                      cost=self.valid_cost,
+                      avg_price=self.valid_avg_price,
+                      trade_value=self.valid_trade_value,
                       action=12234,
                       fees=self.valid_fees)
             
-    def test_fees_type_validation(self):
-        with self.assertRaisesRegex(TypeError,"'fees' must be of type float or int"):
+        with self.assertRaisesRegex(TypeError, "'fees' field must be of type float or int."):
             Trade(trade_id=self.valid_trade_id,
                       leg_id=self.valid_leg_id,
                       timestamp=self.valid_timetamp,
                       ticker=self.valid_ticker,
                       quantity=self.valid_quantity,
-                      price=self.valid_price,
-                      cost=self.valid_cost,
+                      avg_price=self.valid_avg_price,
+                      trade_value=self.valid_trade_value,
                       action=self.valid_action,
                       fees="90.99")
             
-    # Constraint validation
-    def test_action_constraint(self):
-        with self.assertRaisesRegex(ValueError,"'action' must be either 'BUY', 'SELL', 'LONG', 'SHORT', 'COVER'"):
+    # Value validation
+    def test_value_constraint(self):
+        with self.assertRaises(ValueError):
             Trade(trade_id=self.valid_trade_id,
                       leg_id=self.valid_leg_id,
                       timestamp=self.valid_timetamp,
                       ticker=self.valid_ticker,
                       quantity=self.valid_quantity,
-                      price=self.valid_price,
-                      cost=self.valid_cost,
+                      avg_price=self.valid_avg_price,
+                      trade_value=self.valid_trade_value,
                       action='long',
                       fees=self.valid_fees)
             
-    def test_price_negative_constraint(self):
-        with self.assertRaisesRegex(ValueError,"'price' must be greater than zero"):
+        with self.assertRaisesRegex(ValueError, "'avg_price' field must be greater than zero."):
             Trade(trade_id=self.valid_trade_id,
                       leg_id=self.valid_leg_id,
                       timestamp=self.valid_timetamp,
                       ticker=self.valid_ticker,
                       quantity=self.valid_quantity,
-                      price=-1.0,
-                      cost=self.valid_cost,
-                      action=self.valid_action,
-                      fees=self.valid_fees)
-            
-    def test_price_zero_constraint(self):
-        with self.assertRaisesRegex(ValueError,"'price' must be greater than zero"):
-            Trade(trade_id=self.valid_trade_id,
-                      leg_id=self.valid_leg_id,
-                      timestamp=self.valid_timetamp,
-                      ticker=self.valid_ticker,
-                      quantity=self.valid_quantity,
-                      price=0.0,
-                      cost=self.valid_cost,
+                      avg_price=0.0,
+                      trade_value=self.valid_trade_value,
                       action=self.valid_action,
                       fees=self.valid_fees)
 

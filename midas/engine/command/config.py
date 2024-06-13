@@ -3,10 +3,11 @@ import logging
 import threading
 from enum import Enum
 import pandas as pd
-from typing import Union
+from typing import Union, Dict
 from decouple import config
 from abc import ABC, abstractmethod
 
+from midas.shared.symbol import Symbol
 from midas.client import DatabaseClient
 from midas.engine.observer import EventType
 from midas.engine.order_book import OrderBook
@@ -16,8 +17,11 @@ from midas.engine.data_sync import DatabaseUpdater
 from midas.shared.utils.logger import SystemLogger
 from midas.engine.portfolio import PortfolioServer
 from midas.engine.order_manager import OrderManager
+from midas.engine.gateways.live import ContractManager
 from midas.engine.command.parameters import Parameters
-from midas.engine.performance import BasePerformanceManager
+from midas.engine.gateways.live import DataClient as LiveDataClient
+from midas.engine.performance.base_manager import BasePerformanceManager
+from midas.engine.gateways.backtest.data_client import DataClient as HistoricalDataClient
 
 class Mode(Enum):
     LIVE = "LIVE"
@@ -62,11 +66,11 @@ class Config:
         self.session_id = session_id
         self.mode = mode
         self.params = params
+
+        # Components
         self.event_queue = queue.Queue()
         self.database = DatabaseClient(database_key, database_url)
         self.logger = SystemLogger(params.strategy_name, output=logger_output, level=logger_level).logger
-
-        # Handlers
         self.order_book: OrderBook
         self.strategy: BaseStrategy = None
         self.order_manager: OrderManager
@@ -74,23 +78,23 @@ class Config:
         self.performance_manager: BasePerformanceManager
         self.risk_model: BaseRiskModel
         self.db_updater: DatabaseUpdater = None
-
-        # Variables
-        self.live_data_client = None
-        self.hist_data_client = None
+        self.live_data_client: LiveDataClient
+        self.hist_data_client: HistoricalDataClient
         self.broker_client = None
         self.dummy_broker = None
-        self.contract_handler = None
-        self.symbols_map = {}
+        self.contract_handler: ContractManager
+        self.eod_event_flag = None
+
+        # Variables
+        self.symbols_map: Dict[str, Symbol] = {}
         self.data_ticker_map = {}
         self.train_data : pd.DataFrame
-        self.eod_event_flag = None
 
         # Set-up
         self._set_risk_model(risk_model)
         self._map_symbols()
 
-        # Initialize based on mode
+        # Initialize components based on mode
         if mode == Mode.LIVE:
             self.environment = LiveEnvironment(self)
         elif mode == Mode.BACKTEST:
@@ -98,7 +102,13 @@ class Config:
         
         self.environment.initialize_handlers()
 
-    def _set_risk_model(self,  risk_model: BaseRiskModel) -> None:
+    def _set_risk_model(self, risk_model: BaseRiskModel) -> None:
+        """
+        Instantiates the risk model and sets to the instance vaariabel if the user passes one.
+
+        Parameters:
+        - risk_model(BaseRiskModel | None): Risk model passed by user else defualt None.
+        """
         if not risk_model or not issubclass(risk_model, BaseRiskModel):
             self.risk_model = None
             return
@@ -107,10 +117,6 @@ class Config:
     def _map_symbols(self) -> None:
         """
         Maps a trading symbol to its respective ticker and stores in internal mappings.
-
-        Parameters:
-        - symbol (Symbol): The symbol object that contains both ticker and data ticker.
-
         This method updates the internal dictionaries used for tracking symbols throughout the system.
         """
         # Map ticker to symbol object
@@ -281,7 +287,7 @@ class BacktestEnvironment(BaseEnvironment):
         self.config.eod_event_flag = threading.Event()
 
         # Performance
-        self.config.performance_manager = BacktestPerformanceManager(self.config.database, self.config.logger, None, self.config.params)
+        self.config.performance_manager = BacktestPerformanceManager(self.config.database, self.config.logger, self.config.params)
 
         # Gateways
         self.config.hist_data_client = DataClient(self.config.event_queue, self.config.database, self.config.order_book, self.config.eod_event_flag)

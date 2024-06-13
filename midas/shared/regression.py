@@ -1,5 +1,4 @@
-# shared/backtest.py
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 @dataclass
 class RegressionResults:
@@ -30,22 +29,22 @@ class RegressionResults:
 
     def __post_init__(self):
         if not isinstance(self.vif, dict):
-            raise ValueError("vif must be a dictionary")
+            raise ValueError("'vif' field must be a dictionary.")
         if not isinstance(self.beta, dict):
-            raise ValueError("beta must be a dictionary")
+            raise ValueError("'beta' field must be a dictionary.")
         if not isinstance(self.p_value_beta, dict):
-            raise ValueError("p_value_beta must be a dictionary")
+            raise ValueError("'p_value_beta' field must be a dictionary.")
         if not isinstance(self.timeseries_data, list):
-            raise ValueError("timeseries_data must be a list")
+            raise ValueError("'timeseries_data' field must be a list.")
+        if not isinstance(self.backtest, int):
+            raise ValueError("'backtest' field must be an integer.")
         for attr in ['risk_free_rate', 'r_squared', 'adj_r_squared', 'RMSE', 'MAE', 'f_statistic', 
                      'f_statistic_p_value', 'durbin_watson', 'jarque_bera', 'jarque_bera_p_value', 
                      'condition_number', 'alpha', 'p_value_alpha', 'total_contribution', 
                      'systematic_contribution', 'idiosyncratic_contribution', 'total_volatility', 
                      'systematic_volatility', 'idiosyncratic_volatility']:
             if not isinstance(getattr(self, attr), float):
-                raise ValueError(f"{attr} must be a float")
-        if not isinstance(self.backtest, int):
-            raise ValueError("backtest must be an integer")
+                raise ValueError(f"'{attr}' field must be a float.")
         
     def to_dict(self):
         return {

@@ -1,4 +1,3 @@
-# shared/live_session.py
 from dataclasses import dataclass, field
 
 @dataclass
@@ -10,13 +9,13 @@ class LiveTradingSession:
 
     def __post_init__(self):
         if not isinstance(self.parameters, dict):
-            raise ValueError("parameters must be a dictionary")
+            raise ValueError("'parameters' field must be a dictionary.")
         if not all(isinstance(item, dict) for item in self.trade_data):
-            raise ValueError("trade_data must be a list of dictionaries")
+            raise ValueError("'trade_data' field must be a list of dictionaries.")
         if not all(isinstance(item, dict) for item in self.account_data):
-            raise ValueError("account_data must be a list of dictionaries")
+            raise ValueError("'account_data' field must be a list of dictionaries.")
         if not all(isinstance(item, dict) for item in self.signal_data):
-            raise ValueError("signal_data must be a list of dictionaries")
+            raise ValueError("'signal_data' field must be a list of dictionaries.")
         
     def to_dict(self):
         return {

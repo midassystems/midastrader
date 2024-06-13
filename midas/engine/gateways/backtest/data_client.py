@@ -1,3 +1,4 @@
+import threading
 import numpy as np
 import pandas as pd
 from typing import List
@@ -5,14 +6,12 @@ from queue import Queue
 from decimal import Decimal
 from dateutil import parser
 from datetime import datetime
-
 from midas.client import DatabaseClient
 from midas.shared.utils import unix_to_iso
 from midas.engine.order_book import OrderBook
 from midas.engine.events import MarketEvent, EODEvent
-from midas.shared.market_data import BarData, QuoteData
-
 from quantAnalytics.dataprocessor import DataProcessor
+from midas.shared.market_data import BarData, QuoteData
 
 class DataClient(DatabaseClient):
     """
@@ -26,7 +25,7 @@ class DataClient(DatabaseClient):
     - data_client (DatabaseClient): A client class based on a Django Rest-Framework API for interacting with the database.
     - order_book (OrderBook): The order book where market data is posted for trading operations.
     """
-    def __init__(self, event_queue:Queue, data_client:DatabaseClient, order_book:OrderBook):
+    def __init__(self, event_queue:Queue, data_client:DatabaseClient, order_book:OrderBook,  eod_event_flag: threading.Event):
         """
         Initializes the DataClient with the necessary components for market data management.
 
@@ -38,12 +37,15 @@ class DataClient(DatabaseClient):
         self.event_queue = event_queue
         self.data_client = data_client
         self.order_book = order_book
+        self.eod_event_flag = eod_event_flag
+        if self.eod_event_flag:
+            self.eod_event_flag.set()
         
         # Data 
         self.data : pd.DataFrame
         self.unique_timestamps : list
         self.next_date = None
-        self.current_date_index = -1
+        self.current_date_index = 0
         self.current_day = None
 
     def get_data(self, tickers:List[str], start_date:str, end_date:str, missing_values_strategy:str='fill_forward') -> bool:
@@ -130,7 +132,6 @@ class DataClient(DatabaseClient):
         Returns:
         - bool: False when all data has been streamed, True otherwise.
         """
-        self.current_date_index += 1
 
         if self.current_date_index >= len(self.unique_timestamps):
             return False  # No more unique dates
@@ -143,12 +144,34 @@ class DataClient(DatabaseClient):
         if self.current_day is None or next_day != self.current_day:
             if self.current_day is not None:
                 # Perform EOD operations for the previous day
-                self.event_queue.put(EODEvent(timestamp=self.current_day))
-            # Update the current day
-            self.current_day = next_day                    
+                self.eod_event_flag.clear()
+                self._process_eod(self.current_day)
 
+            # Update the current day
+            self.current_day = next_day 
+
+        # Non-blocking wait with timeout
+        while not self.eod_event_flag.is_set():
+            self.eod_event_flag.wait(timeout=0.1)
+            if not self.event_queue.empty():
+                return True                   
+        
+        # Update market data            
         self._set_market_data()
+
+        # Iterate to next date index 
+        self.current_date_index += 1
+
         return True
+
+    def _process_eod(self, current_day):
+        """
+        Processes End-of-Day operations.
+
+        Parameters:
+        - current_day (datetime.date): The current day to process EOD operations.
+        """
+        self.event_queue.put(EODEvent(timestamp=current_day))
     
     def _get_latest_data(self) -> pd.DataFrame:
         """

@@ -1,16 +1,13 @@
 import logging
 from queue import Queue
-from ibapi.order import Order
 from ibapi.contract import Contract
-from typing import Dict,List, Union
-
+from typing import Dict, List, Union
+from midas.shared.symbol import Symbol
 from midas.engine.order_book import OrderBook
+from midas.shared.signal import TradeInstruction
+from midas.shared.orders import Action, BaseOrder
 from midas.engine.portfolio import PortfolioServer
 from midas.engine.events import  SignalEvent, OrderEvent
-
-from midas.shared.signal import TradeInstruction
-from midas.shared.symbol import Symbol, Future, Equity
-from midas.shared.orders import LimitOrder, MarketOrder, StopLoss, Action, OrderType, BaseOrder
 
 class OrderManager:
     """
@@ -72,59 +69,29 @@ class OrderManager:
         total_capital_required = 0
 
         for trade in trade_instructions:
+            symbol = self.symbols_map[trade.ticker]
             order = self._create_order(trade)
-
-            if isinstance(self.symbols_map[trade.ticker], Future):
-                order_value = self._future_order_value(order.quantity, trade.ticker)
-            elif isinstance(self.symbols_map[trade.ticker], Equity):
-                order_value = self._equity_order_value(order.quantity, trade.ticker)
-            else:
-                raise ValueError(f"Symbol not of valid type : {self.symbols_map[trade.ticker]}")
+            current_price =  self.order_book.current_price(symbol.ticker)
+            order_value = symbol.order_value(order.quantity, current_price)
             
             order_details = {
-                'timestamp':timestamp,
-                'trade_id':trade.trade_id,
-                'leg_id':trade.leg_id,
+                'timestamp': timestamp,
+                'trade_id': trade.trade_id,
+                'leg_id': trade.leg_id,
                 'action' : trade.action, 
-                'contract': self.symbols_map[trade.ticker].contract, 
+                'contract': symbol.contract, 
                 'order' : order
             }
             
             orders.append(order_details)
             total_capital_required += order_value
 
-        if (total_capital_required + self.portfolio_server.account['FullInitMarginReq']) <= self.portfolio_server.account['FullAvailableFunds']:
-            for order in orders:
+        for order in orders:
+            if order["action"] in [Action.SELL, Action.COVER] or total_capital_required <= self.portfolio_server.capital:
                 self._set_order(order['timestamp'], order['trade_id'], order['leg_id'], order['action'], order['contract'],order['order'])
-        else:
-            self.logger.info("Not enough capital to execute all orders")
+            else:
+                self.logger.info("Not enough capital to execute all orders")
 
-    def _future_order_value(self, quantity: float, ticker: str) -> float:
-        """
-        Calculate the required margin for a future order based on quantity.
-
-        Parameters:
-        - quantity (float): The quantity of the future order.
-        - ticker (str): The ticker symbol for the future.
-
-        Returns:
-        - float: The calculated margin requirement for the future order.
-        """
-        return abs(quantity) * self.symbols_map[ticker].initialMargin
-    
-    def _equity_order_value(self, quantity: float, ticker: str) -> float:
-        """
-        Calculate the total value of an equity order based on quantity and current market price.
-
-        Parameters:
-        - quantity (float): The quantity of the equity order.
-        - ticker (str): The ticker symbol for the equity.
-
-        Returns:
-        - float: The total value of the equity order.
-        """
-        return abs(quantity) * self.order_book.current_price(ticker)
-    
     def _create_order(self, trade_instruction: TradeInstruction) -> BaseOrder:
         """
         Create an order object based on specified parameters.

@@ -4,6 +4,7 @@ import time
 import logging 
 import threading
 import numpy as np
+from copy import deepcopy
 from decimal import Decimal
 from threading import Timer
 from datetime import datetime
@@ -12,14 +13,14 @@ from ibapi.client import EClient
 from typing import get_type_hints
 from ibapi.wrapper import EWrapper
 from ibapi.execution import Execution
-from ibapi.commission_report import CommissionReport
 from ibapi.order_state import OrderState
+from ibapi.commission_report import CommissionReport
 from ibapi.contract import Contract, ContractDetails
-
 from midas.engine.portfolio import PortfolioServer
-from midas.engine.performance.live import LivePerformanceManager
-
-from midas.shared.portfolio import  Position,ActiveOrder, AccountDetails, EquityDetails
+from midas.shared.active_orders import ActiveOrder
+from midas.shared.account import AccountDetails, Account
+from midas.shared.positions import  Position, position_factory
+# from midas.engine.performance.live import LivePerformanceManager
 
 class BrokerApp(EWrapper, EClient):
     """
@@ -43,7 +44,7 @@ class BrokerApp(EWrapper, EClient):
     - open_orders_event (threading.Event): Event signaling reception of open orders.
     - next_valid_order_id_lock (threading.Lock): Lock for managing thread safety of order IDs.
     """
-    def __init__(self, logger: logging.Logger, portfolio_server: PortfolioServer, performance_manager: LivePerformanceManager):
+    def __init__(self, logger: logging.Logger, portfolio_server: PortfolioServer, performance_manager):
         """
         Initialize the BrokerApp instance.
 
@@ -61,10 +62,15 @@ class BrokerApp(EWrapper, EClient):
         #  Data Storage
         self.next_valid_order_id = None
         self.is_valid_contract = None
-        self.account_info : AccountDetails = {} 
-        self.account_info_keys = get_type_hints(AccountDetails)
         self.account_update_timer = None 
-        self.account_update_lock = threading.Lock() 
+        self.account_info_keys = Account.get_account_key_mapping().keys()
+        self.account_info = Account(
+                                    timestamp=np.uint64(0),
+                                    full_available_funds=0,
+                                    full_init_margin_req=0,
+                                    net_liquidation=0,
+                                    unrealized_pnl=0
+                                    )
         # self.executed_orders = {} 
 
         # Event Handling
@@ -76,6 +82,7 @@ class BrokerApp(EWrapper, EClient):
 
         # Thread Locks
         self.next_valid_order_id_lock = threading.Lock()
+        self.account_update_lock = threading.Lock() 
 
     def error(self, reqId: int, errorCode: int, errorString: str, advancedOrderRejectJson: str=None):
         """
@@ -159,9 +166,10 @@ class BrokerApp(EWrapper, EClient):
 
         if key in self.account_info_keys:
             if key == 'Currency':
-                self.account_info[key] = val
+                self.account_info.update_from_broker_data(key, val)
             else:
-                self.account_info[key] = float(val)
+                self.account_info.update_from_broker_data(key, float(val))
+                # self.account_info[key] = float(val)
         
         if key == 'UnrealizedPnL':
             with self.account_update_lock:
@@ -174,9 +182,10 @@ class BrokerApp(EWrapper, EClient):
         """Process buffered account updates."""
         with self.account_update_lock:
             self.account_update_timer = None
-            self.account_info['Timestamp'] = int(time.time() * 1e9)
+            self.account_info.timestamp = int(time.time() * 1e9)
+
             # Copy the account_info to avoid modification during iteration
-            account_info_copy = self.account_info.copy()
+            account_info_copy = deepcopy(self.account_info)
         
         # Updating portfolio server outside the lock to avoid deadlocks
         self.portfolio_server.update_account_details(account_info_copy)
@@ -198,21 +207,35 @@ class BrokerApp(EWrapper, EClient):
         - accountName (str): The name of the account.
         """
         super().updatePortfolio(contract, position, marketPrice, marketValue, averageCost, unrealizedPNL, realizedPNL, accountName)
-        if position == 0:
-            pass
-        else:
-            position_data = Position(
-                action="BUY" if position > 0 else "SELL",
-                avg_cost = averageCost,
-                quantity= float(position),
-                total_cost= abs(float(position)) * averageCost if contract.secType =='FUT' else float(position) * averageCost,
-                market_value=marketValue, 
-                quantity_multiplier=self.symbols_map[contract.symbol].quantity_multiplier,
-                price_multiplier=self.symbols_map[contract.symbol].price_multiplier,
-                initial_margin=self.symbols_map[contract.symbol].initialMargin
-            )
+        symbol = self.symbols_map[contract.symbol]
+
+        details = {
+            "action": "BUY" if position > 0 else "SELL",
+            "avg_price": averageCost,
+            "quantity": float(position),
+            "market_price": marketPrice,
+            # "market_value":marketValue,
+            # "unrealized_pnl":unrealizedPNL 
+        }
+
+        position = position_factory(symbol.security_type, symbol,**details)
+        self.portfolio_server.update_positions(contract, position)
+
+        
+        # if position == 0:
+        #     pass
+        # else:
+        #     position_data = Position(
+        #         action="BUY" if position > 0 else "SELL",
+        #         avg_cost = averageCost,
+        #         quantity= float(position),
+        #         total_cost= abs(float(position)) * averageCost if contract.secType =='FUT' else float(position) * averageCost,
+        #         market_value=marketValue, 
+        #         quantity_multiplier=self.symbols_map[contract.symbol].quantity_multiplier,
+        #         price_multiplier=self.symbols_map[contract.symbol].price_multiplier,
+        #         initial_margin=self.symbols_map[contract.symbol].initialMargin
+        #     )
     
-            self.portfolio_server.update_positions(contract, position_data)
 
     #### wrapper function for reqAccountUpdates. Signals the end of account information
     def accountDownloadEnd(self, accountName: str):
@@ -231,7 +254,7 @@ class BrokerApp(EWrapper, EClient):
                 self.account_update_timer = None 
 
         self.process_account_updates()
-        self.performance_manager.update_account_log(self.account_info.copy())
+        self.performance_manager.update_account_log(self.account_info.to_dict())
 
         self.logger.info(f"AccountDownloadEnd. Account: {accountName}")
         self.account_download_event.set()
@@ -323,9 +346,10 @@ class BrokerApp(EWrapper, EClient):
         super().accountSummary(reqId, account, tag, value, currency)
 
         if tag in self.account_info_keys:
-            self.account_info[tag] = float(value)
-        
-        self.account_info["Currency"] = currency
+            self.account_info.update_from_broker_data(tag, float(value))
+            # self.account_info[tag] = float(value)
+            
+        self.account_info.currency = currency
 
     #### Wrapper function for end of reqAccountSummary
     def accountSummaryEnd(self, reqId: int):
@@ -335,10 +359,10 @@ class BrokerApp(EWrapper, EClient):
         Parameters:
         - reqId (int): The request ID associated with the account summary.
         """
-        self.account_info['Timestamp'] = int(time.time() * 1e9)
+        self.account_info.timestamp= int(time.time() * 1e9)
         self.logger.info(f"Account Summary Request Complete: {reqId}")
 
-        self.performance_manager.update_account_log(self.account_info.copy())
+        self.performance_manager.update_account_log(self.account_info.to_dict())
 
     ####   wrapper function for reqExecutions.   this function gives the executed orders                
     def execDetails(self, reqId: int, contract: Contract, execution: Execution):

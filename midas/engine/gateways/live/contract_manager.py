@@ -1,6 +1,6 @@
 import logging
-from .data_client import DataClient
 from ibapi.contract import Contract
+from midas.engine.gateways.live.data_client import DataClient
 
 class ContractManager:
     """

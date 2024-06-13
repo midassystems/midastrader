@@ -131,9 +131,7 @@ class LiveEventController(BaseEventController):
         self._set_up()
 
         while self.running:
-            print(self.running)
             while not self.event_queue.empty():
-                print("test")
                 event = self.event_queue.get()
                 self.logger.info(event)
                 self._handle_event(event)

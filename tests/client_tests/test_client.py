@@ -39,7 +39,7 @@ class TestBarDataMethods(unittest.TestCase):
                                 market_cap=10000000000.99,
                                 shares_outstanding=1937476363,
                                 fees=0.1,
-                                initialMargin=0,
+                                initial_margin=0,
                                 quantity_multiplier=1,
                                 price_multiplier=1)
         cls.symbol=cls.admin_client.create_symbol(cls.equity)
@@ -169,8 +169,8 @@ class TestRegressionMethods(unittest.TestCase):
                                 "timestamp": 1672704000000000000, 
                                 "ticker": "AAPL", 
                                 "quantity": 4, 
-                                "price": 130.74, 
-                                "cost": -522.96, 
+                                "avg_price": 130.74, 
+                                "trade_value": -522.96, 
                                 "action": "BUY", 
                                 "fees": 0.0
                             }]
@@ -335,8 +335,8 @@ class TestBacktestMethods(unittest.TestCase):
                                 "timestamp": 1672704000000000000, 
                                 "ticker": "AAPL", 
                                 "quantity": 4, 
-                                "price": 130.74, 
-                                "cost": -522.96, 
+                                "avg_price": 130.74, 
+                                "trade_value": -522.96, 
                                 "action": "BUY", 
                                 "fees": 0.0
                             }]

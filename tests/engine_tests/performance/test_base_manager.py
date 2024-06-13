@@ -1,25 +1,23 @@
 import unittest
 import numpy as np
-import pandas as pd
-from contextlib import ExitStack
 from unittest.mock import Mock, patch
-
-from midas.engine.command.parameters import Parameters
-from midas.engine.performance import BasePerformanceManager
-from midas.engine.events import MarketEvent, OrderEvent, SignalEvent, ExecutionEvent, SignalEvent
-
 from midas.shared.orders import Action, OrderType
 from midas.shared.signal import  TradeInstruction
+from midas.engine.command.parameters import Parameters
 from midas.shared.trade import ExecutionDetails, Trade
-from midas.shared.portfolio import AccountDetails, EquityDetails
+from midas.engine.performance import BasePerformanceManager
+from midas.shared.account import Account, EquityDetails, AccountDetails
 from midas.shared.market_data import MarketData, BarData, QuoteData,  MarketDataType
+from midas.engine.events import MarketEvent, OrderEvent, SignalEvent, ExecutionEvent, SignalEvent
 
-#TODO: edge cases
 class TestBasePerformanceManager(unittest.TestCase):    
     def setUp(self) -> None:
+        # Mock methods
         self.mock_db_client = Mock()
         self.mock_logger = Mock()
-        self.mock_parameters = Parameters(
+
+        # Test parameters
+        self.parameters = Parameters(
             strategy_name="cointegrationzscore", 
             capital= 100000, 
             data_type= MarketDataType.BAR, 
@@ -30,9 +28,10 @@ class TestBasePerformanceManager(unittest.TestCase):
             tickers= ["HE.n.0", "ZC.n.0"], 
         )
 
-        self.performance_manager = BasePerformanceManager(self.mock_db_client, self.mock_logger, self.mock_parameters)
+        # Performance manager instance
+        self.performance_manager = BasePerformanceManager(self.mock_db_client, self.mock_logger, self.parameters)
 
-        # Valid Data
+        # Test data
         self.mock_static_stats = [{
             "total_return": 10.0,
             "total_trades": 5,
@@ -73,117 +72,79 @@ class TestBasePerformanceManager(unittest.TestCase):
                 "weight": 0.05
             }]
         }]
+        
+        # Test trade object
+        self.trade_obj = Trade(
+            trade_id = 1,
+            leg_id = 2,
+            timestamp = np.uint64(16555000),
+            ticker = 'HEJ4',
+            quantity = 10,
+            avg_price= 85.98,
+            trade_value = 100000,
+            action = 'BUY',
+            fees = 9.87
+        )   
+
+        # Test signal event
+        self.trade1 = TradeInstruction(ticker = 'AAPL',
+                                                order_type = OrderType.MARKET,
+                                                action = Action.LONG,
+                                                trade_id = 2,
+                                                leg_id =  5,
+                                                weight = 0.5,
+                                                quantity=2)
+        self.trade2 = TradeInstruction(ticker = 'TSLA',
+                                                order_type = OrderType.MARKET,
+                                                action = Action.LONG,
+                                                trade_id = 2,
+                                                leg_id =  6,
+                                                weight = 0.5,
+                                                quantity=2)
+        self.trade_instructions = [self.trade1,self.trade2]           
+        self.signal_event = SignalEvent(np.uint64(1651500000), self.trade_instructions)    
 
     # Basic Validation
     def test_update_trades_new_trade_valid(self): 
-        trade = Trade(
-                timestamp= np.uint64(165000000),
-                trade_id= 2,
-                leg_id=2,
-                ticker = 'HEJ4',
-                quantity= round(-10,4),
-                price= 50,
-                cost= round(50 * -10, 2),
-                action=  Action.SHORT.value,
-                fees= 70 # because not actually a trade
-        )       
-        # test
-        self.performance_manager.update_trades(trade)
+        # Test
+        self.performance_manager.update_trades(self.trade_obj)
 
-        # validate
-        self.assertEqual(self.performance_manager.trades[0], trade)
+        # Validate
+        self.assertEqual(self.performance_manager.trades[0], self.trade_obj)
         self.mock_logger.info.assert_called_once()
     
     def test_update_trades_old_trade_valid(self):        
-        trade = Trade(
-                timestamp= np.uint64(165000000),
-                trade_id= 2,
-                leg_id=2,
-                ticker = 'HEJ4',
-                quantity= round(-10,4),
-                price= 50,
-                cost= round(50 * -10, 2),
-                action=  Action.SHORT.value,
-                fees= 70 # because not actually a trade
-        )  
-        self.performance_manager.trades.append(trade)
+        self.performance_manager.trades.append(self.trade_obj)
         
-        # test
-        self.performance_manager.update_trades(trade)
+        # Test
+        self.performance_manager.update_trades(self.trade_obj)
 
-        # validate
-        self.assertEqual(self.performance_manager.trades[0], trade)
+        # Validate
+        self.assertEqual(self.performance_manager.trades[0], self.trade_obj)
         self.assertEqual(len(self.performance_manager.trades), 1)
         self.assertFalse(self.mock_logger.info.called)
     
     def test_output_trades(self):
-        trade = Trade(
-                timestamp= np.uint64(165000000000000000),
-                trade_id= 2,
-                leg_id=2,
-                ticker = 'HEJ4',
-                quantity= round(-10,4),
-                price= 50,
-                cost= round(50 * -10, 2),
-                action=  Action.SHORT.value,
-                fees= 70 # because not actually a trade
-        ) 
-        # test
-        self.performance_manager.update_trades(trade)
+        # Test
+        self.performance_manager.update_trades(self.trade_obj)
 
-        # validate
-        self.mock_logger.info.assert_called_once_with("\nTRADES UPDATED:\n  {'timestamp': 165000000000000000, 'trade_id': 2, 'leg_id': 2, 'ticker': 'HEJ4', 'quantity': -10, 'price': 50, 'cost': -500, 'action': 'SHORT', 'fees': 70}\n")
+        # Validate
+        self.mock_logger.info.assert_called_once_with("\nTRADES UPDATED:\n  {'timestamp': 16555000, 'trade_id': 1, 'leg_id': 2, 'ticker': 'HEJ4', 'quantity': 10, 'avg_price': 85.98, 'trade_value': 100000, 'action': 'BUY', 'fees': 9.87}\n")
 
-    def test_update_signals_valid(self):        
-        self.valid_trade1 = TradeInstruction(ticker = 'AAPL',
-                                                order_type = OrderType.MARKET,
-                                                action = Action.LONG,
-                                                trade_id = 2,
-                                                leg_id =  5,
-                                                weight = 0.5,
-                                                quantity=2)
-        self.valid_trade2 = TradeInstruction(ticker = 'TSLA',
-                                                order_type = OrderType.MARKET,
-                                                action = Action.LONG,
-                                                trade_id = 2,
-                                                leg_id =  6,
-                                                weight = 0.5,
-                                                quantity=2)
-        self.valid_trade_instructions = [self.valid_trade1,self.valid_trade2]
-                        
-        signal_event = SignalEvent(np.uint64(1651500000), self.valid_trade_instructions)
+    def test_update_signals_valid(self):      
+        # Test
+        self.performance_manager.update_signals(self.signal_event)
         
-        # test
-        self.performance_manager.update_signals(signal_event)
-        
-        # validate
-        self.assertEqual(self.performance_manager.signals[0], signal_event.to_dict())
+        # Validate
+        self.assertEqual(self.performance_manager.signals[0], self.signal_event.to_dict())
         self.mock_logger.info.assert_called_once()
     
-    def test_output_signal(self):
-        self.valid_trade1 = TradeInstruction(ticker = 'AAPL',
-                                                order_type = OrderType.MARKET,
-                                                action = Action.LONG,
-                                                trade_id = 2,
-                                                leg_id =  5,
-                                                weight = 0.5,
-                                                quantity=2)
-        self.valid_trade2 = TradeInstruction(ticker = 'TSLA',
-                                                order_type = OrderType.MARKET,
-                                                action = Action.LONG,
-                                                trade_id = 2,
-                                                leg_id =  6,
-                                                weight = 0.5,
-                                                quantity=2)
-        self.valid_trade_instructions = [self.valid_trade1,self.valid_trade2]
-                        
-        signal_event = SignalEvent(np.uint64(1651500000), self.valid_trade_instructions)
-        
-        # test
-        self.performance_manager.update_signals(signal_event)
+    def test_output_signal(self):        
+        # Test
+        self.performance_manager.update_signals(self.signal_event)
 
-        # validate
-        self.mock_logger.info.assert_called_once_with("\nSIGNALS UPDATED: \n  Timestamp: 1651500000 \n  Trade Instructions: \n    {'ticker': 'AAPL', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 5, 'weight': 0.5, 'quantity': 2}\n    {'ticker': 'TSLA', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 6, 'weight': 0.5, 'quantity': 2}\n")
+        # Validate
+        self.mock_logger.info.assert_called_once_with("\nSIGNALS UPDATED: \n  Timestamp: 1651500000 \n  Trade Instructions: \n    {'ticker': 'AAPL', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 5, 'weight': 0.5, 'quantity': 2, 'limit_price': '', 'aux_price': ''}\n    {'ticker': 'TSLA', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 6, 'weight': 0.5, 'quantity': 2, 'limit_price': '', 'aux_price': ''}\n")
 
     def test_update_equity_new_valid(self):
         equity = EquityDetails(
@@ -191,7 +152,7 @@ class TestBasePerformanceManager(unittest.TestCase):
                     equity_value = 10000000.99
                 )
         
-        # test
+        # Test
         self.performance_manager.update_equity(equity)
 
         # validate
@@ -205,27 +166,29 @@ class TestBasePerformanceManager(unittest.TestCase):
                 )
         self.performance_manager.equity_value.append(equity)
         
-        # test
+        # Test
         self.performance_manager.update_equity(equity)
 
-        # validate
+        # Validate
         self.assertEqual(len(self.performance_manager.equity_value), 1)
         self.assertFalse(self.mock_logger.info.called)
 
     def test_account_log(self):
-        valid_account_info = AccountDetails(FullAvailableFunds = 100000.0, 
-                            FullInitMarginReq =  100000.0,
-                            NetLiquidation = 100000.0,
-                            UnrealizedPnL =  100000.0,
-                            FullMaintMarginReq =  100000.0,
-                            Currency = 'USD') 
+        account_info = AccountDetails(
+                                full_available_funds = 100000.0, 
+                                full_init_margin_req =  100000.0,
+                                net_liquidation = 100000.0,
+                                unrealized_pnl =  100000.0,
+                                full_maint_margin_req=  100000.0,
+                                currency= 'USD'
+                            ) 
         
-        # test
-        self.performance_manager.update_account_log(valid_account_info)
+        # Test
+        self.performance_manager.update_account_log(account_info)
 
-        # validate 
-        self.assertEqual(self.performance_manager.account_log[0], valid_account_info)
-        self.mock_logger.info.assert_called_once_with(f"\nAccount Log Updated: {valid_account_info}")
+        # Validate 
+        self.assertEqual(self.performance_manager.account_log[0], account_info)
+        self.mock_logger.info.assert_called_once_with(f"\nAccount Log Updated: {account_info}")
 
 if __name__ == "__main__":
     unittest.main()

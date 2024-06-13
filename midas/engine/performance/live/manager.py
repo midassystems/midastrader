@@ -5,8 +5,8 @@ import pandas as pd
 from decimal import Decimal
 from typing import List, Dict
 from midas.client import DatabaseClient
-
 from ..base_manager import BasePerformanceManager
+from midas.engine.command.parameters import Parameters
 from midas.shared.live_session import LiveTradingSession
         
 class LivePerformanceManager(BasePerformanceManager):
@@ -14,7 +14,7 @@ class LivePerformanceManager(BasePerformanceManager):
     Manages performance metrics and logs for a live trading session. This class extends
     BasePerformanceManager with functionality specific to managing live trading data.
     """
-    def __init__(self, database: DatabaseClient, logger: logging.Logger, params) -> None:
+    def __init__(self, database: DatabaseClient, logger: logging.Logger, params:Parameters) -> None:
         """
         Initializes the LivePerformanceManager with database access, logging, and configuration parameters.
 

@@ -1,17 +1,21 @@
-# main.py
-from .config import CointegrationzscoreConfig
-from midas.engine.command import EventController, Mode
+# user_script.py
+from midas.engine.command.main import run
+from decouple import config
 
+
+DATABASE_KEY = config('MIDAS_API_KEY')
+DATABASE_URL = config('MIDAS_URL')
+
+# if __name__ == "__main__":
 def main():
-    # Set the mode (LIVE or BACKTEST)
-    mode = Mode.BACKTEST
-    
-    # Initialize the strategy configuration
-    strategy_config = CointegrationzscoreConfig(mode=mode)
-
-    # Initialize the event driver
-    event_driver = EventController(strategy_config)
-    event_driver.run()
-
-if __name__ == "__main__":
-    main()
+    run(
+        mode="BACKTEST",
+        strategy_module="/Users/anthony/git-projects/midas/midasPython/tests/engine_integration/backtest/logic.py",
+        strategy_class="Cointegrationzscore",
+        session_id=1001,
+        config_file="/Users/anthony/git-projects/midas/midasPython/tests/engine_integration/backtest/config.json",
+        database_key=DATABASE_KEY,
+        database_url=DATABASE_URL,
+        log_output="file",
+        log_level="INFO"
+    )

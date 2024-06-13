@@ -1,7 +1,6 @@
 import numpy as np
 from typing  import Dict
 from dataclasses import dataclass, field
-
 from midas.shared.market_data import MarketData
 
 @dataclass
@@ -24,15 +23,15 @@ class MarketEvent:
     def __post_init__(self):
         # Type Check
         if not isinstance(self.timestamp, np.uint64):
-            raise TypeError("timestamp must be of type np.uint64.")
+            raise TypeError("'timestamp' field must be of type np.uint64.")
         if not isinstance(self.data, dict):
-            raise TypeError("'data' must be of type dict")
+            raise TypeError("'data' field must be of type dict.")
         if not all(isinstance(marketdata, MarketData) and isinstance(key, str) for  key, marketdata in self.data.items()):
-            raise TypeError("all keys in 'data' must be of type str and all values 'data' must be instances of MarketData")
+            raise TypeError("All keys in 'data' field must be of type str and all values 'data' must be instances of MarketData.")
         
         # Constraint check
         if not self.data:
-            raise ValueError("'data' dictionary cannot be empty")
+            raise ValueError("'data' field cannot be empty.")
 
 
     def __str__(self) -> str:

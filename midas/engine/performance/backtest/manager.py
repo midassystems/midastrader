@@ -11,6 +11,7 @@ from midas.engine.strategies import BaseStrategy
 from midas.shared.utils import resample_daily, unix_to_iso
 
 from midas.engine.performance import BasePerformanceManager
+# from midas.engine.command.parameters import Parameters
 
 
 class BacktestPerformanceManager(BasePerformanceManager):
@@ -18,7 +19,7 @@ class BacktestPerformanceManager(BasePerformanceManager):
     Manages and tracks the performance of trading strategies during backtesting, 
     including detailed statistical analysis and performance metrics.
     """
-    def __init__(self, database:DatabaseClient, logger:logging.Logger, strategy: BaseStrategy, params):
+    def __init__(self, database:DatabaseClient, logger:logging.Logger, params, strategy: BaseStrategy=None):
         """
         Initializes the performance manager specifically for backtesting purposes with the ability to
         perform granular analysis and logging of trading performance.
@@ -63,7 +64,7 @@ class BacktestPerformanceManager(BasePerformanceManager):
         # Group by trade_id to calculate aggregated values
         aggregated = df.groupby('trade_id').agg({
             'timestamp': ['first', 'last'],
-            'cost': [('entry_value', lambda x: x[df['action'].isin(['LONG', 'SHORT'])].sum()),
+            'trade_value': [('entry_value', lambda x: x[df['action'].isin(['LONG', 'SHORT'])].sum()),
                     ('exit_value', lambda x: x[df['action'].isin(['SELL', 'COVER'])].sum())],
             'fees': 'sum'  # Sum of all fees for each trade group
         })
@@ -102,7 +103,7 @@ class BacktestPerformanceManager(BasePerformanceManager):
         cumulative_returns = Returns.cumulative_returns(equity_curve)
         cumulative_returns_adjusted = np.insert(cumulative_returns, 0, 0)
 
-        data['period_return'] = np.round(period_returns_adjusted, 6)
+        data['period_return'] = np.round(period_returns_adjusted, 4)
         data['cumulative_return'] = cumulative_returns_adjusted
         data['drawdown'] = RiskAnalysis.drawdown(period_returns_adjusted)
         data.fillna(0, inplace=True)  # Replace NaN with 0 for the first element
@@ -190,7 +191,7 @@ class BacktestPerformanceManager(BasePerformanceManager):
  
     def export_results(self, output_path:str):
         static_stats_df = pd.DataFrame(self.static_stats).T
-
+        
         params_df = pd.DataFrame(self.params.to_dict())
         params_df['tickers'] = ', '.join(params_df['tickers'])
         params_df = params_df.iloc[0:1] 
@@ -242,6 +243,7 @@ class BacktestPerformanceManager(BasePerformanceManager):
                                  trade_data=[trade.to_dict() for trade in self.trades],
                                  signal_data=self.signals
                                  )
+        print(self.backtest.to_dict())
         
         # Save Backtest Object
         response = self.database.create_backtest(self.backtest)

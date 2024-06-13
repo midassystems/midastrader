@@ -1,1 +1,1 @@
-from .base_strategy import BaseStrategy
+from .base_strategy import BaseStrategy, load_strategy_class

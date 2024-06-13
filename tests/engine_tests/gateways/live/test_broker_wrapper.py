@@ -1,74 +1,78 @@
 import time
 import unittest
+import numpy as np
 from threading import Timer
 from ibapi.order import Order
 from ibapi.contract import Contract
 from ibapi.execution import Execution
 from unittest.mock import Mock, patch
-
 from midas.engine.events import ExecutionEvent
+from midas.shared.active_orders import ActiveOrder
+from midas.shared.account import Account, EquityDetails
 from midas.engine.gateways.live.broker_client.wrapper import BrokerApp
-
-from midas.shared.portfolio import AccountDetails, ActiveOrder, EquityDetails, Position
+from midas.shared.positions import Position, EquityPosition, FuturePosition
 from midas.shared.symbol import Equity, Future, Currency, Venue, Industry, ContractUnits
-
-
-#TODO: execution Details
 
 class TestBrokerApp(unittest.TestCase):
     def setUp(self):
+        # Mock objects
         self.mock_logger = Mock()
         self.mock_portfolio_server = Mock()
         self.performance_manager = Mock()
 
+        # BrokerApp instance
         self.broker_app = BrokerApp(logger=self.mock_logger, portfolio_server=self.mock_portfolio_server, performance_manager=self.performance_manager)
 
     # Basic Validation
     def test_200_error_valid(self):
         # Simulate an error code for contract not found
-        # test
+        # Test
         self.broker_app.error(reqId=-1, errorCode=200, errorString="Contract not found")
         
-        # validate
-        self.mock_logger.critical.assert_called_once_with("200 : Contract not found") # Verify critical log is called with expected message
+        # Validate
+        self.mock_logger.critical.assert_called_once_with("200 : Contract not found") 
         self.assertFalse(self.broker_app.is_valid_contract) # Verify is_valid_contract is set to False
         self.assertTrue(self.broker_app.validate_contract_event.is_set()) # Verify validate_contract_event is set
 
     def test_connectAck_valid(self):
-        # test
+        # Test
         self.broker_app.connectAck()
         
-        # validate
-        self.mock_logger.info.assert_called_once_with('Established Broker Connection') # Verify critical log is called with expected message
+        # Validate
+        self.mock_logger.info.assert_called_once_with('Established Broker Connection')
         self.assertFalse(self.broker_app.is_valid_contract) # Verify is_valid_contract is set to False
         self.assertTrue(self.broker_app.connected_event.is_set()) # Verify validate_contract_event is set
 
     def test_connection_closed(self):
-        # test
+        # Test
         self.broker_app.connectionClosed()
         
-        # validate
+        # Validate
         self.mock_logger.info.assert_called_once_with('Closed Broker Connection.')
 
     def test_nextvalidId_valid(self):
         id = 10
         
-        # test
+        # Test
         self.broker_app.nextValidId(id)
         
-        # validate
+        # Validate
         self.assertEqual(self.broker_app.next_valid_order_id, id)
         self.mock_logger.info.assert_called_once_with(f"Next Valid Id {id}")
         self.assertTrue(self.broker_app.valid_id_event.is_set()) 
 
     def test_contractDetails(self):
-        # test
+        # Test
         self.broker_app.contractDetails(10, None)
+
+        # Validate
         self.assertTrue(self.broker_app.is_valid_contract)
 
     def test_contractDetailsEnd_valid(self):
+        # Test
         self.broker_app.contractDetailsEnd(10)
         
+        # Validate
         self.mock_logger.info.assert_called_once_with("Contract Details Received.")
         self.assertTrue(self.broker_app.validate_contract_event.is_set())
 
@@ -81,26 +85,33 @@ class TestBrokerApp(unittest.TestCase):
                      4: {'key':'UnrealizedPnL', 'val':'100000', 'currency':'USD', 'accountName':'testaccount'},
                      5:{'key':'FullMaintMarginReq', 'val':'100000', 'currency':'USD', 'accountName':'testaccount'},
                      6:{'key':'Currency', 'val':'USD', 'currency':'USD', 'accountName':'testaccount'}}
-        valid_account_info = AccountDetails(FullAvailableFunds = 100000.0, 
-                                            FullInitMarginReq =  100000.0,
-                                            NetLiquidation = 100000.0,
-                                            UnrealizedPnL =  100000.0,
-                                            FullMaintMarginReq =  100000.0,
-                                            Currency = 'USD') 
 
-        # test
+        # Test
         for key, value in test_data.items():
             self.broker_app.updateAccountValue(value['key'], value['val'], value['currency'], value['accountName'])
+
+        # Expected
+        expected_account_info = Account( 
+                                        timestamp=np.uint64(0),
+                                        full_available_funds = 100000.0, 
+                                        full_init_margin_req =  100000.0,
+                                        net_liquidation = 100000.0,
+                                        unrealized_pnl =  100000.0,
+                                        full_maint_margin_req =  100000.0,
+                                        excess_liquidity=0, 
+                                        currency = 'USD',
+                                        buying_power=0.0, 
+                                        futures_pnl=0.0, 
+                                        total_cash_balance=0.0) 
         
-        #  validate 
-        self.assertNotEqual(self.broker_app.account_update_timer,None )
-        self.assertEqual(self.broker_app.account_info, valid_account_info)
-        self.assertIsInstance(valid_account_info['FullAvailableFunds'], float)
-        self.assertIsInstance(valid_account_info['FullInitMarginReq'], float)
-        self.assertIsInstance(valid_account_info['NetLiquidation'], float)
-        self.assertIsInstance(valid_account_info['UnrealizedPnL'], float)
-        self.assertIsInstance(valid_account_info['FullMaintMarginReq'], float)
-        self.assertIsInstance(valid_account_info['Currency'], str)
+        # Validate 
+        self.assertNotEqual(self.broker_app.account_update_timer, None)
+        self.assertEqual(self.broker_app.account_info.full_available_funds, expected_account_info.full_available_funds)
+        self.assertEqual(self.broker_app.account_info.full_maint_margin_req, expected_account_info.full_maint_margin_req)
+        self.assertEqual(self.broker_app.account_info.net_liquidation, expected_account_info.net_liquidation)
+        self.assertEqual(self.broker_app.account_info.unrealized_pnl, expected_account_info.unrealized_pnl)
+        self.assertEqual(self.broker_app.account_info.full_init_margin_req, expected_account_info.full_init_margin_req)
+        self.assertEqual(self.broker_app.account_info.currency, expected_account_info.currency)
         time.sleep(3)
         self.broker_app.process_account_updates.assert_called_once()
 
@@ -108,18 +119,19 @@ class TestBrokerApp(unittest.TestCase):
         self.mock_portfolio_server.update_account_details = Mock()
         self.broker_app.account_update_timer = True
 
-        # test
+        # Test
         self.broker_app.process_account_updates()
 
-        # validate
-        self.assertIn("Timestamp", self.broker_app.account_info.keys())
+        # Validate
+        self.assertTrue(self.broker_app.account_info.timestamp > 0)
         self.mock_portfolio_server.update_account_details.assert_called_once_with(self.broker_app.account_info)
         self.assertIsNone(self.broker_app.account_update_timer)
             
     def test_updatePortfolio(self):
+        # Test positions1
         aapl_contract = Contract()
         aapl_contract.symbol = 'AAPL'
-        aapl_position = 10
+        aapl_position = 10.0
         aapl_market_price = 90.9
         aapl_market_value = 900.9
         aapl_avg_cost = 8.0
@@ -127,19 +139,18 @@ class TestBrokerApp(unittest.TestCase):
         aapl_realizedPNL = 0.0
         accountName = 'testaccount'
         
-        aapl_position_obj = Position(action ='BUY',
-                                        avg_cost=aapl_avg_cost,
+        aapl_position_obj = EquityPosition(action ='BUY',
+                                        avg_price=aapl_avg_cost,
                                         quantity=aapl_position,
-                                        total_cost=aapl_position*aapl_avg_cost,
-                                        market_value=aapl_market_price,
                                         quantity_multiplier=1,
                                         price_multiplier=1,
-                                        initial_margin=0
+                                        market_price=aapl_market_price
                                         )
         
+        # Test positions2
         he_contract = Contract()
         he_contract.symbol = 'HEJ4'
-        he_position = -1100
+        he_position = -1100.0
         he_market_price = 9.9
         he_market_value = 9000.09
         he_avg_cost = 8.0
@@ -148,21 +159,22 @@ class TestBrokerApp(unittest.TestCase):
         accountName = 'testaccount'
 
 
-        he_position_obj = Position(action ='SELL',
-                                avg_cost=he_avg_cost,
+        he_position_obj = FuturePosition(action ='SELL',
+                                avg_price=he_avg_cost,
                                 quantity=he_position,
-                                total_cost=he_position*aapl_avg_cost,
-                                market_value=he_market_price,
                                 quantity_multiplier=40000,
                                 price_multiplier=0.01,
+                                market_price=he_market_price,
                                 initial_margin=4564.17
-                                )
+        )
+        
+        # Set symbols map
         self.broker_app.symbols_map = {'HEJ4' : Future(ticker = "HEJ4",
                                             data_ticker = "HE.n.0",
                                             currency = Currency.USD,  
                                             exchange = Venue.CME,  
                                             fees = 0.85,  
-                                            initialMargin =4564.17,
+                                            initial_margin =4564.17,
                                             quantity_multiplier=40000,
                                             price_multiplier=0.01,
                                             product_code="HE",
@@ -178,7 +190,7 @@ class TestBrokerApp(unittest.TestCase):
                                                     currency = Currency.USD  ,
                                                     exchange = Venue.NASDAQ  ,
                                                     fees = 0.1,
-                                                    initialMargin = 0,
+                                                    initial_margin = 0,
                                                     quantity_multiplier=1,
                                                     price_multiplier=1,
                                                     data_ticker = "AAPL2",
@@ -187,33 +199,41 @@ class TestBrokerApp(unittest.TestCase):
                                                     market_cap=10000000000.99,
                                                     shares_outstanding=1937476363)}
 
-        positions = {1:aapl_position_obj,2: he_position_obj}
+        # Test data
         test_data = {1 : {'contract': aapl_contract, 'position':aapl_position, 'marketPrice':aapl_market_price, 'marketValue': aapl_market_value, 'averageCost': aapl_avg_cost, 'unrealizedPNL':aapl_realizedPNL, 'realizedPNL':aapl_realizedPNL, 'accountName':accountName},
                      2 : {'contract': he_contract, 'position':he_position, 'marketPrice': he_market_price, 'marketValue': he_market_value, 'averageCost': he_avg_cost, 'unrealizedPNL': he_unrealizedPNL, 'realizedPNL': he_realizedPNL, 'accountName': accountName}}
         
+        # Expected
+        positions = {1:aapl_position_obj,2: he_position_obj}
+
         with patch.object(self.broker_app.portfolio_server, 'update_positions') as mock_method:
             for key, value in test_data.items():
+                # Test
                 self.broker_app.updatePortfolio(value['contract'], value['position'], value['marketPrice'], value['marketValue'], value['averageCost'], value['unrealizedPNL'], value['realizedPNL'],value['accountName'])
+                
+                # Validate
                 mock_method.assert_called_with(value['contract'], positions[key])
  
     def test_accountDownloadEnd_valid(self):
         account_info =  { 1 : "1"}
-        self.broker_app.account_info = account_info
+        self.broker_app.account_info = Mock()
+        self.broker_app.account_info.to_dict = Mock(return_value= account_info)
         self.performance_manager.update_account_log = Mock()
         self.broker_app.process_account_updates = Mock()
 
-        # test
+        # Test
         account_name = 'testname'
         self.broker_app.accountDownloadEnd(account_name)
 
-        # validate
+        # Validate
         self.assertIsNone(self.broker_app.account_update_timer)
         self.broker_app.process_account_updates.assert_called_once()
-        self.performance_manager.update_account_log.assert_called_once_with(account_info.copy())
+        self.performance_manager.update_account_log.assert_called_once_with(account_info)
         self.mock_logger.info.assert_called_once_with(f"AccountDownloadEnd. Account: {account_name}")
         self.assertTrue(self.broker_app.account_download_event.is_set()) 
 
     def test_openOrder_valid(self):
+        # Order data
         order_id = 10
         contract = Contract()
         contract.symbol = 'AAPL'
@@ -234,7 +254,7 @@ class TestBrokerApp(unittest.TestCase):
         order_state = Mock()
         order_state.status = 'Cancelled' # or 'Filled'
 
-
+        # Order dict
         valid_order = ActiveOrder(permId = order.permId,
                                     clientId= order.clientId, 
                                     orderId= order_id, 
@@ -251,20 +271,22 @@ class TestBrokerApp(unittest.TestCase):
                                     status= order_state.status)
 
         with patch.object(self.mock_portfolio_server, 'update_orders') as mock_update_orders:
-            # test
+            # Test
             self.broker_app.openOrder(order_id, contract, order, order_state)
             
-            # validate
+            # Validate
             mock_update_orders.assert_called_once_with(valid_order)
 
     def test_openOrderEnd(self):
-        # test
+        # Test
         self.broker_app.openOrderEnd()
-        # validate
+
+        # Validate
         self.mock_logger.info.assert_called_once_with(f"Initial Open Orders Received.")
         self.broker_app.open_orders_event.is_set()
 
     def test_orderStatus(self):
+        # Order data
         orderId = 1
         status = 'Submitted' # Options : PendingSubmit, PendingCancel PreSubmitted, Submitted, Cancelled, Filled, Inactive 
         filled = 10
@@ -276,7 +298,8 @@ class TestBrokerApp(unittest.TestCase):
         clientId = 1
         whyHeld = ""
         mktCapPrice = 19029003
-
+        
+        # Order dict
         order_data = ActiveOrder(
             permId = permId,
             orderId =  orderId,
@@ -291,9 +314,10 @@ class TestBrokerApp(unittest.TestCase):
         )
 
         with patch.object(self.mock_portfolio_server, 'update_orders') as mock_method:
-            # test
+            # Test
             self.broker_app.orderStatus(orderId, status, filled, remaining, avgFillPrice, permId, parentId, lastFillPrice, clientId, whyHeld, mktCapPrice)
-            # validate
+
+            # Validate
             self.mock_logger.info.assert_called_once_with(f"Received order status update for orderId {orderId}: {status}")
             mock_method.assert_called_once_with(order_data)
 
@@ -304,37 +328,41 @@ class TestBrokerApp(unittest.TestCase):
                         4: {'tag':'UnrealizedPnL', 'value':'100000', 'currency':'USD', 'account':'testaccount'},
                         5:{'tag':'FullMaintMarginReq', 'value':'100000', 'currency':'USD', 'account':'testaccount'}}
     
-        # test
+        # Test
         for id, value in test_data.items():
             self.broker_app.accountSummary(id, value['account'], value['tag'], value['value'], value['currency'])
 
-        # validate
-        valid_account_info = AccountDetails(FullAvailableFunds = 100000.0, 
-                                    FullInitMarginReq =  100000.0,
-                                    NetLiquidation = 100000.0,
-                                    UnrealizedPnL =  100000.0,
-                                    FullMaintMarginReq =  100000.0,
-                                    Currency = 'USD') 
-        self.assertIsInstance(valid_account_info['FullAvailableFunds'], float)
-        self.assertIsInstance(valid_account_info['FullInitMarginReq'], float)
-        self.assertIsInstance(valid_account_info['NetLiquidation'], float)
-        self.assertIsInstance(valid_account_info['UnrealizedPnL'], float)
-        self.assertIsInstance(valid_account_info['FullMaintMarginReq'], float)
-        self.assertIsInstance(valid_account_info['Currency'], str)
+        # Expected
+        expected_account_info = Account(
+                                    timestamp=np.uint64(0),
+                                    full_available_funds= 100000.0, 
+                                    full_init_margin_req=  100000.0,
+                                    net_liquidation= 100000.0,
+                                    unrealized_pnl=  100000.0,
+                                    full_maint_margin_req=  100000.0,
+                                    currency= 'USD') 
+        # Validate
+        self.assertEqual(self.broker_app.account_info.full_available_funds, expected_account_info.full_available_funds)
+        self.assertEqual(self.broker_app.account_info.full_maint_margin_req, expected_account_info.full_maint_margin_req)
+        self.assertEqual(self.broker_app.account_info.net_liquidation, expected_account_info.net_liquidation)
+        self.assertEqual(self.broker_app.account_info.unrealized_pnl, expected_account_info.unrealized_pnl)
+        self.assertEqual(self.broker_app.account_info.full_init_margin_req, expected_account_info.full_init_margin_req)
+        self.assertEqual(self.broker_app.account_info.currency, expected_account_info.currency)
 
     def test_accountSummaryEnd(self):
         self.performance_manager.update_account_log = Mock()
 
-        # test
+        # Test
         reqId = 10
         self.broker_app.accountSummaryEnd(reqId)
         
-        # validate
-        self.assertIn("Timestamp", self.broker_app.account_info.keys())
+        # Validate
+        self.assertTrue(self.broker_app.account_info.timestamp > 0)
         self.mock_logger.info.assert_called_once_with(f"Account Summary Request Complete: {reqId}")
-        self.performance_manager.update_account_log.assert_called_once_with(self.broker_app.account_info.copy())
+        self.performance_manager.update_account_log.assert_called_once_with(self.broker_app.account_info.to_dict())
 
     def test_execDetails(self):
+        # Execution details
         reqId = 1
         permId = 109
         contract = Contract()
@@ -355,6 +383,7 @@ class TestBrokerApp(unittest.TestCase):
         execution.cumQty = 9.9
         execution.orderRef = ""
 
+        # Execution dict
         execution_data = {
             "timestamp": 1713970490000000000, 
             "ticker": contract.symbol, 
@@ -368,11 +397,12 @@ class TestBrokerApp(unittest.TestCase):
         }
 
         with patch.object(self.performance_manager, 'update_trades') as mock_method:
-            # test 
+            # Test 
             self.broker_app.execDetails(reqId, contract, execution)
-            # validate
+
+            # Validate
             mock_method.assert_called_once_with(execution.execId ,execution_data)
 
 
-if __name__ == "__main__":# validate
+if __name__ == "__main__":
     unittest.main()

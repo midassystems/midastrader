@@ -31,7 +31,7 @@ def main():
     end_date="2024-05-07T12:00:00"
     contract_details = {'HE.n.0': {'quantity_multiplier': 40000, 'price_multiplier': 0.01}, 'ZC.n.0':{'quantity_multiplier': 5000, 'price_multiplier': 0.01}}
     tickers = list(contract_details.keys())
-    benchmark=["^GSPC"]
+    benchmark=["^SPGSCI"]
 
     # Strategy
     strategy = Cointegrationzscore(tickers, report)
@@ -49,7 +49,7 @@ def main():
     data.dropna(inplace=True)
 
     # Benchmark Returns
-    benchmark_close = pd.to_numeric(benchmark_data["^GSPC"], errors='coerce').fillna(0)
+    benchmark_close = pd.to_numeric(benchmark_data[benchmark[0]], errors='coerce').fillna(0)
     daily_returns = Returns.simple_returns(benchmark_close.values)
     benchmark_data['period_return'] = np.insert(daily_returns, 0, 0)  # Adjust for initial zero return
 
