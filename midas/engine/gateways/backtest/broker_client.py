@@ -1,16 +1,16 @@
 import logging
+import threading
 from queue import Queue
 from ibapi.contract import Contract
-
-from .dummy_broker import DummyBroker
-from midas.engine.events import ExecutionEvent
-from midas.engine.portfolio import PortfolioServer
-from midas.engine.performance import BasePerformanceManager
-from midas.engine.events import ExecutionEvent, OrderEvent
-
 from midas.shared.trade import Trade
-from midas.shared.portfolio import Position
+from midas.engine.events import ExecutionEvent
 from midas.shared.orders import Action, BaseOrder
+from midas.engine.portfolio import PortfolioServer
+from midas.engine.events import ExecutionEvent, OrderEvent
+from midas.shared.positions import Position, position_factory
+from midas.engine.performance import BacktestPerformanceManager
+from midas.engine.gateways.backtest.dummy_broker import DummyBroker
+
 
 class BrokerClient:
     """
@@ -37,7 +37,7 @@ class BrokerClient:
     - update_equity_value(): Updates equity value based on current market valuations.
     - liquidate_positions(): Liquidates all positions at the end of a trading session or in response to market conditions.
     """
-    def __init__(self,event_queue: Queue, logger: logging.Logger, portfolio_server: PortfolioServer, performance_manager: BasePerformanceManager, broker: DummyBroker):
+    def __init__(self,event_queue: Queue, logger: logging.Logger, portfolio_server: PortfolioServer, performance_manager: BacktestPerformanceManager, broker: DummyBroker, eod_event_flag: threading.Event):
         """
         Initializes a BrokerClient with the necessary components to simulate broker functionalities.
 
@@ -54,6 +54,7 @@ class BrokerClient:
         self.broker = broker
         self.logger = logger
         self.event_queue = event_queue
+        self.eod_event_flag = eod_event_flag
 
         self.update_account()
         
@@ -118,7 +119,10 @@ class BrokerClient:
         self.broker.check_margin_call()
         self.update_account()
         self.update_equity_value()
-   
+        
+        self.eod_event_flag.set()
+        self.logger.info("EOD update complete.")
+        
     def update_positions(self):
         """
         Fetches and updates the positions from the broker and updates them in the portfolio server.
@@ -129,20 +133,7 @@ class BrokerClient:
         """
         positions = self.broker.return_positions()
         for contract, position_data in positions.items():
-            # Convert the `PositionDetails` TypedDict into a `Position` data class instance.
-            position_instance = Position(
-                action=position_data['action'],
-                avg_cost=position_data['avg_cost'],
-                quantity=position_data['quantity'],
-                price_multiplier=position_data['price_multiplier'],
-                quantity_multiplier=position_data['quantity_multiplier'],
-                initial_margin=position_data['initial_margin'],
-                total_cost=position_data.get('total_cost', 0),
-                market_value=position_data.get('market_value', 0),   # Provide a default value if not present
-            )
-
-            # Now, use `position_instance` as needed, for example, to update positions in the portfolio server.
-            self.portfolio_server.update_positions(contract, position_instance)
+            self.portfolio_server.update_positions(contract, position_data)
 
     def update_trades(self, contract: Contract = None):
         """
@@ -162,8 +153,8 @@ class BrokerClient:
                                                         timestamp = trade['timestamp'],
                                                         ticker = trade['symbol'],
                                                         quantity = trade['quantity'],
-                                                        price =  round(trade['price'],4),
-                                                        cost = trade['cost'],
+                                                        avg_price = round(trade['avg_price'],4),
+                                                        trade_value = trade['trade_value'],
                                                         action = trade['action'],
                                                         fees = trade['fees']
                                                     ))
@@ -176,8 +167,8 @@ class BrokerClient:
                                                         timestamp = trade['timestamp'],
                                                         ticker = trade['symbol'],
                                                         quantity = trade['quantity'],
-                                                        price =  round(trade['price'],4),
-                                                        cost = trade['cost'],
+                                                        avg_price =  round(trade['avg_price'],4),
+                                                        trade_value = trade['trade_value'],
                                                         action = trade['action'],
                                                         fees = trade['fees']
                                                     ))
@@ -199,7 +190,7 @@ class BrokerClient:
         This method is essential for reflecting the current market value of the account's holdings, adjusting for market movements
         and trading activities throughout the trading day.
         """
-        self.broker._update_account_equity_value() 
+        self.broker._update_account() 
         equity = self.broker.return_equity_value()
         self.performance_manager.update_equity(equity)
        

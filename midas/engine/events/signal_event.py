@@ -1,8 +1,6 @@
 import numpy as np
-from typing import List, Union
+from typing import List
 from dataclasses import dataclass, field
-
-from midas.shared.utils import unix_to_iso
 from midas.shared.signal import TradeInstruction
 
 @dataclass
@@ -26,20 +24,23 @@ class SignalEvent:
     def __post_init__(self):
         # Type Check 
         if not isinstance(self.timestamp, np.uint64):
-            raise TypeError("timestamp must be of type np.uint64.")
+            raise TypeError("'timestamp' field must be of type np.uint64.")
         if not isinstance(self.trade_instructions, list):
-            raise TypeError(f"'trade_instructions' must be of type list.")
+            raise TypeError(f"'trade_instructions' field must be of type list.")
         if not all(isinstance(instruction, TradeInstruction) for instruction in self.trade_instructions):
             raise TypeError("All trade instructions must be instances of TradeInstruction.")
         
         # Constraint Check
         if len(self.trade_instructions) == 0:
-            raise ValueError("Trade instructions list cannot be empty.")
+            raise ValueError("'trade_instructions' list cannot be empty.")
         
     def __str__(self) -> str:
         instructions_str = "\n    ".join(str(instruction) for instruction in self.trade_instructions)
-        iso_timestamp=unix_to_iso(self.timestamp, "US/Eastern")
-        return f"\n{self.type} EVENT:\n  Timestamp: {self.timestamp}\n  Trade Instructions:\n    {instructions_str}"
+        return (
+            f"\n{self.type} EVENT:\n"  
+            f"Timestamp: {self.timestamp}\n"  
+            f"Trade Instructions:\n    {instructions_str}"
+        )
     
     def to_dict(self):
         return {

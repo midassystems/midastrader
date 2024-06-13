@@ -1,14 +1,11 @@
 from queue import Queue
 from typing import Dict, Union
-
 from midas.engine.events import  MarketEvent
 from midas.engine.observer import Subject, EventType
-
 from midas.shared.market_data import MarketData, MarketDataType, BarData, QuoteData
 
-
 class OrderBook(Subject):
-    """Manages market data updates and notifies observers about market changes."""
+    """ Manages market data updates and notifies observers about market changes. """
     def __init__(self, data_type: MarketDataType, event_queue: Queue):
         """
         Initializes the order book with a specific market data type and an event queue.
@@ -18,9 +15,8 @@ class OrderBook(Subject):
         - event_queue (Queue): The event queue to post market events to.
         """
         super().__init__()
-
         if not isinstance(data_type, MarketDataType):
-            raise TypeError("'data_type' must be of type MarketDataType enum.")
+            raise TypeError("'data_type' field must be of type MarketDataType enum.")
         
         self.event_queue = event_queue
         self.book : Dict[str, Union[BarData, QuoteData]] = {} # Example: {ticker : {'data': {Ask:{}, Bid:{}}, 'last_updated': timestamp}, ...}

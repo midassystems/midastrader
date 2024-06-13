@@ -1,6 +1,5 @@
-from midas.engine.observer import Observer, EventType
-
 from midas.client import DatabaseClient
+from midas.engine.observer import Observer, EventType
 
 class DatabaseUpdater(Observer):
     """
@@ -26,7 +25,8 @@ class DatabaseUpdater(Observer):
         """
         self.database_client = database_client
         self.session_id = session_id
-
+        
+        # Create trading session
         self.database_client.create_session(self.session_id)
     
     def update(self, subject, event_type: EventType):
@@ -41,7 +41,7 @@ class DatabaseUpdater(Observer):
         - event_type (EventType): The type of event that was triggered.
         """
         if not isinstance(event_type, EventType):
-            raise TypeError(f"event_type must be of instance EventType enum.")
+            raise TypeError(f"'event_type' field must be of instance EventType enum.")
         
         if event_type == EventType.POSITION_UPDATE:
             positions = subject.get_positions

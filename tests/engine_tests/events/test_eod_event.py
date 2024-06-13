@@ -1,9 +1,7 @@
 import unittest
 from datetime import datetime
-
 from midas.engine.events import EODEvent
 
-# TOOO : edge cases
 class TestExecutionEvent(unittest.TestCase):
     def setUp(self) -> None:
         self.valid_timetamp = datetime(2024,10, 1)
@@ -16,6 +14,11 @@ class TestExecutionEvent(unittest.TestCase):
         # Validate
         self.assertEqual(event.timestamp, self.valid_timetamp)
         self.assertEqual(event.type,"END-OF-DAY")
+
+    def test_invalid_construction(self):
+        # Test
+        with self.assertRaisesRegex(TypeError,  "'timestamp' should be an datetime.date instance, got int."):
+            event = EODEvent(100000000000)
 
 if __name__=="__main__":
     unittest.main()

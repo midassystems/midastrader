@@ -1,171 +1,11 @@
 import unittest
-from decimal import Decimal
-from contextlib import ExitStack
+from midas.shared.symbol import *
 from ibapi.contract import Contract
-from unittest.mock import Mock, patch
-
-from midas.shared.symbol import Symbol, Equity, Future, Option, Index, Right, AssetClass, SecurityType, Venue, Industry, Currency, ContractUnits
-
-#TODO: Edge case testing
-
-class TestSymbol(unittest.TestCase):
-    def setUp(self) -> None:
-        self.ticker = "AAPL"
-        self.security_type = SecurityType.STOCK
-        self.data_ticker = "TSLA" 
-        self.currency = Currency.USD  
-        self.exchange = Venue.NASDAQ  
-        self.fees = 0.1
-        self.initial_margin = 0
-        self.quantity_multiplier=1
-        self.price_multiplier=1
-
-    # Basic Validation  
-    def test_construction_valid(self):
-        # Test
-        symbol = Symbol(ticker=self.ticker, 
-                        security_type=self.security_type,
-                        data_ticker=self.data_ticker, 
-                        currency=self.currency, 
-                        exchange=self.exchange, 
-                        fees=self.fees, 
-                        initialMargin=self.initial_margin,
-                        quantity_multiplier=self.quantity_multiplier, 
-                        price_multiplier=self.price_multiplier)
-
-        # Validate
-        self.assertEqual(symbol.ticker, self.ticker)
-        self.assertIsInstance(symbol.security_type, SecurityType)
-        self.assertEqual(symbol.data_ticker, self.data_ticker)
-        self.assertEqual(symbol.currency, self.currency)
-        self.assertEqual(symbol.exchange, self.exchange)
-        self.assertEqual(symbol.fees, self.fees)
-        self.assertEqual(symbol.initialMargin, self.initial_margin)
-        self.assertEqual(symbol.price_multiplier, self.price_multiplier)
-        self.assertEqual(symbol.quantity_multiplier, self.quantity_multiplier)
-        self.assertEqual(type(symbol.contract),Contract,"contract shoudl be an instance of Contract")
-
-    def test_to_dict(self):
-        symbol = Symbol(ticker=self.ticker, 
-                security_type=self.security_type,
-                data_ticker=self.data_ticker,  
-                currency=self.currency, 
-                exchange=self.exchange, 
-                fees=self.fees, 
-                initialMargin=self.initial_margin,
-                quantity_multiplier=self.quantity_multiplier, 
-                price_multiplier=self.price_multiplier)
-        
-        # Test
-        symbol_dict = symbol.to_dict()
-
-        # Validate
-        self.assertEqual(symbol_dict['ticker'], self.ticker)
-        self.assertEqual(symbol_dict['security_type'], self.security_type.value)
-
-    # Type Constraint
-    def test_type_constraints(self):
-        with self.assertRaisesRegex(TypeError,"ticker must be of type str"):
-            Symbol(ticker=1234, 
-                security_type=self.security_type,
-                data_ticker=self.data_ticker, 
-                currency=self.currency, 
-                exchange=self.exchange, 
-                fees=self.fees, 
-                initialMargin=self.initial_margin,
-                quantity_multiplier=self.quantity_multiplier, 
-                price_multiplier=self.price_multiplier)
-
-        with self.assertRaisesRegex(TypeError,"security_type must be of type SecurityType."):
-            Symbol(ticker=self.ticker, 
-                security_type="self.security_type",
-                data_ticker=self.data_ticker, 
-                currency=self.currency, 
-                exchange=self.exchange, 
-                fees=self.fees, 
-                initialMargin=self.initial_margin,
-                quantity_multiplier=self.quantity_multiplier, 
-                price_multiplier=self.price_multiplier)
-
-        with self.assertRaisesRegex(TypeError, "currency must be enum instance Currency"):
-            Symbol(ticker=self.ticker, 
-                security_type=self.security_type,
-                data_ticker=self.data_ticker, 
-                currency="self.currency", 
-                exchange=self.exchange, 
-                fees=self.fees, 
-                initialMargin=self.initial_margin,
-                quantity_multiplier=self.quantity_multiplier, 
-                price_multiplier=self.price_multiplier)
-            
-        with self.assertRaisesRegex(TypeError, "data_ticker must be a string or None"):
-            Symbol(ticker=self.ticker, 
-                security_type=self.security_type,
-                data_ticker=12345, 
-                currency=self.currency, 
-                exchange=self.exchange, 
-                fees=self.fees, 
-                initialMargin=self.initial_margin,
-                quantity_multiplier=self.quantity_multiplier, 
-                price_multiplier=self.price_multiplier)
-        
-        with self.assertRaisesRegex(TypeError, "exchange must be enum instance Venue"):
-            Symbol(ticker=self.ticker, 
-                security_type=self.security_type,
-                data_ticker=self.data_ticker, 
-                currency=self.currency, 
-                exchange="self.exchange", 
-                fees=self.fees, 
-                initialMargin=self.initial_margin,
-                quantity_multiplier=self.quantity_multiplier, 
-                price_multiplier=self.price_multiplier)
-            
-        with self.assertRaisesRegex(TypeError, "fees must be int or float"):
-            Symbol(ticker=self.ticker, 
-                security_type=self.security_type,
-                data_ticker=self.data_ticker, 
-                currency=self.currency, 
-                exchange=self.exchange, 
-                fees="self.fees", 
-                initialMargin=self.initial_margin,
-                quantity_multiplier=self.quantity_multiplier, 
-                price_multiplier=self.price_multiplier)
-            
-        with self.assertRaisesRegex(TypeError, "initialMargin must be an int or float"):
-            Symbol(ticker=self.ticker, 
-                security_type=self.security_type,
-                data_ticker=self.data_ticker, 
-                currency=self.currency, 
-                exchange=self.exchange, 
-                fees=self.fees, 
-                initialMargin="self.initial_margin",
-                quantity_multiplier=self.quantity_multiplier, 
-                price_multiplier=self.price_multiplier)
-            
-        with self.assertRaisesRegex(TypeError, "quantity_multiplier must be of type int or float"):
-            Symbol(ticker=self.ticker, 
-                security_type=self.security_type,
-                data_ticker=self.data_ticker, 
-                currency=self.currency, 
-                exchange=self.exchange, 
-                fees=self.fees, 
-                initialMargin=self.initial_margin,
-                quantity_multiplier="self.quantity_multiplier", 
-                price_multiplier=self.price_multiplier)
-            
-        with self.assertRaisesRegex(TypeError,"price_multiplier must be of type int or float"):
-            Symbol(ticker=self.ticker, 
-                security_type=self.security_type,
-                data_ticker=self.data_ticker, 
-                currency=self.currency, 
-                exchange=self.exchange, 
-                fees=self.fees, 
-                initialMargin=self.initial_margin,
-                quantity_multiplier=self.quantity_multiplier, 
-                price_multiplier="self.price_multiplier")
+from midas.shared.orders import Action
 
 class TestEquity(unittest.TestCase):
     def setUp(self) -> None:
+        # Mock equity data
         self.ticker="AAPL"
         self.security_type=SecurityType.STOCK
         self.currency = Currency.USD  
@@ -179,9 +19,26 @@ class TestEquity(unittest.TestCase):
         self.industry=Industry.TECHNOLOGY
         self.market_cap=10000000000.99
         self.shares_outstanding=1937476363
+        self.slippage_factor=10
+
+        # Create equity object
+        self.equity_obj = Equity(ticker=self.ticker, 
+                    security_type=self.security_type,
+                    data_ticker=self.data_ticker, 
+                    currency=self.currency, 
+                    exchange=self.exchange, 
+                    fees=self.fees, 
+                    initial_margin=self.initial_margin,
+                    quantity_multiplier=self.quantity_multiplier, 
+                    price_multiplier=self.price_multiplier,
+                    company_name=self.company_name,
+                    industry=self.industry,
+                    market_cap=self.market_cap,
+                    shares_outstanding=self.shares_outstanding,
+                    slippage_factor=self.slippage_factor)
 
     # Basic Validation
-    def test_contstruction(self):
+    def test_construction(self):
         # Test
         equity = Equity(ticker=self.ticker, 
                         security_type=self.security_type,
@@ -189,13 +46,15 @@ class TestEquity(unittest.TestCase):
                         currency=self.currency, 
                         exchange=self.exchange, 
                         fees=self.fees, 
-                        initialMargin=self.initial_margin,
+                        initial_margin=self.initial_margin,
                         quantity_multiplier=self.quantity_multiplier, 
                         price_multiplier=self.price_multiplier,
                         company_name=self.company_name,
                         industry=self.industry,
                         market_cap=self.market_cap,
-                        shares_outstanding=self.shares_outstanding)
+                        shares_outstanding=self.shares_outstanding, 
+                        slippage_factor=self.slippage_factor)
+        
         # Validate
         self.assertEqual(equity.ticker, self.ticker)
         self.assertIsInstance(equity.security_type, SecurityType)
@@ -203,32 +62,60 @@ class TestEquity(unittest.TestCase):
         self.assertEqual(equity.currency, self.currency)
         self.assertEqual(equity.exchange, self.exchange)
         self.assertEqual(equity.fees, self.fees)
-        self.assertEqual(equity.initialMargin, self.initial_margin)
+        self.assertEqual(equity.initial_margin, self.initial_margin)
         self.assertEqual(equity.price_multiplier, self.price_multiplier)
         self.assertEqual(equity.quantity_multiplier, self.quantity_multiplier)
         self.assertEqual(equity.company_name, self.company_name)
         self.assertEqual(equity.industry, self.industry)
         self.assertEqual(equity.market_cap, self.market_cap)
         self.assertEqual(equity.shares_outstanding, self.shares_outstanding)
+        self.assertEqual(equity.slippage_factor, self.slippage_factor)
         self.assertEqual(type(equity.contract),Contract,"contract shoudl be an instance of Contract")
 
-    def test_to_dict(self):
-        equity = Equity(ticker=self.ticker, 
-                        security_type=self.security_type,
-                        data_ticker=self.data_ticker, 
-                        currency=self.currency, 
-                        exchange=self.exchange, 
-                        fees=self.fees, 
-                        initialMargin=self.initial_margin,
-                        quantity_multiplier=self.quantity_multiplier, 
-                        price_multiplier=self.price_multiplier,
-                        company_name=self.company_name,
-                        industry=self.industry,
-                        market_cap=self.market_cap,
-                        shares_outstanding=self.shares_outstanding)
+    def test_commission_fees(self):
         # Test
-        equity_dict = equity.to_dict()
+        fees = self.equity_obj.commission_fees(5)
 
+        # Validate
+        self.assertEqual(fees, 5 * self.fees)
+
+    def test_slippage_price_buy(self):
+        current_price = 100
+        
+        # Test
+        fees = self.equity_obj.slippage_price(current_price, action=Action.LONG)
+        fees_2 = self.equity_obj.slippage_price(current_price, action=Action.COVER)
+
+        # Validate
+        self.assertEqual(fees, current_price + self.slippage_factor)
+        self.assertEqual(fees, fees_2)
+
+    def test_slippage_price_sell(self):
+        current_price = 100
+
+        # Test
+        fees = self.equity_obj.slippage_price(100, action=Action.SHORT)
+        fees_2 = self.equity_obj.slippage_price(100, action=Action.SELL)
+
+        # Validate
+        self.assertEqual(fees, current_price - self.slippage_factor)
+        self.assertEqual(fees, fees_2)
+
+    def test_order_value(self):
+        quantity = 5
+        price = 50
+
+        # Test
+        value = self.equity_obj.order_value(quantity, price)
+
+        # Validate
+        self.assertEqual(value, quantity * price)
+
+    def test_to_dict(self):
+        # Test
+        equity_dict = self.equity_obj.to_dict()
+
+        # Expected
         expected = {
             'ticker': self.ticker,
             'security_type': self.security_type.value, 
@@ -247,14 +134,14 @@ class TestEquity(unittest.TestCase):
 
     # Type Constraint
     def test_type_constraints(self):
-        with self.assertRaisesRegex(TypeError,"ticker must be of type str"):
+        with self.assertRaisesRegex(TypeError, "'ticker' field must be of type str."):
             Equity(ticker=1234, 
                     security_type=self.security_type,
                     data_ticker=self.data_ticker, 
                     currency=self.currency, 
                     exchange=self.exchange, 
                     fees=self.fees, 
-                    initialMargin=self.initial_margin,
+                    initial_margin=self.initial_margin,
                     quantity_multiplier=self.quantity_multiplier, 
                     price_multiplier=self.price_multiplier,
                     company_name=self.company_name,
@@ -262,14 +149,14 @@ class TestEquity(unittest.TestCase):
                     market_cap=self.market_cap,
                     shares_outstanding=self.shares_outstanding)
 
-        with self.assertRaisesRegex(TypeError,"security_type must be of type SecurityType."):
+        with self.assertRaisesRegex(TypeError, "'security_type' field must be of type SecurityType."):
             Equity(ticker=self.ticker, 
                     security_type=12345,
                     data_ticker=self.data_ticker, 
                     currency=self.currency, 
                     exchange=self.exchange, 
                     fees=self.fees, 
-                    initialMargin=self.initial_margin,
+                    initial_margin=self.initial_margin,
                     quantity_multiplier=self.quantity_multiplier, 
                     price_multiplier=self.price_multiplier,
                     company_name=self.company_name,
@@ -277,14 +164,14 @@ class TestEquity(unittest.TestCase):
                     market_cap=self.market_cap,
                     shares_outstanding=self.shares_outstanding)
 
-        with self.assertRaisesRegex(TypeError, "currency must be enum instance Currency"):
+        with self.assertRaisesRegex(TypeError, "'currency' field must be enum instance Currency."):
             Equity(ticker=self.ticker, 
                     security_type=self.security_type,
                     data_ticker=self.data_ticker, 
                     currency=12345, 
                     exchange=self.exchange, 
                     fees=self.fees, 
-                    initialMargin=self.initial_margin,
+                    initial_margin=self.initial_margin,
                     quantity_multiplier=self.quantity_multiplier, 
                     price_multiplier=self.price_multiplier,
                     company_name=self.company_name,
@@ -292,14 +179,14 @@ class TestEquity(unittest.TestCase):
                     market_cap=self.market_cap,
                     shares_outstanding=self.shares_outstanding)
             
-        with self.assertRaisesRegex(TypeError, "data_ticker must be a string or None"):
+        with self.assertRaisesRegex(TypeError, "'data_ticker' field must be a string or None."):
             Equity(ticker=self.ticker, 
                     security_type=self.security_type,
                     data_ticker=12345, 
                     currency=self.currency, 
                     exchange=self.exchange, 
                     fees=self.fees, 
-                    initialMargin=self.initial_margin,
+                    initial_margin=self.initial_margin,
                     quantity_multiplier=self.quantity_multiplier, 
                     price_multiplier=self.price_multiplier,
                     company_name=self.company_name,
@@ -307,14 +194,14 @@ class TestEquity(unittest.TestCase):
                     market_cap=self.market_cap,
                     shares_outstanding=self.shares_outstanding)
         
-        with self.assertRaisesRegex(TypeError, "exchange must be enum instance Venue"):
+        with self.assertRaisesRegex(TypeError, "'exchange' field must be enum instance Venue."):
             Equity(ticker=self.ticker, 
                     security_type=self.security_type,
                     data_ticker=self.data_ticker, 
                     currency=self.currency, 
                     exchange=2345, 
                     fees=self.fees, 
-                    initialMargin=self.initial_margin,
+                    initial_margin=self.initial_margin,
                     quantity_multiplier=self.quantity_multiplier, 
                     price_multiplier=self.price_multiplier,
                     company_name=self.company_name,
@@ -322,14 +209,14 @@ class TestEquity(unittest.TestCase):
                     market_cap=self.market_cap,
                     shares_outstanding=self.shares_outstanding)
             
-        with self.assertRaisesRegex(TypeError, "fees must be int or float"):
+        with self.assertRaisesRegex(TypeError, "'fees' field must be int or float."):
             Equity(ticker=self.ticker, 
                     security_type=self.security_type,
                     data_ticker=self.data_ticker, 
                     currency=self.currency, 
                     exchange=self.exchange, 
                     fees="1234", 
-                    initialMargin=self.initial_margin,
+                    initial_margin=self.initial_margin,
                     quantity_multiplier=self.quantity_multiplier, 
                     price_multiplier=self.price_multiplier,
                     company_name=self.company_name,
@@ -337,14 +224,14 @@ class TestEquity(unittest.TestCase):
                     market_cap=self.market_cap,
                     shares_outstanding=self.shares_outstanding)
             
-        with self.assertRaisesRegex(TypeError, "initialMargin must be an int or float"):
+        with self.assertRaisesRegex(TypeError, "'initial_margin' field must be an int or float."):
             Equity(ticker=self.ticker, 
                     security_type=self.security_type,
                     data_ticker=self.data_ticker, 
                     currency=self.currency, 
                     exchange=self.exchange, 
                     fees=self.fees, 
-                    initialMargin="12345",
+                    initial_margin="12345",
                     quantity_multiplier=self.quantity_multiplier, 
                     price_multiplier=self.price_multiplier,
                     company_name=self.company_name,
@@ -352,14 +239,14 @@ class TestEquity(unittest.TestCase):
                     market_cap=self.market_cap,
                     shares_outstanding=self.shares_outstanding)
             
-        with self.assertRaisesRegex(TypeError, "quantity_multiplier must be of type int or float"):
+        with self.assertRaisesRegex(TypeError, "'quantity_multiplier' field must be of type int or float."):
             Equity(ticker=self.ticker, 
                     security_type=self.security_type,
                     data_ticker=self.data_ticker, 
                     currency=self.currency, 
                     exchange=self.exchange, 
                     fees=self.fees, 
-                    initialMargin=self.initial_margin,
+                    initial_margin=self.initial_margin,
                     quantity_multiplier="12345", 
                     price_multiplier=self.price_multiplier,
                     company_name=self.company_name,
@@ -367,14 +254,14 @@ class TestEquity(unittest.TestCase):
                     market_cap=self.market_cap,
                     shares_outstanding=self.shares_outstanding)
             
-        with self.assertRaisesRegex(TypeError,"price_multiplier must be of type int or float"):
+        with self.assertRaisesRegex(TypeError, "'price_multiplier' field must be of type int or float."):
             Equity(ticker=self.ticker, 
                     security_type=self.security_type,
                     data_ticker=self.data_ticker, 
                     currency=self.currency, 
                     exchange=self.exchange, 
                     fees=self.fees, 
-                    initialMargin=self.initial_margin,
+                    initial_margin=self.initial_margin,
                     quantity_multiplier=self.quantity_multiplier, 
                     price_multiplier="12345",
                     company_name=self.company_name,
@@ -382,14 +269,14 @@ class TestEquity(unittest.TestCase):
                     market_cap=self.market_cap,
                     shares_outstanding=self.shares_outstanding)
         
-        with self.assertRaisesRegex(TypeError,"company_name must be of type str"):
+        with self.assertRaisesRegex(TypeError, "'company_name' field must be of type str."):
             Equity(ticker=self.ticker, 
                     security_type=self.security_type,
                     data_ticker=self.data_ticker, 
                     currency=self.currency, 
                     exchange=self.exchange, 
                     fees=self.fees, 
-                    initialMargin=self.initial_margin,
+                    initial_margin=self.initial_margin,
                     quantity_multiplier=self.quantity_multiplier, 
                     price_multiplier=self.price_multiplier,
                     company_name=1234,
@@ -397,14 +284,14 @@ class TestEquity(unittest.TestCase):
                     market_cap=self.market_cap,
                     shares_outstanding=self.shares_outstanding)
             
-        with self.assertRaisesRegex(TypeError, "industry must be of type Industry."):
+        with self.assertRaisesRegex(TypeError, "'industry' field must be of type Industry."):
             Equity(ticker=self.ticker, 
                     security_type=self.security_type,
                     data_ticker=self.data_ticker, 
                     currency=self.currency, 
                     exchange=self.exchange, 
                     fees=self.fees, 
-                    initialMargin=self.initial_margin,
+                    initial_margin=self.initial_margin,
                     quantity_multiplier=self.quantity_multiplier, 
                     price_multiplier=self.price_multiplier,
                     company_name=self.company_name,
@@ -412,14 +299,14 @@ class TestEquity(unittest.TestCase):
                     market_cap=self.market_cap,
                     shares_outstanding=self.shares_outstanding)
             
-        with self.assertRaisesRegex(TypeError,"market_cap must be of type float."):
+        with self.assertRaisesRegex(TypeError, "'market_cap' field must be of type float."):
             Equity(ticker=self.ticker, 
                     security_type=self.security_type,
                     data_ticker=self.data_ticker, 
                     currency=self.currency, 
                     exchange=self.exchange, 
                     fees=self.fees, 
-                    initialMargin=self.initial_margin,
+                    initial_margin=self.initial_margin,
                     quantity_multiplier=self.quantity_multiplier, 
                     price_multiplier=self.price_multiplier,
                     company_name=self.company_name,
@@ -427,23 +314,122 @@ class TestEquity(unittest.TestCase):
                     market_cap="12345",
                     shares_outstanding=self.shares_outstanding)
             
-        with self.assertRaisesRegex(TypeError,"shares_outstanding must be of type int."):
+        with self.assertRaisesRegex(TypeError, "'shares_outstanding' feild must be of type int."):
             Equity(ticker=self.ticker, 
                     security_type=self.security_type,
                     data_ticker=self.data_ticker, 
                     currency=self.currency, 
                     exchange=self.exchange, 
                     fees=self.fees, 
-                    initialMargin=self.initial_margin,
+                    initial_margin=self.initial_margin,
                     quantity_multiplier=self.quantity_multiplier, 
                     price_multiplier=self.price_multiplier,
                     company_name=self.company_name,
                     industry=self.industry,
                     market_cap=self.market_cap,
                     shares_outstanding="12345")
-          
+            
+        with self.assertRaisesRegex(TypeError, "'slippage_factor' field must be of type int or float."):
+            Equity(ticker=self.ticker, 
+                    security_type=self.security_type,
+                    data_ticker=self.data_ticker, 
+                    currency=self.currency, 
+                    exchange=self.exchange, 
+                    fees=self.fees, 
+                    initial_margin=self.initial_margin,
+                    quantity_multiplier=self.quantity_multiplier, 
+                    price_multiplier=self.price_multiplier,
+                    company_name=self.company_name,
+                    industry=self.industry,
+                    market_cap=self.market_cap,
+                    shares_outstanding=1234, 
+                    slippage_factor="1")
+
+    # Value Constraints   
+    def test_value_constraint(self):
+        with self.assertRaisesRegex(ValueError, "'fees' field cannot be negative."):
+            Equity(ticker=self.ticker, 
+                    security_type=self.security_type,
+                    data_ticker=self.data_ticker, 
+                    currency=self.currency, 
+                    exchange=self.exchange, 
+                    fees=-1, 
+                    initial_margin=self.initial_margin,
+                    quantity_multiplier=self.quantity_multiplier, 
+                    price_multiplier=self.price_multiplier,
+                    company_name=self.company_name,
+                    industry=self.industry,
+                    market_cap=self.market_cap,
+                    shares_outstanding=1234, 
+                    slippage_factor=1)
+            
+        with self.assertRaisesRegex(ValueError, "'initial_margin' field must be non-negative."):
+            Equity(ticker=self.ticker, 
+                    security_type=self.security_type,
+                    data_ticker=self.data_ticker, 
+                    currency=self.currency, 
+                    exchange=self.exchange, 
+                    fees=self.fees, 
+                    initial_margin=-1,
+                    quantity_multiplier=self.quantity_multiplier, 
+                    price_multiplier=self.price_multiplier,
+                    company_name=self.company_name,
+                    industry=self.industry,
+                    market_cap=self.market_cap,
+                    shares_outstanding=1234, 
+                    slippage_factor=1)      
+              
+        with self.assertRaisesRegex(ValueError, "'price_multiplier' field must be greater than zero."):
+            Equity(ticker=self.ticker, 
+                    security_type=self.security_type,
+                    data_ticker=self.data_ticker, 
+                    currency=self.currency, 
+                    exchange=self.exchange, 
+                    fees=self.fees, 
+                    initial_margin=self.initial_margin,
+                    quantity_multiplier=self.quantity_multiplier, 
+                    price_multiplier=0,
+                    company_name=self.company_name,
+                    industry=self.industry,
+                    market_cap=self.market_cap,
+                    shares_outstanding=1234, 
+                    slippage_factor=1)
+            
+        with self.assertRaisesRegex(ValueError, "'quantity_multiplier' field must be greater than zero."):
+            Equity(ticker=self.ticker, 
+                    security_type=self.security_type,
+                    data_ticker=self.data_ticker, 
+                    currency=self.currency, 
+                    exchange=self.exchange, 
+                    fees=self.fees, 
+                    initial_margin=self.initial_margin,
+                    quantity_multiplier=0, 
+                    price_multiplier=self.price_multiplier,
+                    company_name=self.company_name,
+                    industry=self.industry,
+                    market_cap=self.market_cap,
+                    shares_outstanding=1234, 
+                    slippage_factor=1)
+    
+        with self.assertRaisesRegex(ValueError, "'slippage_factor' field must be greater than zero."):
+            Equity(ticker=self.ticker, 
+                    security_type=self.security_type,
+                    data_ticker=self.data_ticker, 
+                    currency=self.currency, 
+                    exchange=self.exchange, 
+                    fees=self.fees, 
+                    initial_margin=self.initial_margin,
+                    quantity_multiplier=self.quantity_multiplier, 
+                    price_multiplier=self.price_multiplier,
+                    company_name=self.company_name,
+                    industry=self.industry,
+                    market_cap=self.market_cap,
+                    shares_outstanding=1234, 
+                    slippage_factor=-1)
+            
 class TestFuture(unittest.TestCase):
     def setUp(self) -> None:
+        # Mock future data
         self.ticker = "HEJ4"
         self.security_type = SecurityType.FUTURE
         self.data_ticker = "HE.n.0" 
@@ -462,7 +448,29 @@ class TestFuture(unittest.TestCase):
         self.min_price_fluctuation=10
         self.continuous=False
         self.lastTradeDateOrContractMonth="202406"
+        self.slippage_factor = 10
 
+        # Create future object
+        self.future_obj = Future(ticker=self.ticker, 
+                    security_type=self.security_type,
+                    data_ticker=self.data_ticker, 
+                    currency=self.currency, 
+                    exchange=self.exchange, 
+                    fees=self.fees, 
+                    initial_margin=self.initial_margin,
+                    quantity_multiplier=self.quantity_multiplier, 
+                    price_multiplier=self.price_multiplier, 
+                    product_code=self.product_code,
+                    product_name=self.product_name,
+                    industry=self.industry,
+                    contract_size=self.contract_size,
+                    contract_units=self.contract_units,
+                    tick_size=self.tick_size,
+                    min_price_fluctuation=self.min_price_fluctuation,
+                    continuous=self.continuous, 
+                    lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth, 
+                    slippage_factor=self.slippage_factor)
+        
     # Basic Validation
     def test_contstruction(self):
         # Test
@@ -472,7 +480,7 @@ class TestFuture(unittest.TestCase):
                         currency=self.currency, 
                         exchange=self.exchange, 
                         fees=self.fees, 
-                        initialMargin=self.initial_margin,
+                        initial_margin=self.initial_margin,
                         quantity_multiplier=self.quantity_multiplier, 
                         price_multiplier=self.price_multiplier, 
                         product_code=self.product_code,
@@ -483,7 +491,8 @@ class TestFuture(unittest.TestCase):
                         tick_size=self.tick_size,
                         min_price_fluctuation=self.min_price_fluctuation,
                         continuous=self.continuous, 
-                        lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth)
+                        lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth,
+                        slippage_factor=self.slippage_factor)
         # Validate
         self.assertEqual(future.ticker, self.ticker)
         self.assertIsInstance(future.security_type, SecurityType)
@@ -491,7 +500,7 @@ class TestFuture(unittest.TestCase):
         self.assertEqual(future.currency, self.currency)
         self.assertEqual(future.exchange, self.exchange)
         self.assertEqual(future.fees, self.fees)
-        self.assertEqual(future.initialMargin, self.initial_margin)
+        self.assertEqual(future.initial_margin, self.initial_margin)
         self.assertEqual(future.price_multiplier, self.price_multiplier)
         self.assertEqual(future.quantity_multiplier, self.quantity_multiplier)
         self.assertEqual(future.product_code, self.product_code)
@@ -503,31 +512,55 @@ class TestFuture(unittest.TestCase):
         self.assertEqual(future.min_price_fluctuation, self.min_price_fluctuation)
         self.assertEqual(future.continuous, self.continuous)
         self.assertEqual(future.lastTradeDateOrContractMonth, self.lastTradeDateOrContractMonth)
+        self.assertEqual(future.slippage_factor, self.slippage_factor)
         self.assertEqual(type(future.contract),Contract,"contract shoudl be an instance of Contract")
 
-    def test_to_dict(self):
-        future = Future(ticker=self.ticker, 
-                        security_type=self.security_type,
-                        data_ticker=self.data_ticker, 
-                        currency=self.currency, 
-                        exchange=self.exchange, 
-                        fees=self.fees, 
-                        initialMargin=self.initial_margin,
-                        quantity_multiplier=self.quantity_multiplier, 
-                        price_multiplier=self.price_multiplier, 
-                        product_code=self.product_code,
-                        product_name=self.product_name,
-                        industry=self.industry,
-                        contract_size=self.contract_size,
-                        contract_units=self.contract_units,
-                        tick_size=self.tick_size,
-                        min_price_fluctuation=self.min_price_fluctuation,
-                        continuous=self.continuous, 
-                        lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth)
+    def test_commission_fees(self):
+        quantity= 10
+
+        # Test
+        fees = self.future_obj.commission_fees(quantity)
+
+        # Validate
+        self.assertEqual(fees, quantity * self.fees)
+
+    def test_slippage_price_buy(self):
+        current_price = 100
         
         # Test
-        future_dict = future.to_dict()
+        fees = self.future_obj.slippage_price(current_price, action=Action.LONG)
+        fees_2 = self.future_obj.slippage_price(current_price, action=Action.COVER)
 
+        # Validate
+        self.assertEqual(fees, current_price + self.slippage_factor)
+        self.assertEqual(fees, fees_2)
+
+    def test_slippage_price_sell(self):
+        current_price = 100
+
+        # Test
+        fees = self.future_obj.slippage_price(100, action=Action.SHORT)
+        fees_2 = self.future_obj.slippage_price(100, action=Action.SELL)
+
+        # Validate
+        self.assertEqual(fees, current_price - self.slippage_factor)
+        self.assertEqual(fees, fees_2)
+
+    def test_order_value(self):
+        quantity = 5
+        price = 50
+
+        # Test
+        value = self.future_obj.order_value(quantity, price)
+
+        # Validate
+        self.assertEqual(value, quantity * self.initial_margin)
+
+    def test_to_dict(self):        
+        # Test
+        future_obj_dict = self.future_obj.to_dict()
+
+        # Expected
         expected = {
             'ticker': self.ticker,
             'security_type': self.security_type.value, 
@@ -546,198 +579,18 @@ class TestFuture(unittest.TestCase):
         }
         
         # Validate
-        self.assertEqual(future_dict, expected)
+        self.assertEqual(future_obj_dict, expected)
 
     # Type Constraint
     def test_type_constraints(self):
-        with self.assertRaisesRegex(TypeError,"ticker must be of type str"):
-            Future(ticker=1234, 
-                        security_type=self.security_type,
-                        data_ticker=self.data_ticker, 
-                        currency=self.currency, 
-                        exchange=self.exchange, 
-                        fees=self.fees, 
-                        initialMargin=self.initial_margin,
-                        quantity_multiplier=self.quantity_multiplier, 
-                        price_multiplier=self.price_multiplier, 
-                        product_code=self.product_code,
-                        product_name=self.product_name,
-                        industry=self.industry,
-                        contract_size=self.contract_size,
-                        contract_units=self.contract_units,
-                        tick_size=self.tick_size,
-                        min_price_fluctuation=self.min_price_fluctuation,
-                        continuous=self.continuous, 
-                        lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth)
-
-        with self.assertRaisesRegex(TypeError,"security_type must be of type SecurityType."):
-            Future(ticker=self.ticker, 
-                        security_type=12345,
-                        data_ticker=self.data_ticker, 
-                        currency=self.currency, 
-                        exchange=self.exchange, 
-                        fees=self.fees, 
-                        initialMargin=self.initial_margin,
-                        quantity_multiplier=self.quantity_multiplier, 
-                        price_multiplier=self.price_multiplier, 
-                        product_code=self.product_code,
-                        product_name=self.product_name,
-                        industry=self.industry,
-                        contract_size=self.contract_size,
-                        contract_units=self.contract_units,
-                        tick_size=self.tick_size,
-                        min_price_fluctuation=self.min_price_fluctuation,
-                        continuous=self.continuous, 
-                        lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth)
-
-        with self.assertRaisesRegex(TypeError, "currency must be enum instance Currency"):
-            Future(ticker=self.ticker, 
-                        security_type=self.security_type,
-                        data_ticker=self.data_ticker, 
-                        currency=123456, 
-                        exchange=self.exchange, 
-                        fees=self.fees, 
-                        initialMargin=self.initial_margin,
-                        quantity_multiplier=self.quantity_multiplier, 
-                        price_multiplier=self.price_multiplier, 
-                        product_code=self.product_code,
-                        product_name=self.product_name,
-                        industry=self.industry,
-                        contract_size=self.contract_size,
-                        contract_units=self.contract_units,
-                        tick_size=self.tick_size,
-                        min_price_fluctuation=self.min_price_fluctuation,
-                        continuous=self.continuous, 
-                        lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth)
-            
-        with self.assertRaisesRegex(TypeError, "data_ticker must be a string or None"):
-            Future(ticker=self.ticker, 
-                        security_type=self.security_type,
-                        data_ticker=123456, 
-                        currency=self.currency, 
-                        exchange=self.exchange, 
-                        fees=self.fees, 
-                        initialMargin=self.initial_margin,
-                        quantity_multiplier=self.quantity_multiplier, 
-                        price_multiplier=self.price_multiplier, 
-                        product_code=self.product_code,
-                        product_name=self.product_name,
-                        industry=self.industry,
-                        contract_size=self.contract_size,
-                        contract_units=self.contract_units,
-                        tick_size=self.tick_size,
-                        min_price_fluctuation=self.min_price_fluctuation,
-                        continuous=self.continuous, 
-                        lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth)
-            
-        with self.assertRaisesRegex(TypeError, "exchange must be enum instance Venue"):
-            Future(ticker=self.ticker, 
-                        security_type=self.security_type,
-                        data_ticker=self.data_ticker, 
-                        currency=self.currency, 
-                        exchange=12345, 
-                        fees=self.fees, 
-                        initialMargin=self.initial_margin,
-                        quantity_multiplier=self.quantity_multiplier, 
-                        price_multiplier=self.price_multiplier, 
-                        product_code=self.product_code,
-                        product_name=self.product_name,
-                        industry=self.industry,
-                        contract_size=self.contract_size,
-                        contract_units=self.contract_units,
-                        tick_size=self.tick_size,
-                        min_price_fluctuation=self.min_price_fluctuation,
-                        continuous=self.continuous, 
-                        lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth)
-            
-        with self.assertRaisesRegex(TypeError, "fees must be int or float"):
-            Future(ticker=self.ticker, 
-                        security_type=self.security_type,
-                        data_ticker=self.data_ticker, 
-                        currency=self.currency, 
-                        exchange=self.exchange, 
-                        fees="1234", 
-                        initialMargin=self.initial_margin,
-                        quantity_multiplier=self.quantity_multiplier, 
-                        price_multiplier=self.price_multiplier, 
-                        product_code=self.product_code,
-                        product_name=self.product_name,
-                        industry=self.industry,
-                        contract_size=self.contract_size,
-                        contract_units=self.contract_units,
-                        tick_size=self.tick_size,
-                        min_price_fluctuation=self.min_price_fluctuation,
-                        continuous=self.continuous, 
-                        lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth)
-            
-        with self.assertRaisesRegex(TypeError, "initialMargin must be an int or float"):
+        with self.assertRaisesRegex(TypeError, "'product_code' field must be of type str."):
             Future(ticker=self.ticker, 
                         security_type=self.security_type,
                         data_ticker=self.data_ticker, 
                         currency=self.currency, 
                         exchange=self.exchange, 
                         fees=self.fees, 
-                        initialMargin="1234",
-                        quantity_multiplier=self.quantity_multiplier, 
-                        price_multiplier=self.price_multiplier, 
-                        product_code=self.product_code,
-                        product_name=self.product_name,
-                        industry=self.industry,
-                        contract_size=self.contract_size,
-                        contract_units=self.contract_units,
-                        tick_size=self.tick_size,
-                        min_price_fluctuation=self.min_price_fluctuation,
-                        continuous=self.continuous, 
-                        lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth)
-            
-        with self.assertRaisesRegex(TypeError, "quantity_multiplier must be of type int or float"):
-            Future(ticker=self.ticker, 
-                        security_type=self.security_type,
-                        data_ticker=self.data_ticker, 
-                        currency=self.currency, 
-                        exchange=self.exchange, 
-                        fees=self.fees, 
-                        initialMargin=self.initial_margin,
-                        quantity_multiplier="12345", 
-                        price_multiplier=self.price_multiplier, 
-                        product_code=self.product_code,
-                        product_name=self.product_name,
-                        industry=self.industry,
-                        contract_size=self.contract_size,
-                        contract_units=self.contract_units,
-                        tick_size=self.tick_size,
-                        min_price_fluctuation=self.min_price_fluctuation,
-                        continuous=self.continuous, 
-                        lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth)
-            
-        with self.assertRaisesRegex(TypeError,"price_multiplier must be of type int or float"):
-            Future(ticker=self.ticker, 
-                        security_type=self.security_type,
-                        data_ticker=self.data_ticker, 
-                        currency=self.currency, 
-                        exchange=self.exchange, 
-                        fees=self.fees, 
-                        initialMargin=self.initial_margin,
-                        quantity_multiplier=self.quantity_multiplier, 
-                        price_multiplier="12345", 
-                        product_code=self.product_code,
-                        product_name=self.product_name,
-                        industry=self.industry,
-                        contract_size=self.contract_size,
-                        contract_units=self.contract_units,
-                        tick_size=self.tick_size,
-                        min_price_fluctuation=self.min_price_fluctuation,
-                        continuous=self.continuous, 
-                        lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth)
-            
-        with self.assertRaisesRegex(TypeError, "product_code must be of type str"):
-            Future(ticker=self.ticker, 
-                        security_type=self.security_type,
-                        data_ticker=self.data_ticker, 
-                        currency=self.currency, 
-                        exchange=self.exchange, 
-                        fees=self.fees, 
-                        initialMargin=self.initial_margin,
+                        initial_margin=self.initial_margin,
                         quantity_multiplier=self.quantity_multiplier, 
                         price_multiplier=self.price_multiplier, 
                         product_code=1234,
@@ -750,14 +603,14 @@ class TestFuture(unittest.TestCase):
                         continuous=self.continuous, 
                         lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth)
             
-        with self.assertRaisesRegex(TypeError, "product_name must be of type str"):
+        with self.assertRaisesRegex(TypeError,"'product_name' field must be of type str."):
             Future(ticker=self.ticker, 
                         security_type=self.security_type,
                         data_ticker=self.data_ticker, 
                         currency=self.currency, 
                         exchange=self.exchange, 
                         fees=self.fees, 
-                        initialMargin=self.initial_margin,
+                        initial_margin=self.initial_margin,
                         quantity_multiplier=self.quantity_multiplier, 
                         price_multiplier=self.price_multiplier, 
                         product_code=self.product_code,
@@ -770,14 +623,14 @@ class TestFuture(unittest.TestCase):
                         continuous=self.continuous, 
                         lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth)
             
-        with self.assertRaisesRegex(TypeError, "industry must be of type Industry."):
+        with self.assertRaisesRegex(TypeError, "'industry' field must be of type Industry."):
             Future(ticker=self.ticker, 
                         security_type=self.security_type,
                         data_ticker=self.data_ticker, 
                         currency=self.currency, 
                         exchange=self.exchange, 
                         fees=self.fees, 
-                        initialMargin=self.initial_margin,
+                        initial_margin=self.initial_margin,
                         quantity_multiplier=self.quantity_multiplier, 
                         price_multiplier=self.price_multiplier, 
                         product_code=self.product_code,
@@ -790,14 +643,14 @@ class TestFuture(unittest.TestCase):
                         continuous=self.continuous, 
                         lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth)
             
-        with self.assertRaisesRegex(TypeError,"contract_size must be of type int or float."):
+        with self.assertRaisesRegex(TypeError, "'contract_size' field must be of type int or float."):
             Future(ticker=self.ticker, 
                         security_type=self.security_type,
                         data_ticker=self.data_ticker, 
                         currency=self.currency, 
                         exchange=self.exchange, 
                         fees=self.fees, 
-                        initialMargin=self.initial_margin,
+                        initial_margin=self.initial_margin,
                         quantity_multiplier=self.quantity_multiplier, 
                         price_multiplier=self.price_multiplier, 
                         product_code=self.product_code,
@@ -810,14 +663,14 @@ class TestFuture(unittest.TestCase):
                         continuous=self.continuous, 
                         lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth)
             
-        with self.assertRaisesRegex(TypeError,"contract_units must be of type ContractUnits."):
+        with self.assertRaisesRegex(TypeError, "'contract_units' field must be of type ContractUnits."):
             Future(ticker=self.ticker, 
                         security_type=self.security_type,
                         data_ticker=self.data_ticker, 
                         currency=self.currency, 
                         exchange=self.exchange, 
                         fees=self.fees, 
-                        initialMargin=self.initial_margin,
+                        initial_margin=self.initial_margin,
                         quantity_multiplier=self.quantity_multiplier, 
                         price_multiplier=self.price_multiplier, 
                         product_code=self.product_code,
@@ -830,14 +683,14 @@ class TestFuture(unittest.TestCase):
                         continuous=self.continuous, 
                         lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth)
             
-        with self.assertRaisesRegex(TypeError,"tick_size must be of type int or float."):
+        with self.assertRaisesRegex(TypeError, "'tick_size' field must be of type int or float."):
             Future(ticker=self.ticker, 
                         security_type=self.security_type,
                         data_ticker=self.data_ticker, 
                         currency=self.currency, 
                         exchange=self.exchange, 
                         fees=self.fees, 
-                        initialMargin=self.initial_margin,
+                        initial_margin=self.initial_margin,
                         quantity_multiplier=self.quantity_multiplier, 
                         price_multiplier=self.price_multiplier, 
                         product_code=self.product_code,
@@ -850,14 +703,14 @@ class TestFuture(unittest.TestCase):
                         continuous=self.continuous, 
                         lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth)
             
-        with self.assertRaisesRegex(TypeError,"min_price_fluctuation must be of type int or float."):
+        with self.assertRaisesRegex(TypeError, "'min_price_fluctuation' field must be of type int or float."):
             Future(ticker=self.ticker, 
                         security_type=self.security_type,
                         data_ticker=self.data_ticker, 
                         currency=self.currency, 
                         exchange=self.exchange, 
                         fees=self.fees, 
-                        initialMargin=self.initial_margin,
+                        initial_margin=self.initial_margin,
                         quantity_multiplier=self.quantity_multiplier, 
                         price_multiplier=self.price_multiplier, 
                         product_code=self.product_code,
@@ -870,14 +723,14 @@ class TestFuture(unittest.TestCase):
                         continuous=self.continuous, 
                         lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth)
             
-        with self.assertRaisesRegex(TypeError,"continuous must be of type boolean."):
+        with self.assertRaisesRegex(TypeError, "'continuous' field must be of type boolean."):
             Future(ticker=self.ticker, 
                         security_type=self.security_type,
                         data_ticker=self.data_ticker, 
                         currency=self.currency, 
                         exchange=self.exchange, 
                         fees=self.fees, 
-                        initialMargin=self.initial_margin,
+                        initial_margin=self.initial_margin,
                         quantity_multiplier=self.quantity_multiplier, 
                         price_multiplier=self.price_multiplier, 
                         product_code=self.product_code,
@@ -890,14 +743,14 @@ class TestFuture(unittest.TestCase):
                         continuous=1234, 
                         lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth)
             
-        with self.assertRaisesRegex(TypeError,"lastTradeDateOrContractMonth must be a string"):
+        with self.assertRaisesRegex(TypeError, "'lastTradeDateOrContractMonth' field must be a string."):
             Future(ticker=self.ticker, 
                         security_type=self.security_type,
                         data_ticker=self.data_ticker, 
                         currency=self.currency, 
                         exchange=self.exchange, 
                         fees=self.fees, 
-                        initialMargin=self.initial_margin,
+                        initial_margin=self.initial_margin,
                         quantity_multiplier=self.quantity_multiplier, 
                         price_multiplier=self.price_multiplier, 
                         product_code=self.product_code,
@@ -909,9 +762,33 @@ class TestFuture(unittest.TestCase):
                         min_price_fluctuation=self.min_price_fluctuation,
                         continuous=self.continuous, 
                         lastTradeDateOrContractMonth=12345)
+    
+    # Value Constraint
+    def test_value_cnstraints(self):
+        with self.assertRaisesRegex(ValueError, "'tickSize' field must be greater than zero."):
+            Future(ticker=self.ticker, 
+                        security_type=self.security_type,
+                        data_ticker=self.data_ticker, 
+                        currency=self.currency, 
+                        exchange=self.exchange, 
+                        fees=self.fees, 
+                        initial_margin=self.initial_margin,
+                        quantity_multiplier=self.quantity_multiplier, 
+                        price_multiplier=self.price_multiplier, 
+                        product_code=self.product_code,
+                        product_name=self.product_name,
+                        industry=self.industry,
+                        contract_size=self.contract_size,
+                        contract_units=self.contract_units,
+                        tick_size=0,
+                        min_price_fluctuation=self.min_price_fluctuation,
+                        continuous=self.continuous, 
+                        lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth,
+                        slippage_factor=1)
 
 class TestOption(unittest.TestCase):
     def setUp(self) -> None:
+        # Mock option data
         self.ticker = "AAPLP"
         self.security_type = SecurityType.OPTION
         self.data_ticker = "AAPL" 
@@ -927,6 +804,25 @@ class TestOption(unittest.TestCase):
         self.contract_size=100
         self.underlying_name="AAPL"
         self.lastTradeDateOrContractMonth="20240201"
+        self.slippage_factor = 1
+
+        # Create option object
+        self.option_obj = Option(ticker=self.ticker, 
+                security_type=self.security_type,
+                data_ticker=self.data_ticker, 
+                currency=self.currency, 
+                exchange=self.exchange, 
+                fees=self.fees, 
+                initial_margin=self.initial_margin,
+                quantity_multiplier=self.quantity_multiplier, 
+                price_multiplier=self.price_multiplier,
+                strike_price=self.strike_price,
+                expiration_date=self.expiration_date,
+                option_type=self.option_type,
+                contract_size=self.contract_size,
+                underlying_name=self.underlying_name,
+                lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth,
+                slippage_factor=self.slippage_factor)
 
     # Basic Validation
     def test_contstruction(self):
@@ -937,7 +833,7 @@ class TestOption(unittest.TestCase):
                         currency=self.currency, 
                         exchange=self.exchange, 
                         fees=self.fees, 
-                        initialMargin=self.initial_margin,
+                        initial_margin=self.initial_margin,
                         quantity_multiplier=self.quantity_multiplier, 
                         price_multiplier=self.price_multiplier,
                         strike_price=self.strike_price,
@@ -945,7 +841,8 @@ class TestOption(unittest.TestCase):
                         option_type=self.option_type,
                         contract_size=self.contract_size,
                         underlying_name=self.underlying_name,
-                        lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth)
+                        lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth,
+                        slippage_factor=self.slippage_factor)
         # Validate
         self.assertEqual(option.ticker, self.ticker)
         self.assertIsInstance(option.security_type, SecurityType)
@@ -953,7 +850,7 @@ class TestOption(unittest.TestCase):
         self.assertEqual(option.currency, self.currency)
         self.assertEqual(option.exchange, self.exchange)
         self.assertEqual(option.fees, self.fees)
-        self.assertEqual(option.initialMargin, self.initial_margin)
+        self.assertEqual(option.initial_margin, self.initial_margin)
         self.assertEqual(option.price_multiplier, self.price_multiplier)
         self.assertEqual(option.quantity_multiplier, self.quantity_multiplier)
         self.assertEqual(option.strike_price, self.strike_price)
@@ -962,27 +859,55 @@ class TestOption(unittest.TestCase):
         self.assertEqual(option.contract_size, self.contract_size)
         self.assertEqual(option.underlying_name, self.underlying_name)
         self.assertEqual(option.lastTradeDateOrContractMonth, self.lastTradeDateOrContractMonth)
+        self.assertEqual(option.slippage_factor, self.slippage_factor)
         self.assertEqual(type(option.contract),Contract,"contract shoudl be an instance of Contract")
 
-    def test_to_dict(self):
-        option = Option(ticker=self.ticker, 
-                        security_type=self.security_type,
-                        data_ticker=self.data_ticker, 
-                        currency=self.currency, 
-                        exchange=self.exchange, 
-                        fees=self.fees, 
-                        initialMargin=self.initial_margin,
-                        quantity_multiplier=self.quantity_multiplier, 
-                        price_multiplier=self.price_multiplier,
-                        strike_price=self.strike_price,
-                        expiration_date=self.expiration_date,
-                        option_type=self.option_type,
-                        contract_size=self.contract_size,
-                        underlying_name=self.underlying_name,
-                        lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth)
-        # Test
-        option_dict = option.to_dict()
+    def test_commission_fees(self):
+        quantity= 10
 
+        # Test
+        fees = self.option_obj.commission_fees(quantity)
+
+        # Validate
+        self.assertEqual(fees, quantity * self.fees)
+
+    def test_slippage_price_buy(self):
+        current_price = 100
+
+        # Test
+        fees = self.option_obj.slippage_price(current_price, action=Action.LONG)
+        fees_2 = self.option_obj.slippage_price(current_price, action=Action.COVER)
+
+        # Validate
+        self.assertEqual(fees, current_price + self.slippage_factor)
+        self.assertEqual(fees, fees_2)
+
+    def test_slippage_price_sell(self):
+        current_price = 100
+
+        # Test
+        fees = self.option_obj.slippage_price(100, action=Action.SHORT)
+        fees_2 = self.option_obj.slippage_price(100, action=Action.SELL)
+
+        # Validate
+        self.assertEqual(fees, current_price - self.slippage_factor)
+        self.assertEqual(fees, fees_2)
+
+    def test_order_value(self):
+        quantity = 5
+        price = 50
+
+        # Test
+        value = self.option_obj.order_value(quantity, price)
+
+        # Validate
+        self.assertEqual(value, quantity * price * self.quantity_multiplier)
+
+    def test_to_dict(self):
+        # Test
+        option_dict = self.option_obj.to_dict()
+        
+        # Expected
         expected = {
             'ticker': self.ticker,
             'security_type': self.security_type.value, 
@@ -1001,168 +926,15 @@ class TestOption(unittest.TestCase):
         self.assertEqual(option_dict, expected)
 
     # Type Constraint
-    def test_type_constraints(self):
-        with self.assertRaisesRegex(TypeError,"ticker must be of type str"):
-            Option(ticker=1234, 
-                        security_type=self.security_type,
-                        data_ticker=self.data_ticker, 
-                        currency=self.currency, 
-                        exchange=self.exchange, 
-                        fees=self.fees, 
-                        initialMargin=self.initial_margin,
-                        quantity_multiplier=self.quantity_multiplier, 
-                        price_multiplier=self.price_multiplier,
-                        strike_price=self.strike_price,
-                        expiration_date=self.expiration_date,
-                        option_type=self.option_type,
-                        contract_size=self.contract_size,
-                        underlying_name=self.underlying_name,
-                        lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth)
-
-        with self.assertRaisesRegex(TypeError,"security_type must be of type SecurityType."):
-            Option(ticker=self.ticker, 
-                        security_type="1234",
-                        data_ticker=self.data_ticker, 
-                        currency=self.currency, 
-                        exchange=self.exchange, 
-                        fees=self.fees, 
-                        initialMargin=self.initial_margin,
-                        quantity_multiplier=self.quantity_multiplier, 
-                        price_multiplier=self.price_multiplier,
-                        strike_price=self.strike_price,
-                        expiration_date=self.expiration_date,
-                        option_type=self.option_type,
-                        contract_size=self.contract_size,
-                        underlying_name=self.underlying_name,
-                        lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth)
-
-        with self.assertRaisesRegex(TypeError, "currency must be enum instance Currency"):
-            Option(ticker=self.ticker, 
-                        security_type=self.security_type,
-                        data_ticker=self.data_ticker, 
-                        currency=1234, 
-                        exchange=self.exchange, 
-                        fees=self.fees, 
-                        initialMargin=self.initial_margin,
-                        quantity_multiplier=self.quantity_multiplier, 
-                        price_multiplier=self.price_multiplier,
-                        strike_price=self.strike_price,
-                        expiration_date=self.expiration_date,
-                        option_type=self.option_type,
-                        contract_size=self.contract_size,
-                        underlying_name=self.underlying_name,
-                        lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth)
-            
-        with self.assertRaisesRegex(TypeError, "data_ticker must be a string or None"):
-            Option(ticker=self.ticker, 
-                        security_type=self.security_type,
-                        data_ticker=234, 
-                        currency=self.currency, 
-                        exchange=self.exchange, 
-                        fees=self.fees, 
-                        initialMargin=self.initial_margin,
-                        quantity_multiplier=self.quantity_multiplier, 
-                        price_multiplier=self.price_multiplier,
-                        strike_price=self.strike_price,
-                        expiration_date=self.expiration_date,
-                        option_type=self.option_type,
-                        contract_size=self.contract_size,
-                        underlying_name=self.underlying_name,
-                        lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth)
-        
-        with self.assertRaisesRegex(TypeError, "exchange must be enum instance Venue"):
-            Option(ticker=self.ticker, 
-                        security_type=self.security_type,
-                        data_ticker=self.data_ticker, 
-                        currency=self.currency, 
-                        exchange=1234, 
-                        fees=self.fees, 
-                        initialMargin=self.initial_margin,
-                        quantity_multiplier=self.quantity_multiplier, 
-                        price_multiplier=self.price_multiplier,
-                        strike_price=self.strike_price,
-                        expiration_date=self.expiration_date,
-                        option_type=self.option_type,
-                        contract_size=self.contract_size,
-                        underlying_name=self.underlying_name,
-                        lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth)
-            
-        with self.assertRaisesRegex(TypeError, "fees must be int or float"):
-            Option(ticker=self.ticker, 
-                        security_type=self.security_type,
-                        data_ticker=self.data_ticker, 
-                        currency=self.currency, 
-                        exchange=self.exchange, 
-                        fees="1234", 
-                        initialMargin=self.initial_margin,
-                        quantity_multiplier=self.quantity_multiplier, 
-                        price_multiplier=self.price_multiplier,
-                        strike_price=self.strike_price,
-                        expiration_date=self.expiration_date,
-                        option_type=self.option_type,
-                        contract_size=self.contract_size,
-                        underlying_name=self.underlying_name,
-                        lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth)
-            
-        with self.assertRaisesRegex(TypeError, "initialMargin must be an int or float"):
+    def test_type_constraints(self):     
+        with self.assertRaisesRegex(TypeError, "'strike_price' field must be of type int or float."):
             Option(ticker=self.ticker, 
                         security_type=self.security_type,
                         data_ticker=self.data_ticker, 
                         currency=self.currency, 
                         exchange=self.exchange, 
                         fees=self.fees, 
-                        initialMargin="12345",
-                        quantity_multiplier=self.quantity_multiplier, 
-                        price_multiplier=self.price_multiplier,
-                        strike_price=self.strike_price,
-                        expiration_date=self.expiration_date,
-                        option_type=self.option_type,
-                        contract_size=self.contract_size,
-                        underlying_name=self.underlying_name,
-                        lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth)
-            
-        with self.assertRaisesRegex(TypeError, "quantity_multiplier must be of type int or float"):
-            Option(ticker=self.ticker, 
-                        security_type=self.security_type,
-                        data_ticker=self.data_ticker, 
-                        currency=self.currency, 
-                        exchange=self.exchange, 
-                        fees=self.fees, 
-                        initialMargin=self.initial_margin,
-                        quantity_multiplier="12345", 
-                        price_multiplier=self.price_multiplier,
-                        strike_price=self.strike_price,
-                        expiration_date=self.expiration_date,
-                        option_type=self.option_type,
-                        contract_size=self.contract_size,
-                        underlying_name=self.underlying_name,
-                        lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth)
-            
-        with self.assertRaisesRegex(TypeError,"price_multiplier must be of type int or float"):
-            Option(ticker=self.ticker, 
-                        security_type=self.security_type,
-                        data_ticker=self.data_ticker, 
-                        currency=self.currency, 
-                        exchange=self.exchange, 
-                        fees=self.fees, 
-                        initialMargin=self.initial_margin,
-                        quantity_multiplier=self.quantity_multiplier, 
-                        price_multiplier="1234",
-                        strike_price=self.strike_price,
-                        expiration_date=self.expiration_date,
-                        option_type=self.option_type,
-                        contract_size=self.contract_size,
-                        underlying_name=self.underlying_name,
-                        lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth)
-            
-        with self.assertRaisesRegex(TypeError,"strike_price must be of type int or float"):
-            Option(ticker=self.ticker, 
-                        security_type=self.security_type,
-                        data_ticker=self.data_ticker, 
-                        currency=self.currency, 
-                        exchange=self.exchange, 
-                        fees=self.fees, 
-                        initialMargin=self.initial_margin,
+                        initial_margin=self.initial_margin,
                         quantity_multiplier=self.quantity_multiplier, 
                         price_multiplier=self.price_multiplier,
                         strike_price="12345",
@@ -1172,14 +944,14 @@ class TestOption(unittest.TestCase):
                         underlying_name=self.underlying_name,
                         lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth)
             
-        with self.assertRaisesRegex(TypeError,"expiration_date must be of type str"):
+        with self.assertRaisesRegex(TypeError,"'expiration_date' field must be of type str."):
             Option(ticker=self.ticker, 
                         security_type=self.security_type,
                         data_ticker=self.data_ticker, 
                         currency=self.currency, 
                         exchange=self.exchange, 
                         fees=self.fees, 
-                        initialMargin=self.initial_margin,
+                        initial_margin=self.initial_margin,
                         quantity_multiplier=self.quantity_multiplier, 
                         price_multiplier=self.price_multiplier,
                         strike_price=self.strike_price,
@@ -1189,14 +961,14 @@ class TestOption(unittest.TestCase):
                         underlying_name=self.underlying_name,
                         lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth)
             
-        with self.assertRaisesRegex(TypeError,"option_type must be of type Right"):
+        with self.assertRaisesRegex(TypeError, "'option_type' field must be of type Right."):
             Option(ticker=self.ticker, 
                         security_type=self.security_type,
                         data_ticker=self.data_ticker, 
                         currency=self.currency, 
                         exchange=self.exchange, 
                         fees=self.fees, 
-                        initialMargin=self.initial_margin,
+                        initial_margin=self.initial_margin,
                         quantity_multiplier=self.quantity_multiplier, 
                         price_multiplier=self.price_multiplier,
                         strike_price=self.strike_price,
@@ -1206,14 +978,14 @@ class TestOption(unittest.TestCase):
                         underlying_name=self.underlying_name,
                         lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth)
             
-        with self.assertRaisesRegex(TypeError,"contract_size must be of type int or float"):
+        with self.assertRaisesRegex(TypeError, "'contract_size' field must be of type int or float."):
             Option(ticker=self.ticker, 
                         security_type=self.security_type,
                         data_ticker=self.data_ticker, 
                         currency=self.currency, 
                         exchange=self.exchange, 
                         fees=self.fees, 
-                        initialMargin=self.initial_margin,
+                        initial_margin=self.initial_margin,
                         quantity_multiplier=self.quantity_multiplier, 
                         price_multiplier=self.price_multiplier,
                         strike_price=self.strike_price,
@@ -1223,14 +995,14 @@ class TestOption(unittest.TestCase):
                         underlying_name=self.underlying_name,
                         lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth)
             
-        with self.assertRaisesRegex(TypeError, "underlying_name must be of type str"):
+        with self.assertRaisesRegex(TypeError, "'underlying_name' must be of type str."):
             Option(ticker=self.ticker, 
                         security_type=self.security_type,
                         data_ticker=self.data_ticker, 
                         currency=self.currency, 
                         exchange=self.exchange, 
                         fees=self.fees, 
-                        initialMargin=self.initial_margin,
+                        initial_margin=self.initial_margin,
                         quantity_multiplier=self.quantity_multiplier, 
                         price_multiplier=self.price_multiplier,
                         strike_price=self.strike_price,
@@ -1240,14 +1012,14 @@ class TestOption(unittest.TestCase):
                         underlying_name=1234,
                         lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth)
             
-        with self.assertRaisesRegex(TypeError,"lastTradeDateOrContractMonth must be a string"):
+        with self.assertRaisesRegex(TypeError, "'lastTradeDateOrContractMonth' field must be a string."):
             Option(ticker=self.ticker, 
                         security_type=self.security_type,
                         data_ticker=self.data_ticker, 
                         currency=self.currency, 
                         exchange=self.exchange, 
                         fees=self.fees, 
-                        initialMargin=self.initial_margin,
+                        initial_margin=self.initial_margin,
                         quantity_multiplier=self.quantity_multiplier, 
                         price_multiplier=self.price_multiplier,
                         strike_price=self.strike_price,
@@ -1256,14 +1028,42 @@ class TestOption(unittest.TestCase):
                         contract_size=self.contract_size,
                         underlying_name=self.underlying_name,
                         lastTradeDateOrContractMonth=1234)
-                     
+            
+    # Value Constraint
+    def test_value_constraint(self):
+        with self.assertRaisesRegex(ValueError, "'strike' field must be greater than zero."):
+            Option(ticker=self.ticker, 
+                        security_type=self.security_type,
+                        data_ticker=self.data_ticker, 
+                        currency=self.currency, 
+                        exchange=self.exchange, 
+                        fees=self.fees, 
+                        initial_margin=self.initial_margin,
+                        quantity_multiplier=self.quantity_multiplier, 
+                        price_multiplier=self.price_multiplier,
+                        strike_price=0,
+                        expiration_date=self.expiration_date,
+                        option_type=self.option_type,
+                        contract_size=self.contract_size,
+                        underlying_name=self.underlying_name,
+                        lastTradeDateOrContractMonth=self.lastTradeDateOrContractMonth,
+                        slippage_factor=1)
+
 class TestIndex(unittest.TestCase):
     def setUp(self) -> None:
+        # Mock index data
         self.ticker="GSPC"
         self.security_type=SecurityType.INDEX
         self.name="S&P 500"
         self.currency=Currency.USD
         self.asset_class=AssetClass.EQUITY
+
+        # Create index object
+        self.index_obj =Index(ticker=self.ticker,
+                security_type=self.security_type,
+                name=self.name,
+                currency=self.currency,
+                asset_class=self.asset_class)
 
     # Basic Validation
     def test_contstruction(self):
@@ -1282,14 +1082,10 @@ class TestIndex(unittest.TestCase):
         self.assertEqual(index.asset_class, self.asset_class)
 
     def test_to_dict(self):
-        index=Index(ticker=self.ticker,
-                        security_type=self.security_type,
-                        name=self.name,
-                        currency=self.currency,
-                        asset_class=self.asset_class)
         # Test
-        index_dict = index.to_dict()
-
+        index_dict = self.index_obj.to_dict()
+        
+        # Expected
         expected = {
             'ticker': self.ticker,
             'security_type': self.security_type.value, 
@@ -1306,40 +1102,19 @@ class TestIndex(unittest.TestCase):
 
     # Type Constraint
     def test_type_constraints(self):
-        with self.assertRaisesRegex(TypeError,"ticker must be of type str"):
-            Index(ticker=1234,
-                    security_type=self.security_type,
-                    name=self.name,
-                    currency=self.currency,
-                    asset_class=self.asset_class)
-            
-        with self.assertRaisesRegex(TypeError,"security_type must be of type SecurityType."):
-            Index(ticker=self.ticker,
-                    security_type=1234,
-                    name=self.name,
-                    currency=self.currency,
-                    asset_class=self.asset_class)
-
-        with self.assertRaisesRegex(TypeError, "name must be of type str"):
+        with self.assertRaisesRegex(TypeError, "'name' field must be of type str."):
             Index(ticker=self.ticker,
                     security_type=self.security_type,
                     name=12345,
                     currency=self.currency,
                     asset_class=self.asset_class)
             
-        with self.assertRaisesRegex(TypeError, "asset_class must be of type AssetClass."):
+        with self.assertRaisesRegex(TypeError, "'asset_class' field must be of type AssetClass."):
              Index(ticker=self.ticker,
                     security_type=self.security_type,
                     name=self.name,
                     currency=self.currency,
                     asset_class=12345)
-        
-        with self.assertRaisesRegex(TypeError, "currency must be enum instance Currency"):
-            Index(ticker=self.ticker,
-                    security_type=self.security_type,
-                    name=self.name,
-                    currency=1234,
-                    asset_class=self.asset_class)
             
 
 if __name__ == '__main__':

@@ -1,7 +1,8 @@
-# shared/symbol.py
 from enum import Enum
 from typing import Optional
 from ibapi.contract import Contract
+from abc import ABC, abstractmethod
+from midas.shared.orders import Action
 from dataclasses import dataclass, field
 
 # -- Symbol Details --
@@ -30,10 +31,9 @@ class Venue(Enum):
     COMEX = "COMEX"
     GLOBEX = "GLOBEX"
     NYMEX = "NYMEX"
-    INDEX="INDEX" # specific for the creeation of indexes
-    # IB specific
-    SMART = "SMART"
-    ISLAND = "ISLAND"
+    INDEX="INDEX"       # Specific for the creation of indexes
+    SMART = "SMART"     # IB specific
+    ISLAND = "ISLAND"   # IB specific
               
 class Currency(Enum):   
     USD='USD'
@@ -74,56 +74,65 @@ class Right(Enum):
 
 # -- Symbols -- 
 @dataclass
-class Symbol:
+class Symbol(ABC):
     ticker: str = None
     security_type: SecurityType = None
     currency: Currency = None
     exchange: Venue = None
     fees: float = None
-    initialMargin: float = None
+    initial_margin: float = None
     quantity_multiplier: int = None
     price_multiplier: float = None
     data_ticker: Optional[str] = None
     contract: Contract = field(init=False)
+    slippage_factor:float = 0.0
 
     def __post_init__(self):
         # Type Validation
         if not isinstance(self.ticker, str):
-            raise TypeError(f"ticker must be of type str")
+            raise TypeError(f"'ticker' field must be of type str.")
         if not isinstance(self.security_type, SecurityType):
-            raise TypeError(f"security_type must be of type SecurityType.")
+            raise TypeError(f"'security_type' field must be of type SecurityType.")
         if not isinstance(self.currency, Currency):
-            raise TypeError(f"currency must be enum instance Currency")
+            raise TypeError(f"'currency' field must be enum instance Currency.")
         if not isinstance(self.exchange, Venue):
-            raise TypeError(f"exchange must be enum instance Venue")
+            raise TypeError(f"'exchange' field must be enum instance Venue.")
         if not isinstance(self.fees,(float, int)):
-            raise TypeError(f"fees must be int or float")
-        if not isinstance(self.initialMargin, (float,int)):
-            raise TypeError(f"initialMargin must be an int or float")
+            raise TypeError(f"'fees' field must be int or float.")
+        if not isinstance(self.initial_margin, (float,int)):
+            raise TypeError(f"'initial_margin' field must be an int or float.")
         if not isinstance(self.quantity_multiplier, (float,int)):
-            raise TypeError(f"quantity_multiplier must be of type int or float")
+            raise TypeError(f"'quantity_multiplier' field must be of type int or float.")
         if not isinstance(self.price_multiplier, (float, int)):
-            raise TypeError(f"price_multiplier must be of type int or float")
+            raise TypeError(f"'price_multiplier' field must be of type int or float.")
+        if not isinstance(self.slippage_factor, (float, int)):
+            raise TypeError(f"'slippage_factor' field must be of type int or float.")
         if self.data_ticker is not None and not isinstance(self.data_ticker, str):
-            raise TypeError(f"data_ticker must be a string or None")
+            raise TypeError(f"'data_ticker' field must be a string or None.")
 
         # Constraint Validation
         if self.fees < 0:
-            raise ValueError(f"fees cannot be negative")
-        if self.initialMargin < 0:
-            raise ValueError(f"initialMargin must be non-negative")
+            raise ValueError(f"'fees' field cannot be negative.")
+        if self.initial_margin < 0:
+            raise ValueError(f"'initial_margin' field must be non-negative.")
         if self.price_multiplier <= 0:
-            raise ValueError(f"price_multiplier must be greater than 0")
+            raise ValueError(f"'price_multiplier' field must be greater than zero.")
         if self.quantity_multiplier <= 0:
-            raise ValueError(f"quantity_multiplier must be greater than 0")
+            raise ValueError(f"'quantity_multiplier' field must be greater than zero.")
+        if self.slippage_factor < 0:
+            raise ValueError(f"'slippage_factor' field must be greater than zero.")
 
         # Logic
         if not self.data_ticker:
             self.data_ticker = self.ticker
-
-        self.contract = self.to_contract()
     
     def to_contract_data(self) -> dict:
+        """ 
+        Constructs a dictionary from instance variables used in the construction of Contract object.
+        
+        Returns:
+        - dict : Representing the data to be added to Contract object.
+        """
         return {
             "symbol": self.ticker,
             "secType": self.security_type.value,
@@ -133,6 +142,12 @@ class Symbol:
             }
     
     def to_contract(self) -> Contract:
+        """
+        Creates a ibapi Contract object from instance data.
+
+        Returns:
+        - Contract: Object unique to the symbol used in the ibapi library.
+        """
         try:
             contract_data = self.to_contract_data()
             contract = Contract()
@@ -145,9 +160,45 @@ class Symbol:
     def to_dict(self):
         return {
             'ticker': self.ticker,
-            'security_type': self.security_type.value  # Assuming security_type is an enum or similar
+            'security_type': self.security_type.value 
         }
 
+    def commission_fees(self, quantity: float) -> float:
+        """
+        Calculates the commission fees for an order based on the quantity.
+
+        Parameters:
+        - quantity (float): The quantity of the order.
+
+        Returns:
+        - float: The calculated commission fees.
+        """
+        return abs(quantity) * self.fees
+
+    def slippage_price(self, current_price: float, action: Action) -> float:
+        """
+        Adjusts the current price based on slippage factor.
+
+        Parameters:
+        - current_price (float): The current market price of the symbol.
+        - action (Action): The action associated with the order (LONG, SHORT, etc.). Used to determine which way to adjust price.
+
+        Returns:
+        - float: The adjusted price after accounting for slippage.
+        """
+        if action in [Action.LONG, Action.COVER]:  # Buying
+            adjusted_price = current_price + self.slippage_factor
+        elif action in [Action.SHORT, Action.SELL]:  # Selling 
+            adjusted_price = current_price - self.slippage_factor
+        else:
+            raise ValueError(f"'action' must be of type Action enum.")
+        
+        return adjusted_price
+    
+    @abstractmethod
+    def order_value(self, quantity: float, price: Optional[float] = None) -> float:
+        pass
+    
 @dataclass
 class Equity(Symbol):
     company_name: str =None
@@ -157,17 +208,19 @@ class Equity(Symbol):
     security_type: SecurityType = SecurityType.STOCK
 
     def __post_init__(self):
+        super().__post_init__()
         # Type checks
         if not isinstance(self.company_name, str):
-            raise TypeError("company_name must be of type str")
+            raise TypeError("'company_name' field must be of type str.")
         if not isinstance(self.industry, Industry):
-            raise TypeError("industry must be of type Industry.")
+            raise TypeError("'industry' field must be of type Industry.")
         if not isinstance(self.market_cap, float):
-            raise TypeError("market_cap must be of type float.")
+            raise TypeError("'market_cap' field must be of type float.")
         if not isinstance(self.shares_outstanding, int):
-            raise TypeError("shares_outstanding must be of type int.")
-        
-        super().__post_init__()
+            raise TypeError("'shares_outstanding' feild must be of type int.")
+
+        # Create contract object
+        self.contract = self.to_contract()
 
     def to_contract_data(self) -> dict:
         data = super().to_contract_data()
@@ -185,6 +238,18 @@ class Equity(Symbol):
         }
         return symbol_dict
     
+    def order_value(self, quantity: float, price: Optional[float] = None) -> float:
+        """
+        Calculate the required margin for a future order based on quantity.
+
+        Parameters:
+        - quantity (float): The quantity of the future order.
+
+        Returns:
+        - float: The calculated margin requirement for the future order.
+        """
+        return abs(quantity) * price
+    
 @dataclass
 class Future(Symbol):
     product_code: str = None
@@ -199,31 +264,33 @@ class Future(Symbol):
     security_type: SecurityType = SecurityType.FUTURE    
 
     def __post_init__(self):
+        super().__post_init__() 
         # Type checks
         if not isinstance(self.product_code, str):
-            raise TypeError("product_code must be of type str")
+            raise TypeError("'product_code' field must be of type str.")
         if not isinstance(self.product_name, str):
-            raise TypeError("product_name must be of type str")
+            raise TypeError("'product_name' field must be of type str.")
         if not isinstance(self.industry, Industry):
-            raise TypeError("industry must be of type Industry.")
+            raise TypeError("'industry' field must be of type Industry.")
         if not isinstance(self.contract_size, (int, float)):
-            raise TypeError("contract_size must be of type int or float.")
+            raise TypeError("'contract_size' field must be of type int or float.")
         if not isinstance(self.contract_units, ContractUnits):
-            raise TypeError("contract_units must be of type ContractUnits.")
+            raise TypeError("'contract_units' field must be of type ContractUnits.")
         if not isinstance(self.tick_size, (int, float)):
-            raise TypeError("tick_size must be of type int or float.")
+            raise TypeError("'tick_size' field must be of type int or float.")
         if not isinstance(self.min_price_fluctuation, (int, float)):
-            raise TypeError("min_price_fluctuation must be of type int or float.")
+            raise TypeError("'min_price_fluctuation' field must be of type int or float.")
         if not isinstance(self.continuous, bool):
-            raise TypeError("continuous must be of type boolean.")
+            raise TypeError("'continuous' field must be of type boolean.")
         if not isinstance(self.lastTradeDateOrContractMonth, str):
-            raise TypeError(f"lastTradeDateOrContractMonth must be a string")
+            raise TypeError(f"'lastTradeDateOrContractMonth' field must be a string.")
 
-        super().__post_init__() 
-        
         # Constraint Checks
         if self.tick_size <= 0:
-            raise ValueError(f"tickSize must be greater than 0")
+            raise ValueError(f"'tickSize' field must be greater than zero.")
+    
+        # Create contract object
+        self.contract = self.to_contract()
 
     def to_contract_data(self) -> dict:
         data = super().to_contract_data()
@@ -246,6 +313,18 @@ class Future(Symbol):
         }
         return symbol_dict
 
+    def order_value(self, quantity: float, price: Optional[float] = None) -> float:
+        """
+        Calculate the required margin for a future order based on quantity.
+
+        Parameters:
+        - quantity (float): The quantity of the future order.
+
+        Returns:
+        - float: The calculated margin requirement for the future order.
+        """
+        return abs(quantity) * self.initial_margin
+
 @dataclass
 class Option(Symbol):
     strike_price: float = None
@@ -257,25 +336,27 @@ class Option(Symbol):
     security_type: SecurityType = SecurityType.OPTION
 
     def __post_init__(self):
+        super().__post_init__()  
         # Type checks
         if not isinstance(self.strike_price, (int, float)):
-            raise TypeError("strike_price must be of type int or float")
+            raise TypeError("'strike_price' field must be of type int or float.")
         if not isinstance(self.expiration_date, str):
-            raise TypeError("expiration_date must be of type str")
+            raise TypeError("'expiration_date' field must be of type str.")
         if not isinstance(self.option_type,  Right):
-            raise TypeError("option_type must be of type Right")
+            raise TypeError("'option_type' field must be of type Right.")
         if not isinstance(self.contract_size, (int, float)):
-            raise TypeError("contract_size must be of type int or float")
+            raise TypeError("'contract_size' field must be of type int or float.")
         if not isinstance(self.underlying_name, str):
-            raise TypeError("underlying_name must be of type str")
+            raise TypeError("'underlying_name' must be of type str.")
         if not isinstance(self.lastTradeDateOrContractMonth, str):
-            raise TypeError(f"lastTradeDateOrContractMonth must be a string")
+            raise TypeError(f"'lastTradeDateOrContractMonth' field must be a string.")
         
         # Constraint checks
         if self.strike_price <= 0:
-            raise ValueError(f"strike must be greater than 0")
-
-        super().__post_init__()  
+            raise ValueError(f"'strike' field must be greater than zero.")
+        
+        # Create contract object
+        self.contract = self.to_contract()
     
     def to_contract_data(self) -> dict:
         data = super().to_contract_data()
@@ -296,6 +377,18 @@ class Option(Symbol):
             'underlying_name':self.underlying_name
         }
         return symbol_dict
+    
+    def order_value(self, quantity: float, price: Optional[float] = None) -> float:
+        """
+        Calculate the required margin for a future order based on quantity.
+
+        Parameters:
+        - quantity (float): The quantity of the future order.
+
+        Returns:
+        - float: The calculated margin requirement for the future order.
+        """
+        return abs(quantity) * price * self.quantity_multiplier
 
 @dataclass
 class Index(Symbol):
@@ -304,21 +397,20 @@ class Index(Symbol):
     
     # Default
     fees: float = 0.0
-    initialMargin: float = 0.0
+    initial_margin: float = 0.0
     quantity_multiplier: int = 1
     price_multiplier: float = 1.0
     exchange: Venue= Venue.INDEX
     security_type: SecurityType = SecurityType.INDEX
 
     def __post_init__(self):
+        super().__post_init__()  
         # Type checks
         if not isinstance(self.name, str):
-            raise TypeError("name must be of type str")
+            raise TypeError("'name' field must be of type str.")
         if not isinstance(self.asset_class, AssetClass):
-            raise TypeError("asset_class must be of type AssetClass.")
+            raise TypeError("'asset_class' field must be of type AssetClass.")
         
-        super().__post_init__()  
-    
     def to_dict(self):
         symbol_dict = super().to_dict() 
         symbol_dict ["symbol_data"]= {
@@ -328,3 +420,6 @@ class Index(Symbol):
             'venue': self.exchange.value
         }
         return symbol_dict
+    
+    def order_value(self, quantity: float, price: Optional[float] = None) -> float:
+        pass

@@ -2,121 +2,103 @@ import  unittest
 import numpy as np
 from datetime import datetime
 from ibapi.contract import Contract
-
 from midas.engine.events import OrderEvent
 from midas.shared.orders import Action, OrderType, BaseOrder, MarketOrder, LimitOrder, StopLoss
 
-#TODO:  edge cases
 class TestOrderEvent(unittest.TestCase):
     def setUp(self) -> None:
-        self.valid_timestamp = np.uint64(1651500000)
-        self.valid_action = Action.LONG
-        self.valid_trade_id = 2
-        self.valid_leg_id =  6
-        self.valid_order = MarketOrder(self.valid_action, 10)
-        self.valid_contract = Contract()
+        # Test data
+        self.timestamp = np.uint64(1651500000)
+        self.action = Action.LONG
+        self.trade_id = 2
+        self.leg_id =  6
+        self.order = MarketOrder(self.action, 10)
+        self.contract = Contract()
 
     # Basic Validation                
     def test_basic_validation(self):
-        # test
-        event = OrderEvent(timestamp=self.valid_timestamp,
-                           trade_id=self.valid_trade_id,
-                           leg_id=self.valid_leg_id,
-                           action=self.valid_action,
-                           order=self.valid_order,
-                           contract=self.valid_contract)
-        # validate
-        self.assertEqual(event.timestamp, self.valid_timestamp)
-        self.assertEqual(event.order, self.valid_order)
-        self.assertEqual(event.contract, self.valid_contract)
-        self.assertEqual(event.action, self.valid_action)
-        self.assertEqual(event.trade_id, self.valid_trade_id)
-        self.assertEqual(event.leg_id, self.valid_leg_id)
+        # Test
+        event = OrderEvent(timestamp=self.timestamp,
+                           trade_id=self.trade_id,
+                           leg_id=self.leg_id,
+                           action=self.action,
+                           order=self.order,
+                           contract=self.contract)
+        # Validate
+        self.assertEqual(event.timestamp, self.timestamp)
+        self.assertEqual(event.order, self.order)
+        self.assertEqual(event.contract, self.contract)
+        self.assertEqual(event.action, self.action)
+        self.assertEqual(event.trade_id, self.trade_id)
+        self.assertEqual(event.leg_id, self.leg_id)
 
     # Type Checks
     def test_type_constraint(self):
-        self.invalid_timestamp = datetime(2024,1,1)
-        with self.assertRaisesRegex(TypeError, "timestamp must be of type np.uint64."):
-            OrderEvent(timestamp=self.invalid_timestamp,
-                           trade_id=self.valid_trade_id,
-                           leg_id=self.valid_leg_id,
-                           action=self.valid_action,
-                           order=self.valid_order,
-                           contract=self.valid_contract)
+        with self.assertRaisesRegex(TypeError, "'timestamp' field must be of type np.uint64."):
+            OrderEvent(timestamp=datetime(2024,1,1),
+                           trade_id=self.trade_id,
+                           leg_id=self.leg_id,
+                           action=self.action,
+                           order=self.order,
+                           contract=self.contract)
             
-        with self.assertRaisesRegex(ValueError, "'trade_id' must be a non-negative integer."):
-            OrderEvent(timestamp=self.valid_timestamp,
+        with self.assertRaisesRegex(TypeError, "'trade_id' field must be of type int."):
+            OrderEvent(timestamp=self.timestamp,
                            trade_id='1',
-                           leg_id=self.valid_leg_id,
-                           action=self.valid_action,
-                           order=self.valid_order,
-                           contract=self.valid_contract)
+                           leg_id=self.leg_id,
+                           action=self.action,
+                           order=self.order,
+                           contract=self.contract)
             
-        with self.assertRaisesRegex(ValueError, "'leg_id' must be a non-negative integer."):
-            OrderEvent(timestamp=self.valid_timestamp,
-                           trade_id=self.valid_trade_id,
+        with self.assertRaisesRegex(TypeError, "'leg_id' field must be of type int."):
+            OrderEvent(timestamp=self.timestamp,
+                           trade_id=self.trade_id,
                            leg_id='2',
-                           action=self.valid_action,
-                           order=self.valid_order,
-                           contract=self.valid_contract)
+                           action=self.action,
+                           order=self.order,
+                           contract=self.contract)
             
-        with self.assertRaisesRegex(TypeError, "'action' must be of type Action enum."):
-            OrderEvent(timestamp=self.valid_timestamp,
-                    trade_id=self.valid_trade_id,
-                    leg_id=self.valid_leg_id,
+        with self.assertRaisesRegex(TypeError, "'action' field must be of type Action enum."):
+            OrderEvent(timestamp=self.timestamp,
+                    trade_id=self.trade_id,
+                    leg_id=self.leg_id,
                     action=123,
-                    order=self.valid_order,
-                    contract=self.valid_contract)
+                    order=self.order,
+                    contract=self.contract)
             
-        with self.assertRaisesRegex(TypeError, "'contract' must be of type Contract."):
-            OrderEvent(timestamp=self.valid_timestamp,
-                           trade_id=self.valid_trade_id,
-                           leg_id=self.valid_leg_id,
-                           action=self.valid_action,
-                           order=self.valid_order,
-                           contract="self.valid_contract")
+        with self.assertRaisesRegex(TypeError, "'contract' field must be of type Contract."):
+            OrderEvent(timestamp=self.timestamp,
+                           trade_id=self.trade_id,
+                           leg_id=self.leg_id,
+                           action=self.action,
+                           order=self.order,
+                           contract="self.contract")
             
-        with self.assertRaisesRegex(TypeError, "'order' must be of type BaseOrder."):
-            OrderEvent(timestamp=self.valid_timestamp,
-                           trade_id=self.valid_trade_id,
-                           leg_id=self.valid_leg_id,
-                           action=self.valid_action,
-                           order="self.valid_order",
-                           contract=self.valid_contract)
+        with self.assertRaisesRegex(TypeError, "'order' field must be of type BaseOrder."):
+            OrderEvent(timestamp=self.timestamp,
+                           trade_id=self.trade_id,
+                           leg_id=self.leg_id,
+                           action=self.action,
+                           order="self.order",
+                           contract=self.contract)
 
     # Constraint Check
     def test_value_constraint(self):
-        with self.assertRaisesRegex(ValueError, "'trade_id' must be a non-negative integer"):
-            OrderEvent(timestamp=self.valid_timestamp,
-                trade_id=-1,
-                leg_id=self.valid_leg_id,
-                action=self.valid_action,
-                order=self.valid_order,
-                contract=self.valid_contract)
+        with self.assertRaisesRegex(ValueError,"'trade_id' field must be greater than zero."):
+            OrderEvent(timestamp=self.timestamp,
+                trade_id=0,
+                leg_id=self.leg_id,
+                action=self.action,
+                order=self.order,
+                contract=self.contract)
             
-        with self.assertRaisesRegex(ValueError, "'trade_id' must be a non-negative integer"):
-            OrderEvent(timestamp=self.valid_timestamp,
-                           trade_id=0,
-                           leg_id=self.valid_leg_id,
-                           action=self.valid_action,
-                           order=self.valid_order,
-                           contract=self.valid_contract)
-              
-        with self.assertRaisesRegex(ValueError, "'leg_id' must be a non-negative integer."):
-            OrderEvent(timestamp=self.valid_timestamp,
-                           trade_id=self.valid_trade_id,
-                           leg_id=-2,
-                           action=self.valid_action,
-                           order=self.valid_order,
-                           contract=self.valid_contract)
-            
-        with self.assertRaisesRegex(ValueError, "'leg_id' must be a non-negative integer."):
-            OrderEvent(timestamp=self.valid_timestamp,
-                           trade_id=self.valid_trade_id,
+        with self.assertRaisesRegex(ValueError, "'leg_id' field must be greater than zero."):
+            OrderEvent(timestamp=self.timestamp,
+                           trade_id=1,
                            leg_id=0,
-                           action=self.valid_action,
-                           order=self.valid_order,
-                           contract=self.valid_contract)
+                           action=self.action,
+                           order=self.order,
+                           contract=self.contract)
 
 if __name__ == "__main__":
     unittest.main()

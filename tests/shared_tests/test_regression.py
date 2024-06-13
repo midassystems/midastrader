@@ -1,12 +1,10 @@
 import unittest
-from unittest.mock import Mock, patch
-
 from midas.shared.regression import RegressionResults
 
-# #TODO: edge cases
 class TestRegressionResults(unittest.TestCase):    
     def setUp(self) -> None:
-        self.regression_results = RegressionResults(
+        # Create regression results object
+        self.regression_obj = RegressionResults(
             backtest=1,
             risk_free_rate=0.02,
             r_squared=0.95,
@@ -46,22 +44,22 @@ class TestRegressionResults(unittest.TestCase):
 
     # Basic Validation
     def test_to_dict(self):
-        # test
-        regression_dict = self.regression_results.to_dict()
+        # Test
+        regression_dict = self.regression_obj.to_dict()
 
-        # validate
-        self.assertEqual(regression_dict['backtest'], self.regression_results.backtest)
-        self.assertEqual(regression_dict['r_squared'], self.regression_results.r_squared)
-        self.assertEqual(regression_dict['adjusted_r_squared'], self.regression_results.adj_r_squared)
-        self.assertEqual(regression_dict['RMSE'], self.regression_results.RMSE)
-        self.assertEqual(regression_dict['MAE'], self.regression_results.MAE)
-        self.assertEqual(regression_dict['alpha'], self.regression_results.alpha)
-        self.assertEqual(regression_dict['f_statistic'], self.regression_results.f_statistic)
-        self.assertEqual(regression_dict['f_statistic_p_value'], self.regression_results.f_statistic_p_value)
+        # Validate
+        self.assertEqual(regression_dict['backtest'], self.regression_obj.backtest)
+        self.assertEqual(regression_dict['r_squared'], self.regression_obj.r_squared)
+        self.assertEqual(regression_dict['adjusted_r_squared'], self.regression_obj.adj_r_squared)
+        self.assertEqual(regression_dict['RMSE'], self.regression_obj.RMSE)
+        self.assertEqual(regression_dict['MAE'], self.regression_obj.MAE)
+        self.assertEqual(regression_dict['alpha'], self.regression_obj.alpha)
+        self.assertEqual(regression_dict['f_statistic'], self.regression_obj.f_statistic)
+        self.assertEqual(regression_dict['f_statistic_p_value'], self.regression_obj.f_statistic_p_value)
 
 
     def test_type_constraints(self):
-        with self.assertRaisesRegex(ValueError,"vif must be a dictionary"):
+        with self.assertRaisesRegex(ValueError,"'vif' field must be a dictionary."):
             RegressionResults(
                 backtest=1,
                 risk_free_rate=0.02,
@@ -100,7 +98,7 @@ class TestRegressionResults(unittest.TestCase):
                 ]
             )
                 
-        with self.assertRaisesRegex(ValueError,"beta must be a dictionary"):
+        with self.assertRaisesRegex(ValueError,"'beta' field must be a dictionary."):
             RegressionResults(
                 backtest=1,
                 risk_free_rate=0.02,
@@ -139,7 +137,7 @@ class TestRegressionResults(unittest.TestCase):
             ]
             )
             
-        with self.assertRaisesRegex(ValueError, "p_value_beta must be a dictionary"):
+        with self.assertRaisesRegex(ValueError, "'p_value_beta' field must be a dictionary."):
             RegressionResults(
                 backtest=1,
                 risk_free_rate=0.02,
@@ -178,7 +176,7 @@ class TestRegressionResults(unittest.TestCase):
                 ]
             )
 
-        with self.assertRaisesRegex(ValueError, "timeseries_data must be a list"):
+        with self.assertRaisesRegex(ValueError, "'timeseries_data' field must be a list."):
             RegressionResults(
                 backtest=1,
                 risk_free_rate=0.02,
@@ -206,7 +204,7 @@ class TestRegressionResults(unittest.TestCase):
                 timeseries_data="test"
             )
             
-        with self.assertRaises(ValueError):
+        with self.assertRaisesRegex(ValueError, "'risk_free_rate' field must be a float."):
             RegressionResults(
                 backtest=1,
                 risk_free_rate="0.02",
@@ -245,7 +243,7 @@ class TestRegressionResults(unittest.TestCase):
                 ]
             )
             
-        with self.assertRaisesRegex(ValueError, "backtest must be an integer"):
+        with self.assertRaisesRegex(ValueError, "'backtest' field must be an integer."):
             RegressionResults(
                 backtest="1",
                 risk_free_rate=0.02,

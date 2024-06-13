@@ -1,9 +1,10 @@
 import logging
 import pandas as pd
+import importlib.util
+from typing import Type
 from queue import Queue
 from typing import List, Union
 from abc import ABC, abstractmethod
-
 from midas.engine.order_book import OrderBook
 from midas.shared.signal import TradeInstruction
 from midas.engine.portfolio import PortfolioServer
@@ -113,3 +114,15 @@ class BaseStrategy(ABC):
         Get strategy-specific data.
         """
         pass 
+
+def load_strategy_class(module_path: str, class_name: str) -> Type[BaseStrategy]:
+    """
+    Dynamically loads a strategy class from a given module path and class name.
+    """
+    spec = importlib.util.spec_from_file_location("module.name", module_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    strategy_class = getattr(module, class_name)
+    if not issubclass(strategy_class, BaseStrategy):
+        raise ValueError(f"Strategy class {class_name} is not a subclass of BaseStrategy.")
+    return strategy_class

@@ -1,13 +1,12 @@
 import logging
 from typing import Dict
 from ibapi.contract import Contract
-
-from midas.engine.observer import Subject, EventType
-
-from midas.client import DatabaseClient
-
 from midas.shared.symbol import Symbol
-from midas.shared.portfolio import Position,ActiveOrder, AccountDetails
+from midas.client import DatabaseClient
+from midas.shared.account import Account
+from midas.shared.positions import Position
+from midas.engine.observer import Subject, EventType
+from midas.shared.active_orders import ActiveOrder
 
 class PortfolioServer(Subject):
     """
@@ -27,11 +26,15 @@ class PortfolioServer(Subject):
         self.logger = logger
         self.database = database
   
-        self.capital = None
-        self.account : AccountDetails = {}
+        # self.capital = None
+        self.account : Account
         self.positions : Dict[str, Position] = {}
         self.active_orders : Dict[int, ActiveOrder] = {}
         self.pending_positions_update = set()
+
+    @property
+    def capital(self):
+        return self.account.capital
 
     @property
     def get_positions(self):
@@ -56,6 +59,7 @@ class PortfolioServer(Subject):
         - List[str]: List of tickers with active orders.
         """
         active_order_tickers = [order["symbol"] for id, order in self.active_orders.items()]
+        
         # Combine with pending position updates and remove duplicates
         combined_tickers = list(set(active_order_tickers + list(self.pending_positions_update)))
         return combined_tickers
@@ -69,19 +73,19 @@ class PortfolioServer(Subject):
         - new_position (Position): The new position to be updated.
         """
         # Check if this position exists and is equal to the new position
-        if contract.symbol in self.positions and self.positions[contract.symbol] == new_position:
-            return  # Positions are identical, do nothing
-        elif contract.symbol in self.positions and new_position.quantity == 0:
-            del self.positions[contract.symbol]
-            self.pending_positions_update.discard(contract.symbol)
-            self.notify(EventType.POSITION_UPDATE)  # update database
-            self.logger.info(f"\nPOSITIONS UPDATED: \n{self._output_positions()}")
+        if contract.symbol in self.positions:
+            if new_position.quantity == 0:
+                del self.positions[contract.symbol]
+            else: # Same position duplicated, no need to log or notify
+                return
         else:
-            # Update the position and log the change
+            # Update the position
             self.positions[contract.symbol] = new_position
-            self.pending_positions_update.discard(contract.symbol)
-            self.notify(EventType.POSITION_UPDATE)  # update database
-            self.logger.info(f"\nPOSITIONS UPDATED: \n{self._output_positions()}")
+        
+        # Notify listener and log 
+        self.pending_positions_update.discard(contract.symbol)
+        self.notify(EventType.POSITION_UPDATE)  # update database
+        self.logger.info(f"\nPOSITIONS UPDATED: \n{self._output_positions()}")
 
     def _output_positions(self) -> str:
         """
@@ -92,7 +96,7 @@ class PortfolioServer(Subject):
         """
         string =""
         for contract, position in self.positions.items():
-            string += f"  {contract}: {position.__dict__}\n"
+            string += f"  {contract}: {position.pretty_print()}\n"
         return string
     
     def update_orders(self, order: ActiveOrder) -> None:
@@ -130,7 +134,7 @@ class PortfolioServer(Subject):
             string += f" {order} \n"
         return string
 
-    def update_account_details(self, account_details: AccountDetails) -> None:
+    def update_account_details(self, account_details: Account) -> None:
         """
         Updates the account details in the portfolio.
 
@@ -138,21 +142,7 @@ class PortfolioServer(Subject):
         - account_details (AccountDetails): The updated account details.
         """
         self.account = account_details
-        self.capital = float(self.account['FullAvailableFunds'])
         self.notify(EventType.ACCOUNT_DETAIL_UPDATE)  
-        self.logger.info(f"\nACCOUNT UPDATED: \n{self._output_account()}")
+        self.logger.info(f"\nACCOUNT UPDATED: \n{self.account.pretty_print()}")
     
-    def _output_account(self) -> str:
-        """
-        Generates a string representation of account details for logging.
-
-        Returns:
-        - str: String representation of account details.
-        """
-        string = ""
-        for key, value in self.account.items():
-            string += f"  {key} : {value} \n"
-        return string
-    
-
 

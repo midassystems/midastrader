@@ -5,27 +5,26 @@ import pandas as pd
 from contextlib import ExitStack
 from unittest.mock import Mock, patch
 from pandas.testing import assert_frame_equal
-
-from midas.engine.command.parameters import Parameters
-from midas.engine.performance.backtest.manager import BacktestPerformanceManager
-from midas.engine.events import MarketEvent, OrderEvent, SignalEvent, ExecutionEvent
-
 from midas.shared.signal import TradeInstruction
-from midas.shared.portfolio import  EquityDetails
+from midas.shared.account import  EquityDetails
 from midas.shared.orders import OrderType, Action
 from midas.shared.trade import Trade, ExecutionDetails
+from midas.engine.command.parameters import Parameters
+from midas.engine.performance.backtest.manager import BacktestPerformanceManager
 from midas.shared.market_data import MarketData, BarData, QuoteData, MarketDataType
+from midas.engine.events import MarketEvent, OrderEvent, SignalEvent, ExecutionEvent
 from midas.shared.symbol import Equity, Future, Currency, Venue, Symbol, Industry, ContractUnits
-
-#TODO: edge cases
 
 class TestPerformanceManager(unittest.TestCase):    
     def setUp(self) -> None:
+        # Mock methods
         self.strategy =Mock()
         self.mock_db_client = Mock()
         self.mock_logger = Mock()
+
+        # Test parameters object
         self.mock_parameters = Parameters(
-            strategy_name="cointegrationzscore", # must match the directory name
+            strategy_name="cointegrationzscore", 
             missing_values_strategy="drop",
             train_start="2021-01-01",
             train_end="2024-01-01",
@@ -39,7 +38,7 @@ class TestPerformanceManager(unittest.TestCase):
                             currency=Currency.USD,  
                             exchange=Venue.CME,  
                             fees=0.85,  
-                            initialMargin=5627.17,
+                            initial_margin=5627.17,
                             quantity_multiplier=40000,
                             price_multiplier=0.01,
                             product_code="HE",
@@ -58,7 +57,7 @@ class TestPerformanceManager(unittest.TestCase):
                             fees=0.85, 
                             quantity_multiplier=5000,
                             price_multiplier=0.01, 
-                            initialMargin=2075.36,
+                            initial_margin=2075.36,
                             product_code="ZC",
                             product_name="Corn",
                             industry=Industry.AGRICULTURE,
@@ -71,9 +70,42 @@ class TestPerformanceManager(unittest.TestCase):
                     ]
         )
 
-        self.performance_manager = BacktestPerformanceManager(self.mock_db_client, self.mock_logger, self.strategy, self.mock_parameters)
+        # Test performance manager object
+        self.performance_manager = BacktestPerformanceManager(self.mock_db_client, self.mock_logger, self.mock_parameters, self.strategy,)
 
-        # Valid Data
+        # Test trade object
+        self.trade_obj = Trade(
+            trade_id = 1,
+            leg_id = 2,
+            timestamp = np.uint64(16555000),
+            ticker = 'HEJ4',
+            quantity = 10,
+            avg_price= 85.98,
+            trade_value = 100000,
+            action = 'BUY',
+            fees = 9.87
+        )  
+
+        # Test signal event
+        self.trade1 = TradeInstruction(ticker = 'AAPL',
+                                                order_type = OrderType.MARKET,
+                                                action = Action.LONG,
+                                                trade_id = 2,
+                                                leg_id =  5,
+                                                weight = 0.5,
+                                                quantity=2)
+        self.trade2 = TradeInstruction(ticker = 'TSLA',
+                                                order_type = OrderType.MARKET,
+                                                action = Action.LONG,
+                                                trade_id = 2,
+                                                leg_id =  6,
+                                                weight = 0.5,
+                                                quantity=2)
+        self.trade_instructions = [self.trade1,self.trade2]           
+        self.signal_event = SignalEvent(np.uint64(1651500000), self.trade_instructions)    
+
+        
+        # Test performance data
         self.mock_static_stats = [{
             "total_return": 10.0,
             "total_trades": 5,
@@ -116,123 +148,56 @@ class TestPerformanceManager(unittest.TestCase):
         }]
 
     # Basic Validation
-    def test_update_trades_new_trade_valid(self): 
-        trade = Trade(
-                timestamp= np.uint64(165000000),
-                trade_id= 2,
-                leg_id=2,
-                ticker = 'HEJ4',
-                quantity= round(-10,4),
-                price= 50,
-                cost= round(50 * -10, 2),
-                action=  Action.SHORT.value,
-                fees= 70 # because not actually a trade
-        )       
-        # test
-        self.performance_manager.update_trades(trade)
+    def test_update_trades_new_trade_valid(self):      
+        # Test
+        self.performance_manager.update_trades(self.trade_obj)
 
-        # validate
-        self.assertEqual(self.performance_manager.trades[0], trade)
+        # Validate
+        self.assertEqual(self.performance_manager.trades[0], self.trade_obj)
         self.mock_logger.info.assert_called_once()
     
     def test_update_trades_old_trade_valid(self):        
-        trade = Trade(
-                timestamp= np.uint64(165000000),
-                trade_id= 2,
-                leg_id=2,
-                ticker = 'HEJ4',
-                quantity= round(-10,4),
-                price= 50,
-                cost= round(50 * -10, 2),
-                action=  Action.SHORT.value,
-                fees= 70 # because not actually a trade
-        )  
-        self.performance_manager.trades.append(trade)
-        # test
-        self.performance_manager.update_trades(trade)
+        self.performance_manager.trades.append(self.trade_obj)
+
+        # Test
+        self.performance_manager.update_trades(self.trade_obj)
         
-        # validate
-        self.assertEqual(self.performance_manager.trades[0], trade)
+        # Validate
+        self.assertEqual(self.performance_manager.trades[0], self.trade_obj)
         self.assertEqual(len(self.performance_manager.trades), 1)
         self.assertFalse(self.mock_logger.info.called)
     
     def test_output_trades(self):
-        trade = Trade(
-                timestamp= np.uint64(165000000000000000),
-                trade_id= 2,
-                leg_id=2,
-                ticker = 'HEJ4',
-                quantity= round(-10,4),
-                price= 50,
-                cost= round(50 * -10, 2),
-                action=  Action.SHORT.value,
-                fees= 70 # because not actually a trade
-        ) 
-        # test
-        self.performance_manager.update_trades(trade)
+        # Test
+        self.performance_manager.update_trades(self.trade_obj)
         
-        # validate
-        self.mock_logger.info.assert_called_once_with("\nTRADES UPDATED: \n  {'timestamp': 165000000000000000, 'trade_id': 2, 'leg_id': 2, 'ticker': 'HEJ4', 'quantity': -10, 'price': 50, 'cost': -500, 'action': 'SHORT', 'fees': 70}\n")
+        # Validate
+        self.mock_logger.info.assert_called_once_with("\nTRADES UPDATED: \n  {'timestamp': 16555000, 'trade_id': 1, 'leg_id': 2, 'ticker': 'HEJ4', 'quantity': 10, 'avg_price': 85.98, 'trade_value': 100000, 'action': 'BUY', 'fees': 9.87}\n")
 
-    def test_update_signals_valid(self):        
-        self.valid_trade1 = TradeInstruction(ticker = 'AAPL',
-                                                order_type = OrderType.MARKET,
-                                                action = Action.LONG,
-                                                trade_id = 2,
-                                                leg_id =  5,
-                                                weight = 0.5,
-                                                quantity=2)
-        self.valid_trade2 = TradeInstruction(ticker = 'TSLA',
-                                                order_type = OrderType.MARKET,
-                                                action = Action.LONG,
-                                                trade_id = 2,
-                                                leg_id =  6,
-                                                weight = 0.5,
-                                                quantity=2)
-        self.valid_trade_instructions = [self.valid_trade1,self.valid_trade2]
-                        
-        signal_event = SignalEvent(np.uint64(1651500000), self.valid_trade_instructions)
+    def test_update_signals_valid(self):                
+        # Test
+        self.performance_manager.update_signals(self.signal_event)
         
-        # test
-        self.performance_manager.update_signals(signal_event)
-        
-        # validate
-        self.assertEqual(self.performance_manager.signals[0], signal_event.to_dict())
+        # Validate
+        self.assertEqual(self.performance_manager.signals[0], self.signal_event.to_dict())
         self.mock_logger.info.assert_called_once()
     
     def test_output_signal(self):
-        self.valid_trade1 = TradeInstruction(ticker = 'AAPL',
-                                                order_type = OrderType.MARKET,
-                                                action = Action.LONG,
-                                                trade_id = 2,
-                                                leg_id =  5,
-                                                weight = 0.5,
-                                                quantity=2)
-        self.valid_trade2 = TradeInstruction(ticker = 'TSLA',
-                                                order_type = OrderType.MARKET,
-                                                action = Action.LONG,
-                                                trade_id = 2,
-                                                leg_id =  6,
-                                                weight = 0.5,
-                                                quantity=2)
-        self.valid_trade_instructions = [self.valid_trade1,self.valid_trade2]
-                        
-        signal_event = SignalEvent(np.uint64(1717587686000000000), self.valid_trade_instructions)
-        # test
-        self.performance_manager.update_signals(signal_event)
+        # Test
+        self.performance_manager.update_signals(self.signal_event)
 
-        # validate
-        self.mock_logger.info.assert_called_once_with("\nSIGNALS UPDATED: \n  Timestamp: 1717587686000000000 \n  Trade Instructions: \n    {'ticker': 'AAPL', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 5, 'weight': 0.5, 'quantity': 2}\n    {'ticker': 'TSLA', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 6, 'weight': 0.5, 'quantity': 2}\n")
-
+        # Validate
+        self.mock_logger.info.assert_called_once_with("\nSIGNALS UPDATED: \n  Timestamp: 1651500000 \n  Trade Instructions: \n    {'ticker': 'AAPL', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 5, 'weight': 0.5, 'quantity': 2, 'limit_price': '', 'aux_price': ''}\n    {'ticker': 'TSLA', 'order_type': 'MKT', 'action': 'LONG', 'trade_id': 2, 'leg_id': 6, 'weight': 0.5, 'quantity': 2, 'limit_price': '', 'aux_price': ''}\n")
+    
     def test_update_equity_new_valid(self):
         equity = EquityDetails(
                     timestamp= 165500000,
                     equity_value = 10000000.99
                 )
-        # test
+        # Test
         self.performance_manager.update_equity(equity)
         
-        # validate
+        # Validate
         self.assertEqual(self.performance_manager.equity_value[0], equity)
         self.mock_logger.info.assert_called_once_with("\nEQUITY UPDATED: \n  {'timestamp': 165500000, 'equity_value': 10000000.99}\n")
     
@@ -242,29 +207,30 @@ class TestPerformanceManager(unittest.TestCase):
                     equity_value = 10000000.99
                 )
         self.performance_manager.equity_value.append(equity)
-        # test
+
+        # Test
         self.performance_manager.update_equity(equity)
 
-        # validate
+        # Validate
         self.assertEqual(len(self.performance_manager.equity_value), 1)
         self.assertFalse(self.mock_logger.info.called)
 
     def test_aggregate_trades_valid(self):
-        # Adjusted trades data to use ExecutionDetails format
+        # Performance manager trades variable
         self.performance_manager.trades = [
-            ExecutionDetails(timestamp=1640995200000000000, trade_id=1, leg_id=1, symbol='XYZ', quantity=10, price=10, cost=-100,fees=10, action=Action.LONG.value),
-            ExecutionDetails(timestamp=1641081600000000000, trade_id=1, leg_id=1, symbol='XYZ', quantity=-10, price=15, cost=150, fees=10,action=Action.SELL.value),
-            ExecutionDetails(timestamp=1640995200000000000, trade_id=2, leg_id=1, symbol='HEJ4', quantity=-10, price=20, cost=500, fees=10,action=Action.SHORT.value),
-            ExecutionDetails(timestamp=1641081600000000000, trade_id=2, leg_id=1, symbol='HEJ4', quantity=10, price=18, cost=-180, fees=10,  action=Action.COVER.value)
+            Trade(timestamp=np.uint64(1640995200000000000), trade_id=1, leg_id=1, ticker='XYZ', quantity=10, avg_price=10, trade_value=-100,fees=10, action=Action.LONG.value),
+            Trade(timestamp=np.uint64(1641081600000000000), trade_id=1, leg_id=1, ticker='XYZ', quantity=-10, avg_price=15, trade_value=150, fees=10,action=Action.SELL.value),
+            Trade(timestamp=np.uint64(1640995200000000000), trade_id=2, leg_id=1, ticker='HEJ4', quantity=-10, avg_price=20, trade_value=500, fees=10, action=Action.SHORT.value),
+            Trade(timestamp=np.uint64(1641081600000000000), trade_id=2, leg_id=1, ticker='HEJ4', quantity=10, avg_price=18, trade_value=-180,fees=10,  action=Action.COVER.value)
         ]
+
 
         # Test
         aggregated_df = self.performance_manager._aggregate_trades()
 
         # Validate
-        self.assertIsInstance(aggregated_df, pd.DataFrame, "Result should be a pandas DataFrame") # Check if the result is a DataFrame
-        
-        self.assertFalse(aggregated_df.empty, "Resulting DataFrame should not be empty") # Check if the DataFrame is not empty
+        self.assertIsInstance(aggregated_df, pd.DataFrame, "Result should be a pandas DataFrame") 
+        self.assertFalse(aggregated_df.empty, "Resulting DataFrame should not be empty")
 
         # Validate the expected columns are present
         expected_columns = ['trade_id', 'start_date', 'end_date', 'entry_value', 'exit_value', 'pnl', 'gain/loss']
@@ -273,13 +239,14 @@ class TestPerformanceManager(unittest.TestCase):
 
         # Validate calculations for a specific trade_id
         trade_1 = aggregated_df[aggregated_df['trade_id'] == 1]
-        self.assertEqual(trade_1.iloc[0]['entry_value'], -100, "Incorrect entry value for trade_id 1")
-        self.assertEqual(trade_1.iloc[0]['exit_value'], 150, "Incorrect exit value for trade_id 1")
-        self.assertEqual(trade_1.iloc[0]['fees'], 20, "Incorrect fees for trade_id 1")
-        self.assertEqual(trade_1.iloc[0]['pnl'], 30, "Incorrect net pnl for trade_id 1")
-        self.assertEqual(trade_1.iloc[0]['gain/loss'], 0.30, "Incorrect gain/loss for trade_id 1")
+        self.assertEqual(trade_1.iloc[0]['entry_value'], -100)
+        self.assertEqual(trade_1.iloc[0]['exit_value'], 150)
+        self.assertEqual(trade_1.iloc[0]['fees'], 20)
+        self.assertEqual(trade_1.iloc[0]['pnl'], 30)
+        self.assertEqual(trade_1.iloc[0]['gain/loss'], 0.30,)
 
     def test_calculate_return_and_drawdown_valid(self):
+        # Performance manager trades variable
         self.performance_manager.equity_value = [
             EquityDetails(timestamp=1640995200000000000, equity_value=1000.0),
             EquityDetails(timestamp=1641081600000000000, equity_value=1010.0),
@@ -287,25 +254,24 @@ class TestPerformanceManager(unittest.TestCase):
             EquityDetails(timestamp=1641254400000000000, equity_value=1030.0),
         ]
 
-        # test
+        # Test
         df_input = pd.DataFrame(self.performance_manager.equity_value)
         df = self.performance_manager._calculate_return_and_drawdown(df_input)
 
         # Validate
-        self.assertTrue(isinstance(df, pd.DataFrame), "Result should be a pandas DataFrame")
-        self.assertFalse(df.empty, "Resulting DataFrame should not be empty") # Check if the DataFrame is not empty
+        self.assertTrue(isinstance(df, pd.DataFrame))
+        self.assertFalse(df.empty) 
         
-        expected_columns = ['equity_value', 'period_return', 'cumulative_return', 'drawdown']# Validate the expected columns are present
+        # Validate the expected columns are present
+        expected_columns = ['equity_value', 'period_return', 'cumulative_return', 'drawdown']
         for column in expected_columns:
             self.assertIn(column, df.columns, f"Column {column} is missing in the result")
 
-        # Validate Daily Returns
+        # Validate Returns
         equity_value = [1000, 1010, 1005, 1030]
         expected_daily_returns = np.diff(equity_value) / equity_value[:-1]
         expected_daily_returns =  np.insert(expected_daily_returns, 0, 0)
-        
         self.assertAlmostEqual(df.iloc[1]['period_return'], expected_daily_returns[1])
-        
 
         # Validate Cumulative Returns
         expected_cumulative_return = round((1030 - 1000) / 1000, 5)
@@ -320,10 +286,10 @@ class TestPerformanceManager(unittest.TestCase):
     def test_calculate_statistics(self):
         # Trades
         self.performance_manager.trades = [
-            ExecutionDetails(timestamp=1640995200000000000, trade_id=1, leg_id=1, symbol='XYZ', quantity=10, price=10, cost=-100,fees=10, action=Action.LONG.value),
-            ExecutionDetails(timestamp=1641081600000000000, trade_id=1, leg_id=1, symbol='XYZ', quantity=-10, price=15, cost=150, fees=10,action=Action.SELL.value),
-            ExecutionDetails(timestamp=1640995200000000000, trade_id=2, leg_id=1, symbol='HEJ4', quantity=-10, price=20, cost=500, fees=10,action=Action.SHORT.value),
-            ExecutionDetails(timestamp=1641081600000000000, trade_id=2, leg_id=1, symbol='HEJ4', quantity=10, price=18, cost=-180, fees=10,  action=Action.COVER.value)
+            Trade(timestamp=np.uint64(1640995200000000000), trade_id=1, leg_id=1, ticker='XYZ', quantity=10, avg_price=10, trade_value=-100,fees=10, action=Action.LONG.value),
+            Trade(timestamp=np.uint64(1641081600000000000), trade_id=1, leg_id=1, ticker='XYZ', quantity=-10, avg_price=15, trade_value=150, fees=10,action=Action.SELL.value),
+            Trade(timestamp=np.uint64(1640995200000000000), trade_id=2, leg_id=1, ticker='HEJ4', quantity=-10, avg_price=20, trade_value=500, fees=10, action=Action.SHORT.value),
+            Trade(timestamp=np.uint64(1641081600000000000), trade_id=2, leg_id=1, ticker='HEJ4', quantity=10, avg_price=18, trade_value=-180,fees=10,  action=Action.COVER.value)
         ]
 
         # Equity Curve
@@ -337,17 +303,6 @@ class TestPerformanceManager(unittest.TestCase):
             EquityDetails(timestamp= 1641225600000000000, equity_value= 1330.0),
             EquityDetails(timestamp= 1641243600000000000, equity_value= 1330.0)
         ]
-
-
-        # Benchmark Curve
-        self.mock_benchmark_data = [
-            {'timestamp': 1640995200000000000, 'close': 2000.0},
-            {'timestamp': 1641081600000000000, 'close': 2010.0},
-            {'timestamp': 1641168000000000000, 'close': 2030.0},
-        ]
-
-        # Mock the get_benchmark_data method to return the mock benchmark data
-        self.mock_db_client.get_bar_data.return_value = self.mock_benchmark_data
 
         # Test 
         self.performance_manager.calculate_statistics()
@@ -377,10 +332,10 @@ class TestPerformanceManager(unittest.TestCase):
     def test_export_results(self):
         # Trades
         self.performance_manager.trades = [
-            Trade(timestamp=np.uint64(1640995200000000000), trade_id=1, leg_id=1, ticker='XYZ', quantity=10, price=10, cost=-100,fees=10, action=Action.LONG.value),
-            Trade(timestamp=np.uint64(1641081600000000000), trade_id=1, leg_id=1, ticker='XYZ', quantity=-10, price=15, cost=150, fees=10,action=Action.SELL.value),
-            Trade(timestamp=np.uint64(1640995200000000000), trade_id=2, leg_id=1, ticker='HEJ4', quantity=-10, price=20, cost=500, fees=10,action=Action.SHORT.value),
-            Trade(timestamp=np.uint64(1641081600000000000), trade_id=2, leg_id=1, ticker='HEJ4', quantity=10, price=18, cost=-180, fees=10,  action=Action.COVER.value)
+            Trade(timestamp=np.uint64(1640995200000000000), trade_id=1, leg_id=1, ticker='XYZ', quantity=10, avg_price=10, trade_value=-100,fees=10, action=Action.LONG.value),
+            Trade(timestamp=np.uint64(1641081600000000000), trade_id=1, leg_id=1, ticker='XYZ', quantity=-10, avg_price=15, trade_value=150, fees=10,action=Action.SELL.value),
+            Trade(timestamp=np.uint64(1640995200000000000), trade_id=2, leg_id=1, ticker='HEJ4', quantity=-10, avg_price=20, trade_value=500, fees=10, action=Action.SHORT.value),
+            Trade(timestamp=np.uint64(1641081600000000000), trade_id=2, leg_id=1, ticker='HEJ4', quantity=10, avg_price=18, trade_value=-180,fees=10,  action=Action.COVER.value)
         ]
 
         # Equity Curve
@@ -410,8 +365,7 @@ class TestPerformanceManager(unittest.TestCase):
                                                 leg_id =  6,
                                                 weight = 0.5,
                                                 quantity=2)
-        self.valid_trade_instructions = [self.valid_trade1,self.valid_trade2]
-                        
+        self.valid_trade_instructions = [self.valid_trade1,self.valid_trade2]         
         signal_event = SignalEvent(np.uint64(1717587686000000000), self.valid_trade_instructions)
         self.performance_manager.update_signals(signal_event)
         
@@ -425,17 +379,15 @@ class TestPerformanceManager(unittest.TestCase):
         excel_file_path = os.path.join("", "output.xlsx")
         assert os.path.exists(excel_file_path), "Excel file was not created"
 
-        # Validate contents
     
     def test_create_backtest(self):
         # Trades
         self.performance_manager.trades = [
-            Trade(timestamp=np.uint64(1640995200000000000), trade_id=1, leg_id=1, ticker='XYZ', quantity=10, price=10, cost=-100,fees=10, action=Action.LONG.value),
-            Trade(timestamp=np.uint64(1641081600000000000), trade_id=1, leg_id=1, ticker='XYZ', quantity=-10, price=15, cost=150, fees=10,action=Action.SELL.value),
-            Trade(timestamp=np.uint64(1640995200000000000), trade_id=2, leg_id=1, ticker='HEJ4', quantity=-10, price=20, cost=500, fees=10,action=Action.SHORT.value),
-            Trade(timestamp=np.uint64(1641081600000000000), trade_id=2, leg_id=1, ticker='HEJ4', quantity=10, price=18, cost=-180, fees=10,  action=Action.COVER.value)
+            Trade(timestamp=np.uint64(1640995200000000000), trade_id=1, leg_id=1, ticker='XYZ', quantity=10, avg_price=10, trade_value=-100,fees=10, action=Action.LONG.value),
+            Trade(timestamp=np.uint64(1641081600000000000), trade_id=1, leg_id=1, ticker='XYZ', quantity=-10, avg_price=15, trade_value=150, fees=10,action=Action.SELL.value),
+            Trade(timestamp=np.uint64(1640995200000000000), trade_id=2, leg_id=1, ticker='HEJ4', quantity=-10, avg_price=20, trade_value=500, fees=10, action=Action.SHORT.value),
+            Trade(timestamp=np.uint64(1641081600000000000), trade_id=2, leg_id=1, ticker='HEJ4', quantity=10, avg_price=18, trade_value=-180,fees=10,  action=Action.COVER.value)
         ]
-        print(self.performance_manager.trades)
 
         # Equity Curve
         self.performance_manager.equity_value = [
@@ -476,12 +428,12 @@ class TestPerformanceManager(unittest.TestCase):
         self.performance_manager.save()
         backtest = self.performance_manager.backtest
 
-        # validate
+        # Validate
         self.assertEqual(backtest.parameters, self.mock_parameters.to_dict())
         self.assertEqual(backtest.signal_data, [signal_event.to_dict()])
         self.assertEqual(backtest.trade_data , [trade.to_dict() for trade in self.performance_manager.trades])
 
-        # static stats
+        # Validate static stats
         expected_static_keys = [
                     'net_profit', 'total_fees', 'ending_equity', "avg_trade_profit", 
                     'total_return','annual_standard_deviation_percentage', 'max_drawdown_percentage',
@@ -495,7 +447,7 @@ class TestPerformanceManager(unittest.TestCase):
             self.assertIn(key, expected_static_keys)
             self.assertIsNotNone(backtest.static_stats[0][key])
 
-        # timeseries stats
+        # Validate timeseries stats
         expected_timeseries_keys = {'timestamp', 'equity_value','period_return', 'cumulative_return', 'drawdown'} 
         actual_daily_timeseries_keys = set(backtest.daily_timeseries_stats[0].keys())
         actual_period_timeseries_keys = set(backtest.period_timeseries_stats[0].keys())

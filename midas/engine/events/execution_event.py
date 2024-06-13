@@ -1,8 +1,7 @@
 import numpy as np
 from ibapi.contract import Contract
-from dataclasses import dataclass, field
-
 from midas.shared.orders import Action
+from dataclasses import dataclass, field
 from midas.shared.trade import ExecutionDetails
 
 @dataclass
@@ -31,14 +30,19 @@ class ExecutionEvent:
     def __post_init__(self):
         # Type Check
         if not isinstance(self.timestamp, np.uint64):
-            raise TypeError("timestamp must be of type np.uint64.")
+            raise TypeError("'timestamp' field must be of type np.uint64.")
         if not isinstance(self.action, Action):
-            raise TypeError("'action' must be of type Action enum.")
+            raise TypeError("'action' field must be of type Action enum.")
         if not isinstance(self.trade_details, dict):
-            raise TypeError("'trade_details' must be of type ExecutionDetails dict.")
+            raise TypeError("'trade_details' field must be of type ExecutionDetails dict.")
         if not isinstance(self.contract, Contract):
-            raise TypeError("'contract' must be of type Contract instance.")
+            raise TypeError("'contract' field must be of type Contract instance.")
 
     def __str__(self) -> str:
-        string = f"\n{self.type} EVENT:\n  Timestamp: {self.timestamp}\n  Action: {self.action}\n  Contract: {self.contract}\n  Execution Details: {self.trade_details}\n"
-        return string
+        return (
+            f"\n{self.type} EVENT:\n" 
+            f"Timestamp: {self.timestamp}\n"  
+            f"Action: {self.action}\n"  
+            f"Contract: {self.contract}\n"  
+            f"Execution Details: {self.trade_details}\n"
+        )

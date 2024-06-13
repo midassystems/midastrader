@@ -1,14 +1,11 @@
 import logging
 from typing import List, Dict
-
-from midas.engine.events import SignalEvent
-# from engine.command import Parameters
-
-from midas.client import DatabaseClient
-
 from midas.shared.trade import Trade
-from midas.shared.portfolio import EquityDetails, AccountDetails
+from midas.client import DatabaseClient
+from midas.engine.events import SignalEvent
+# from midas.engine.command.parameters import Parameters
 from quantAnalytics.performance import PerformanceStatistics
+from midas.shared.account import EquityDetails, AccountDetails
 
 
 class BasePerformanceManager(PerformanceStatistics):    
@@ -61,7 +58,7 @@ class BasePerformanceManager(PerformanceStatistics):
         Updates and logs the signal events.
 
         Parameters:
-            signal (SignalEvent): The signal event to be logged.
+        - signal (SignalEvent): The signal event to be logged.
         """
         self.signals.append(signal.to_dict()) 
         self.logger.info(f"\nSIGNALS UPDATED: \n{self._output_signals()}")

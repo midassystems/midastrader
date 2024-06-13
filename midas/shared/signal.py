@@ -1,7 +1,5 @@
-# shared/signal.py
-from typing import List, Union, Optional
 from dataclasses import dataclass
-
+from typing import Union, Optional
 from midas.shared.orders import OrderType, Action, BaseOrder , MarketOrder, StopLoss, LimitOrder
 
 @dataclass
@@ -13,37 +11,37 @@ class TradeInstruction:
     leg_id: int
     weight: float
     quantity: Union[int, float]
-    limit_price: Optional[float]=None
-    aux_price: Optional[float]=None
+    limit_price: Optional[float]= None
+    aux_price: Optional[float]= None
 
     def __post_init__(self):
-        self._data_validation()
-
-    def _data_validation(self):
+        # Type Check
         if not self.ticker or not isinstance(self.ticker, str):
-            raise ValueError("'ticker' must be a non-empty string.")
-        
+            raise TypeError("'ticker' field must be of type string.")
         if not isinstance(self.order_type, OrderType):
-            raise ValueError("'order_type' must be of type OrderType enum.")
-        
+            raise TypeError("'order_type' field must be of type OrderType enum.")
         if not isinstance(self.action, Action):
-            raise ValueError("'action' must be of type Action enum.")
+            raise TypeError("'action' field must be of type Action enum.")
+        if not isinstance(self.trade_id, int):
+            raise TypeError("'trade_id' field must of type int.")
+        if not isinstance(self.leg_id, int):
+            raise TypeError("'leg_id' field must be of type int.")
+        if not isinstance(self.quantity, (int, float)):
+            raise TypeError("'quantity' field must be of type int or float.")
+        if self.order_type == OrderType.LIMIT and not isinstance(self.limit_price, (int, float)):
+            raise TypeError("'limit_price' field must be int or float for OrderType.LIMIT.")
+        if self.order_type == OrderType.STOPLOSS and not isinstance(self.aux_price, (int, float)):
+            raise TypeError("'aux_price' field must be int or float for OrderType.STOPLOSS.")
         
-        if not isinstance(self.trade_id, int) or self.trade_id <= 0:
-            raise ValueError("'trade_id' must be a non-negative integer.")
-        
-        if not isinstance(self.leg_id, int) or self.leg_id <= 0:
-            raise ValueError("'leg_id' must be a non-negative integer.")
-    
-        if not isinstance(self.quantity, (int,float)):
-            raise ValueError("'quantity' must be an int or float.")
-        
-        if self.order_type == OrderType.LIMIT and self.limit_price == None:
-            raise ValueError("'limit_price' cannot be None for OrderType.LIMIT.")
-        
-        if self.order_type == OrderType.STOPLOSS and self.aux_price == None:
-            raise ValueError("'aux_price' cannot be None for OrderType.STOPLOSS.")
-            
+        # Value Constraint
+        if self.trade_id <= 0:
+            raise ValueError("'trade_id' field must be greater than zero.")
+        if self.leg_id <= 0:
+            raise ValueError("'leg_id' field must must be greater than zero.")
+        if self.limit_price != None and self.limit_price <= 0:
+            raise ValueError("'limit_price' field must must be greater than zero.")
+        if self.aux_price != None and self.aux_price <= 0:
+            raise ValueError("'aux_price' field must must be greater than zero.")
 
     def to_dict(self):
         return {
@@ -53,7 +51,9 @@ class TradeInstruction:
             "trade_id": self.trade_id,
             "leg_id": self.leg_id,
             "weight": round(self.weight,4),
-            "quantity":self.quantity
+            "quantity": self.quantity,
+            "limit_price" : self.limit_price if self.limit_price != None else "",
+            "aux_price":  self.aux_price if self.aux_price != None else "",
         }
     
     def to_order(self) -> BaseOrder:
@@ -73,4 +73,6 @@ class TradeInstruction:
             f"Leg ID: {self.leg_id}, "
             f"Weight: {self.weight}, "
             f"Quantity: {self.quantity}"
+            f"Limit Price: {self.limit_price if self.limit_price != None else ''}"
+            f"Aux Price:  {self.aux_price if self.aux_price != None else ''}"
         )

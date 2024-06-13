@@ -1,13 +1,10 @@
 import json
 from datetime import datetime
 from typing import List, Literal
+from midas.shared.symbol import *
 from dataclasses import dataclass, field
-
-from midas.shared.symbol import Symbol
 from midas.shared.utils.unix import iso_to_unix
 from midas.shared.market_data import MarketDataType
-from midas.shared.symbol import Symbol, Equity, Future, Option, Index
-from midas.shared.symbol import Currency, Venue, SecurityType, Industry, ContractUnits, Right
 
 @dataclass
 class Parameters:
@@ -32,7 +29,6 @@ class Parameters:
     Methods:
     - to_dict(): Converts the parameters instance into a dictionary with key-value pairs, suitable for serialization or passing to other components. 
         Converts date strings to UNIX timestamps where applicable.
-
     """
     strategy_name: str
     capital: int
@@ -50,38 +46,38 @@ class Parameters:
     def __post_init__(self):
         # Type checks
         if not isinstance(self.strategy_name, str):
-            raise TypeError(f"strategy_name must be of type str")
+            raise TypeError(f"'strategy_name' field must be of type str.")
         if not isinstance(self.capital, (int, float)):
-            raise TypeError(f"capital must be of type int or float")
+            raise TypeError(f"'capital' field must be of type int or float.")
         if not isinstance(self.data_type, MarketDataType):
-            raise TypeError(f"data_type must be an instance of MarketDataType")
+            raise TypeError(f"'data_type' field must be an instance of MarketDataType.")
         if not isinstance(self.missing_values_strategy, str):
-            raise TypeError(f"missing_values_strategy must be of type str")
+            raise TypeError(f"'missing_values_strategy' field must be of type str.")
         if not isinstance(self.train_start, (str, type(None))):
-            raise TypeError(f"train_start must be of type str or None")
+            raise TypeError(f"'train_start' field must be of type str or None.")
         if not isinstance(self.train_end, (str, type(None))):
-            raise TypeError(f"train_end must be of type str or None")
+            raise TypeError(f"'train_end' field must be of type str or None.")
         if not isinstance(self.test_start, str):
-            raise TypeError(f"test_start must be of type str")
+            raise TypeError(f"'test_start' field must be of type str.")
         if not isinstance(self.test_end, str):
-            raise TypeError(f"test_end must be of type str")
+            raise TypeError(f"'test_end' field must be of type str.")
         if not isinstance(self.symbols, list):
-            raise TypeError("'symbols' must be of type list")
+            raise TypeError(f"'symbols' field must be of type list.")
         if not all(isinstance(symbol, Symbol) for symbol in self.symbols):
-            raise TypeError("All items in 'symbols' must be instances of Symbol")
+            raise TypeError("All items in 'symbols' field must be instances of Symbol")
             
         # Constraint checks
         if self.missing_values_strategy not in ['drop', 'fill_forward']:
-            raise ValueError(f"'missing_values_strategy' must be either 'drop' or 'fill_forward'")
+            raise ValueError(f"'missing_values_strategy' field must be in ['drop','fill_forward'].")
 
         if self.capital <= 0:
-            raise ValueError(f"'capital' must be greater than zero")
+            raise ValueError(f"'capital' field must be greater than zero.")
         
         if self.train_start is not None and self.train_end is not None:
             train_start_date = datetime.strptime(self.train_start, '%Y-%m-%d')
             train_end_date = datetime.strptime(self.train_end, '%Y-%m-%d')
             if train_start_date >= train_end_date:
-                raise ValueError(f"'train_start' must be before 'train_end'")
+                raise ValueError(f"'train_start' field must be before 'train_end'.")
             
         test_start_date = datetime.strptime(self.test_start, '%Y-%m-%d')
         test_end_date = datetime.strptime(self.test_end, '%Y-%m-%d')
@@ -89,10 +85,10 @@ class Parameters:
         if self.train_end is not None:
             train_end_date = datetime.strptime(self.train_end, '%Y-%m-%d')
             if train_end_date >= test_start_date:
-                raise ValueError(f"'train_end' must be before 'test_start'")
+                raise ValueError(f"'train_end' field must be before 'test_start'.")
             
         if test_start_date >= test_end_date:
-            raise ValueError(f"'test_start' must be before 'test_end'")
+            raise ValueError(f"'test_start' field must be before 'test_end'.")
             
         # Populate the tickers list based on the provided symbols
         self.tickers = [symbol.ticker for symbol in self.symbols]

@@ -1,8 +1,7 @@
-# shared/orders.py
+from abc import ABC
 from enum import Enum 
 from ibapi.order import Order
 
-# TODO: add a order value depending on the asset type FUT/EQ/ OPT
 class Action(Enum):
     """ Long and short are treated as entry actions and short/cover are treated as exit actions. """
     LONG = 'LONG'  # BUY
@@ -11,7 +10,7 @@ class Action(Enum):
     SELL = 'SELL'  # SELL
 
     def to_broker_standard(self):
-        """Converts the enum to the standard BUY or SELL action for the broker."""
+        """ Converts the enum to the standard BUY or SELL action for the broker. """
         if self in [Action.LONG, Action.COVER]:
             return 'BUY'
         elif self in [Action.SHORT, Action.SELL]:
@@ -25,9 +24,9 @@ class OrderType(Enum):
     LIMIT = "LMT"
     STOPLOSS = "STP"
 
-class BaseOrder:
+class BaseOrder(ABC):
     """ 
-    A base class for creating order objects. *** This class should not be instantiated directly but should be extended by subclasses that specify more detailed behavior. *** 
+    An abstract base class for creating order objects. *** Should not be used directly ***
 
     Parameters:
     - action (Action): The action of the order, which should be an instance of the Action enum.
@@ -35,30 +34,31 @@ class BaseOrder:
     - orderType (OrderType): The type of order, which should be an instance of the OrderType enum.
 
     """
-    def __init__(self, action: Action, quantity: float, orderType: OrderType) -> None:
+    def __init__(self, action: Action, quantity: float, order_type: OrderType) -> None:
         # Type Check
         if not isinstance(action, Action):
-            raise TypeError("'action' must be type Action enum.")
+            raise TypeError("'action' field must be type Action enum.")
         if not isinstance(quantity,(float, int)):
-            raise TypeError("'quantity' must be type float or int.")
-        if not isinstance(orderType,OrderType):
-            raise TypeError("'orderType' must be type OrderType enum.")
+            raise TypeError("'quantity' field must be type float or int.")
+        if not isinstance(order_type,OrderType):
+            raise TypeError("'order_type' field must be type OrderType enum.")
         
+        # Convert to BUY/SELL
         broker_action = action.to_broker_standard()
         
-        # Constraints
-        if broker_action  not in ['BUY', 'SELL']:
-            raise ValueError("action must be either 'BUY' or 'SELL'")
+        # Value Constraints
         if quantity == 0:
-            raise ValueError("'quantity' must not be zero.")
+            raise ValueError("'quantity' field must not be zero.")
         
+        # Create interactive brokers Order object
         self.order = Order()
         self.order.action = broker_action 
-        self.order.orderType = orderType.value
+        self.order.orderType = order_type.value
         self.order.totalQuantity = abs(quantity)
     
     @property
     def quantity(self):
+        """ Returns quantity as positive or negative depending on action. """
         return self.order.totalQuantity if self.order.action == 'BUY' else -self.order.totalQuantity
 
 class MarketOrder(BaseOrder):
@@ -93,9 +93,10 @@ class LimitOrder(BaseOrder):
 
     def __init__(self, action: Action, quantity: float, limit_price: float):
         if not isinstance(limit_price, (float,int)):
-            raise TypeError("'limit_price' must be of type float or int.")
+            raise TypeError("'limit_price' field must be of type float or int.")
+        
         if limit_price <= 0:
-            raise ValueError("'limit_price' must be greater than zero.")
+            raise ValueError("'limit_price' field must be greater than zero.")
         
         super().__init__(action, quantity, OrderType.LIMIT)
         self.order.lmtPrice = limit_price
@@ -115,9 +116,9 @@ class StopLoss(BaseOrder):
     """
     def __init__(self, action: Action, quantity: float, aux_price: float) -> None:
         if not isinstance(aux_price,(float, int)):
-            raise TypeError("'aux_price' must be of type float or int.")
+            raise TypeError("'aux_price' field must be of type float or int.")
         if aux_price <= 0:
-            raise ValueError("'aux_price' must be greater than zero.")
+            raise ValueError("'aux_price' field must be greater than zero.")
         
         super().__init__(action, quantity, OrderType.STOPLOSS)
         self.order.auxPrice = aux_price

@@ -1,6 +1,5 @@
-import numpy as np
-from dataclasses import dataclass, field
 from datetime import date
+from dataclasses import dataclass, field
 
 @dataclass
 class EODEvent:
@@ -21,7 +20,7 @@ class EODEvent:
     def __post_init__(self):
         # Type Check
         if not isinstance(self.timestamp, date):
-            raise TypeError(f"'timestamp' should be an datetime.date instance, got {type(self.timestamp).__name__}")
+            raise TypeError(f"'timestamp' should be an datetime.date instance, got {type(self.timestamp).__name__}.")
 
     def __str__(self) -> str:
         string = f"\n{self.type} EVENT:\n  Timestamp: {self.timestamp}\n"

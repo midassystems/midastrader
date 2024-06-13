@@ -1,23 +1,24 @@
 import unittest
+import numpy as np
 from unittest.mock import Mock
-
+from midas.shared.positions import Position, EquityPosition, FuturePosition
+from midas.shared.active_orders import ActiveOrder
 from midas.engine.data_sync import DatabaseUpdater
 from midas.engine.observer import Subject,EventType
-
-from midas.shared.portfolio import Position, ActiveOrder, AccountDetails
+from midas.shared.account import AccountDetails, Account
 
 
 class ChildSubject(Subject):
     def __init__(self):
         super().__init__()
-        self.positions =  { "HE": Position(action='BUY', 
-                            avg_cost=10.9,
-                            quantity=100,
-                            total_cost=100000,
-                            market_value=10000,
-                            quantity_multiplier=40000,
-                            price_multiplier=0.01,
-                            initial_margin=0)}
+        self.positions =  { "HE":  EquityPosition(
+                                        action = 'BUY',
+                                        avg_price = 10.90,
+                                        quantity = 100,
+                                        quantity_multiplier = 1,
+                                        price_multiplier = 1,
+                                        market_price=12
+                                        )}
         
         self.order = { 123: ActiveOrder(permId = 10,
                                     clientId= 1, 
@@ -34,12 +35,14 @@ class ChildSubject(Subject):
                                     auxPrice= 0.0, 
                                     status= "PreSubmitted")}
         
-        self.account = AccountDetails(FullAvailableFunds = 100000.0, 
-                                        FullInitMarginReq =  100000.0,
-                                        NetLiquidation = 100000.0,
-                                        UnrealizedPnL =  100000.0,
-                                        FullMaintMarginReq =  100000.0,
-                                        Currency = 'USD')
+        self.account = Account(        
+                        timestamp=np.uint64(167700000000000),
+                        full_available_funds = 100000.0, 
+                        full_init_margin_req= 100000.0,
+                        net_liquidation = 100000.0,
+                        unrealized_pnl =  100000.0,
+                        full_maint_margin_req =  100000.0,
+                        currency = 'USD')
         
         self.market_event = 4
         self.risk = 5
@@ -61,7 +64,10 @@ class ChildSubject(Subject):
 
 class TestDatabaseUpdater(unittest.TestCase):
     def setUp(self) -> None:
+        # Mock database
         self.database_client = Mock()
+
+        # Instantiate database updater
         self.session_id = 12345
         self.observer = DatabaseUpdater(self.database_client, session_id=self.session_id)
 
@@ -75,48 +81,51 @@ class TestDatabaseUpdater(unittest.TestCase):
     
     # Basic validation
     def test_update_position(self):
-        # test
+        # Test
         self.observer.update(self.subject, EventType.POSITION_UPDATE)
 
-        # validation
+        # Validation
         self.database_client.update_positions.assert_called_once
 
     def test_create_position(self):
         self.database_client.update_positions.side_effect = ValueError("Not found")
-        # test
+        
+        # Test
         self.observer.update(self.subject, EventType.POSITION_UPDATE)
 
-        # validation
+        # Validation
         self.database_client.create_positions.assert_called_once
 
     def test_update_account(self):
-        # test
+        # Test
         self.observer.update(self.subject, EventType.ACCOUNT_DETAIL_UPDATE)
 
-        # validation
+        # Validation
         self.database_client.update_account.assert_called_once
         
     def test_create_account(self):
         self.database_client.update_account.side_effect = ValueError("Not found")
-        # test
+        
+        # Test
         self.observer.update(self.subject, EventType.ACCOUNT_DETAIL_UPDATE)
 
-        # validation
+        # Validation
         self.database_client.create_account.assert_called_once
 
     def test_update_order(self):
-        # test
+        # Test
         self.observer.update(self.subject, EventType.ORDER_UPDATE)
 
-        # validation
+        # Validation
         self.database_client.update_order.assert_called_once
 
     def test_create_order(self):
         self.database_client.update_order.side_effect = ValueError("Not found")
-        # test
+        
+        # Test
         self.observer.update(self.subject, EventType.MARKET_EVENT)
 
-        # validation
+        # Validation
         self.database_client.create_order.assert_called_once
 
     def test_update_risk(self):
@@ -127,7 +136,7 @@ class TestDatabaseUpdater(unittest.TestCase):
     
     # Type Validation
     def test_update_type_invalid(self):
-        with self.assertRaisesRegex(TypeError, "event_type must be of instance EventType enum."):
+        with self.assertRaisesRegex(TypeError, "'event_type' field must be of instance EventType enum."):
             self.observer.update(self.subject, "invalid")
 
 

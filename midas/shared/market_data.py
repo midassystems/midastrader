@@ -1,4 +1,3 @@
-# shared/market_data.py
 import numpy as np
 from abc import ABC
 from enum import Enum
@@ -13,12 +12,23 @@ class MarketDataType(Enum):
 @dataclass
 class MarketData(ABC):
     """Abstract base class for market data types."""
-    pass
+    ticker: str
+    timestamp: np.uint64
+
+    def __post_init__(self):
+        # Type checks
+        if not isinstance(self.ticker, str):
+            raise TypeError("'ticker' field must be of type str.")        
+        if not isinstance(self.timestamp, np.uint64):
+            raise TypeError("'timestamp' field must be of type np.uint64.")
+        
+    def to_dict(self):
+        return {
+            "symbol": self.ticker,
+            "timestamp": int(self.timestamp)}
 
 @dataclass
 class BarData(MarketData):
-    ticker: str
-    timestamp: np.uint64
     open: Decimal
     close: Decimal
     high: Decimal
@@ -27,44 +37,39 @@ class BarData(MarketData):
 
     def __post_init__(self):
         # Type checks
-        if not isinstance(self.ticker, str):
-            raise TypeError("ticker must be of type str.")        
-        if not isinstance(self.timestamp, np.uint64):
-            raise TypeError("timestamp must be of type np.uint64.")
+        super().__post_init__()
         if not isinstance(self.open, Decimal):
-            raise TypeError("open must be of type Decimal.")
+            raise TypeError("'open' field must be of type Decimal.")
         if not isinstance(self.high, Decimal):
-            raise TypeError("high must be of type Decimal.")
+            raise TypeError("'high' field must be of type Decimal.")
         if not isinstance(self.low, Decimal):
-            raise TypeError("low must be of type Decimal.")
+            raise TypeError("'low' field must be of type Decimal.")
         if not isinstance(self.close, Decimal):
-            raise TypeError("close must be of type Decimal.")
+            raise TypeError("'close' field must be of type Decimal.")
         if not isinstance(self.volume, np.uint64):
-            raise TypeError("volume must be of type np.uint64.")
-        
+            raise TypeError("'volume' field must be of type np.uint64.")
 
         # Constraint checks
         if self.open <= 0:
-            raise ValueError(f"'open' must be greater than zero")
+            raise ValueError(f"'open' must be greater than zero.")
         if self.low <= 0:
-            raise ValueError(f"'low' must be greater than zero")
+            raise ValueError(f"'low' must be greater than zero.")
         if self.high <= 0:
-            raise ValueError(f"'high' must be greater than zero")
+            raise ValueError(f"'high' must be greater than zero.")
         if self.close <= 0:
-            raise ValueError(f"'close' must be greater than zero")
+            raise ValueError(f"'close' must be greater than zero.")
         if self.volume < 0:
-            raise ValueError(f"'volume' must be non-negative")
+            raise ValueError(f"'volume' must be non-negative.")
     
     def to_dict(self):
-        return {
-            "symbol": self.ticker,
-            "timestamp": int(self.timestamp),
-            "open": str(round_decimal(self.open)),
-            "close": str(round_decimal(self.close)),
-            "high": str(round_decimal(self.high)),
-            "low": str(round_decimal(self.low)),
-            "volume": int(self.volume)
-        }
+        dict = super().to_dict()
+        dict["open"]= str(round_decimal(self.open))
+        dict["close"]= str(round_decimal(self.close))
+        dict["high"]= str(round_decimal(self.high))
+        dict["low"]= str(round_decimal(self.low))
+        dict["volume"]= int(self.volume)
+
+        return dict
     
 def dataframe_to_bardata(df) -> List[BarData]:
     """
@@ -100,10 +105,9 @@ def round_decimal(value) -> Decimal:
     - Decimal: The rounded value as a Decimal object, precise to four decimal places.
     """
     return Decimal(value).quantize(Decimal('.0001'), rounding=ROUND_HALF_UP)
+
 @dataclass
 class QuoteData(MarketData):
-    ticker: str
-    timestamp: int
     ask: Decimal
     ask_size: Decimal
     bid: Decimal
@@ -111,35 +115,30 @@ class QuoteData(MarketData):
 
     def __post_init__(self):
         # Type checks
-        if not isinstance(self.ticker, str):
-            raise TypeError("ticker must be of type str.")        
-        if not isinstance(self.timestamp, np.uint64):
-            raise TypeError("timestamp must be of type np.uint64.")
+        super().__post_init__()
         if not isinstance(self.ask, Decimal):
-            raise TypeError(f"'ask' must be of type Decimal")
+            raise TypeError(f"'ask' field must be of type Decimal.")
         if not isinstance(self.ask_size, Decimal):
-            raise TypeError(f"'ask_size' must be of type Decimal")
+            raise TypeError(f"'ask_size' field must be of type Decimal.")
         if not isinstance(self.bid, Decimal):
-            raise TypeError(f"'bid' must be of type Decimal")
+            raise TypeError(f"'bid' field must be of type Decimal.")
         if not isinstance(self.bid_size, Decimal):
-            raise TypeError(f"'bid_size' must be of type Decimal")
+            raise TypeError(f"'bid_size' field must be of type Decimal.")
         
         # Constraint checks
         if self.ask <= 0:
-            raise ValueError(f"'ask' must be greater than zero")
+            raise ValueError(f"'ask' field must be greater than zero.")
         if self.ask_size <= 0:
-            raise ValueError(f"'ask_size' must be greater than zero")
+            raise ValueError(f"'ask_size' field must be greater than zero.")
         if self.bid <= 0:
-            raise ValueError(f"'bid' must be greater than zero")
+            raise ValueError(f"'bid' field must be greater than zero.")
         if self.bid_size <= 0:
-            raise ValueError(f"'bid_size' must be greater than zero")
+            raise ValueError(f"'bid_size' field must be greater than zero.")
         
     def to_dict(self):
-        return {
-            "ticker": self.ticker,
-            "timestamp": self.timestamp,
-            "ask": self.ask,
-            "ask_size": self.ask_size,
-            "bid": self.bid,
-            "bid_size": self.bid_size 
-        }
+        dict = super().to_dict()
+        dict["ask"] = self.ask
+        dict["ask_size"] = self.ask_size
+        dict["bid"] = self.bid
+        dict["bid_size"] = self.bid_size
+        return dict

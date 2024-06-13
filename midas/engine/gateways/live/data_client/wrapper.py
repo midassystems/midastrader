@@ -7,7 +7,6 @@ from decimal import Decimal
 from ibapi.client import EClient
 from ibapi.wrapper import EWrapper
 from ibapi.contract import ContractDetails
-
 from midas.engine.order_book import OrderBook
 from midas.shared.market_data import BarData, QuoteData
 

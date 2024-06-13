@@ -6,13 +6,12 @@ from decouple import config
 from ibapi.order import Order
 from typing import get_type_hints
 from ibapi.contract import Contract
-
-from .wrapper import BrokerApp
 from midas.engine.events import OrderEvent
 from midas.engine.portfolio import PortfolioServer
+from midas.shared.account import AccountDetails, Account
 from midas.engine.performance import BasePerformanceManager
+from midas.engine.gateways.live.broker_client.wrapper import BrokerApp
 
-from midas.shared.portfolio import AccountDetails
 
 class BrokerClient():
     """
@@ -171,12 +170,15 @@ class BrokerClient():
         """
         Request account summary.
         """
-        reqId = self._get_valid_id()  # Get a unique request identifier
+        # Get a unique request identifier
+        reqId = self._get_valid_id() 
 
         # Tags for request
-        account_info_keys = get_type_hints(AccountDetails).keys()
+        account_info_keys = Account.get_account_key_mapping().keys()
         tags_string = ','.join(account_info_keys)
-        self.logger.info(f"Requesting account summary.")
+        # print(test)
+        # account_info_keys = get_type_hints(AccountDetails).keys()
+        # self.logger.info(f"Requesting account summary.")
 
         try:
             self.app.reqAccountSummary(reqId, "All", tags_string)
