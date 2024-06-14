@@ -154,6 +154,7 @@ class BacktestEventController(BaseEventController):
         # Supporting Components
         self.performance_manager = config.performance_manager
         self.logger = config.logger
+        self.output_path = config.output_path
 
     def _set_up(self):
         self.logger.info(f"\n{'='* 50}\n{' '* 20 +'BACKTEST START' + ' ' * 20}\n{'='* 50}")
@@ -167,8 +168,7 @@ class BacktestEventController(BaseEventController):
         self.broker_client.liquidate_positions()
         
         # Finalize and save to database
-        self.performance_manager.calculate_statistics() 
-        self.performance_manager.save()
+        self.performance_manager.save(self.output_path)
 
     def _handle_event(self, event):
         if isinstance(event, MarketEvent):
