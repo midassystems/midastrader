@@ -173,7 +173,7 @@ class Symbol(ABC):
         Returns:
         - float: The calculated commission fees.
         """
-        return abs(quantity) * self.fees
+        return abs(quantity) * self.fees * -1
 
     def slippage_price(self, current_price: float, action: Action) -> float:
         """
@@ -196,7 +196,11 @@ class Symbol(ABC):
         return adjusted_price
     
     @abstractmethod
-    def order_value(self, quantity: float, price: Optional[float] = None) -> float:
+    def value(self, quantity: float, price: Optional[float] = None) -> float:
+        pass
+
+    @abstractmethod
+    def cost(self, quantity: float, price: Optional[float] = None) -> float:
         pass
     
 @dataclass
@@ -238,15 +242,29 @@ class Equity(Symbol):
         }
         return symbol_dict
     
-    def order_value(self, quantity: float, price: Optional[float] = None) -> float:
+    def value(self, quantity: float, price: Optional[float] = None) -> float:
         """
-        Calculate the required margin for a future order based on quantity.
+        Calculate the value of an equity,
 
         Parameters:
-        - quantity (float): The quantity of the future order.
+        - quantity (float): The quantity of the equity.
+        - price (float): The price of the equity.
 
         Returns:
-        - float: The calculated margin requirement for the future order.
+        - float: The calculated value of the equity.
+        """
+        return quantity * price
+    
+    def cost(self, quantity: float, price: Optional[float] = None) -> float:
+        """
+        Calculate the cost of owning an equity,
+
+        Parameters:
+        - quantity (float): The quantity of the equity.
+        - price (float): The price of the equity.
+
+        Returns:
+        - float: The calculated cost of owning the equity.
         """
         return abs(quantity) * price
     
@@ -313,9 +331,22 @@ class Future(Symbol):
         }
         return symbol_dict
 
-    def order_value(self, quantity: float, price: Optional[float] = None) -> float:
+    def value(self, quantity: float, price: Optional[float] = None) -> float:
         """
-        Calculate the required margin for a future order based on quantity.
+        Calculate the value of a futures contract.
+
+        Parameters:
+        - quantity (float): The numnber of contracts of the given future.
+        - price (float): The price of a single contract.
+
+        Returns:
+        - float: The calculated value for the given quantity of futures at the given price.
+        """
+        return self.price_multiplier * price * quantity * self.quantity_multiplier
+    
+    def cost(self, quantity: float, price: Optional[float] = None) -> float:
+        """
+        Calculate the cost to own a quantity of the instance contract.
 
         Parameters:
         - quantity (float): The quantity of the future order.
@@ -324,6 +355,7 @@ class Future(Symbol):
         - float: The calculated margin requirement for the future order.
         """
         return abs(quantity) * self.initial_margin
+    
 
 @dataclass
 class Option(Symbol):
@@ -378,16 +410,35 @@ class Option(Symbol):
         }
         return symbol_dict
     
-    def order_value(self, quantity: float, price: Optional[float] = None) -> float:
+    def value(self, quantity: float, price: Optional[float] = None) -> float:
         """
-        Calculate the required margin for a future order based on quantity.
+        Calculate the market value of the option position based on the premium price.
 
         Parameters:
-        - quantity (float): The quantity of the future order.
+        - quantity (float): The number of contracts.
+        - price (Optional[float]): The premium price of the option.
 
         Returns:
-        - float: The calculated margin requirement for the future order.
+        - float: The market value of the option position.
         """
+        if price is None:
+            raise ValueError("Price must be provided to calculate value.")
+        return abs(quantity) * price * self.quantity_multiplier
+    
+    def cost(self, quantity: float, price: Optional[float] = None) -> float:
+        """
+        Calculate the cost to acquire the option position based on the premium price.
+
+        Parameters:
+        - quantity (float): The number of contracts.
+        - price (Optional[float]): The premium price of the option.
+
+        Returns:
+        - float: The cost to acquire the option position.
+        """
+        if price is None:
+            raise ValueError("Price must be provided to calculate cost.")
+        
         return abs(quantity) * price * self.quantity_multiplier
 
 @dataclass
@@ -421,5 +472,8 @@ class Index(Symbol):
         }
         return symbol_dict
     
-    def order_value(self, quantity: float, price: Optional[float] = None) -> float:
+    def value(self, quantity: float, price: Optional[float] = None) -> float:
+        pass
+
+    def cost(self, quantity: float, price: Optional[float] = None) -> float:
         pass

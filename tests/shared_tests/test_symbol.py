@@ -77,7 +77,7 @@ class TestEquity(unittest.TestCase):
         fees = self.equity_obj.commission_fees(5)
 
         # Validate
-        self.assertEqual(fees, 5 * self.fees)
+        self.assertEqual(fees, 5 * self.fees * -1)
 
     def test_slippage_price_buy(self):
         current_price = 100
@@ -101,15 +101,25 @@ class TestEquity(unittest.TestCase):
         self.assertEqual(fees, current_price - self.slippage_factor)
         self.assertEqual(fees, fees_2)
 
-    def test_order_value(self):
+    def test_value(self):
         quantity = 5
         price = 50
 
         # Test
-        value = self.equity_obj.order_value(quantity, price)
+        value = self.equity_obj.value(quantity, price)
 
         # Validate
         self.assertEqual(value, quantity * price)
+
+    def test_cost(self):
+        quantity = 5
+        price = 50
+
+        # Test
+        cost = self.equity_obj.cost(quantity, price)
+
+        # Validate
+        self.assertEqual(cost, quantity * price)
 
     def test_to_dict(self):
         # Test
@@ -522,7 +532,7 @@ class TestFuture(unittest.TestCase):
         fees = self.future_obj.commission_fees(quantity)
 
         # Validate
-        self.assertEqual(fees, quantity * self.fees)
+        self.assertEqual(fees, quantity * self.fees * -1)
 
     def test_slippage_price_buy(self):
         current_price = 100
@@ -546,15 +556,28 @@ class TestFuture(unittest.TestCase):
         self.assertEqual(fees, current_price - self.slippage_factor)
         self.assertEqual(fees, fees_2)
 
-    def test_order_value(self):
+    def test_value(self):
         quantity = 5
         price = 50
 
         # Test
-        value = self.future_obj.order_value(quantity, price)
+        value = self.future_obj.value(quantity, price)
+
+        # Expected
+        expected_value = self.quantity_multiplier * quantity * price * self.price_multiplier
 
         # Validate
-        self.assertEqual(value, quantity * self.initial_margin)
+        self.assertEqual(value, expected_value)
+
+    def test_cost(self):
+        quantity = 5
+        price = 50
+
+        # Test
+        cost = self.future_obj.cost(quantity, price)
+
+        # Validate
+        self.assertEqual(cost, quantity * self.initial_margin)
 
     def test_to_dict(self):        
         # Test
@@ -869,7 +892,7 @@ class TestOption(unittest.TestCase):
         fees = self.option_obj.commission_fees(quantity)
 
         # Validate
-        self.assertEqual(fees, quantity * self.fees)
+        self.assertEqual(fees, quantity * self.fees * -1)
 
     def test_slippage_price_buy(self):
         current_price = 100
@@ -893,12 +916,22 @@ class TestOption(unittest.TestCase):
         self.assertEqual(fees, current_price - self.slippage_factor)
         self.assertEqual(fees, fees_2)
 
-    def test_order_value(self):
+    def test_cost(self):
         quantity = 5
         price = 50
 
         # Test
-        value = self.option_obj.order_value(quantity, price)
+        cost = self.option_obj.cost(quantity, price)
+
+        # Validate
+        self.assertEqual(cost, quantity * price * self.quantity_multiplier)
+
+    def test_value(self):
+        quantity = 5
+        price = 50
+
+        # Test
+        value = self.option_obj.value(quantity, price)
 
         # Validate
         self.assertEqual(value, quantity * price * self.quantity_multiplier)
