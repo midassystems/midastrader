@@ -71,7 +71,7 @@ class Cointegrationzscore(BaseStrategy):
         standardized_vector = self._standardize_coint_vector_auto_min(cointegration_vector)
         self.cointegration_vector = self._adjust_hedge_ratios(standardized_vector)
         self.hedge_ratio, self.asset_allocation = self._asset_allocation(symbols, self.cointegration_vector)
-        self.logger.info(f"\nHEDGE RATIOS : \n  {self.hedge_ratio}")
+        self.logger.info(f"\nHEDGE RATIOS : {self.hedge_ratio}\n")
 
         # Create Spread
         self.historical_spread = list(self._historic_spread(self.train_data, self.cointegration_vector))
@@ -222,8 +222,8 @@ class Cointegrationzscore(BaseStrategy):
         # Log the results 
         self.logger.info(TimeseriesTests.display_adf_results({'spread': results['adf_test']}, False))
         self.logger.info(TimeseriesTests.display_pp_results({'spread': results['pp_test']}, False))
-        self.logger.info(f"\nHurst Exponent: {results['hurst_exponent']}")
-        self.logger.info(f"\nHalf-Life: {results['half_life']}")
+        self.logger.info(f"\nHurst Exponent: {results['hurst_exponent']}\n")
+        self.logger.info(f"\nHalf-Life: {results['half_life']}\n")
 
     # -- Strategy logic -- 
     def _update_spread(self, new_data:pd.DataFrame) -> None:
@@ -296,11 +296,11 @@ class Cointegrationzscore(BaseStrategy):
         if not any(ticker in self.portfolio_server.positions for ticker in self.symbols_map.keys()):
             if z_score >= entry_threshold: # overvalued
                 self.last_signal = Signal.Overvalued
-                self.logger.info(f"\nEntry Signal:\n  z_score : {z_score}\n  entry_threshold : {entry_threshold}\n  action : {self.last_signal}")
+                self.logger.info(f"\nEntry Signal:\n  action : {self.last_signal}\n  z_score : {z_score}\n  entry_threshold : {entry_threshold}\n")
                 return True
             elif z_score <= -entry_threshold:
                 self.last_signal = Signal.Undervalued
-                self.logger.info(f"\nEntry Signal:\n  z_score : {z_score}\n  entry_threshold : {entry_threshold}\n  action : {self.last_signal}")
+                self.logger.info(f"\nEntry Signal:\n  action : {self.last_signal}\n  z_score : {z_score}\n  entry_threshold : {entry_threshold}\n")
                 return True
         else:
             return False
@@ -319,11 +319,11 @@ class Cointegrationzscore(BaseStrategy):
         if any(ticker in self.portfolio_server.positions for ticker in self.symbols_map.keys()):
             if self.last_signal == Signal.Undervalued and z_score >= -exit_threshold:
                 self.last_signal = Signal.Exit_Undervalued
-                self.logger.info(f"\nExit Signal:\n  z_score : {z_score}\n  entry_threshold : {exit_threshold}\n  action : {self.last_signal}")
+                self.logger.info(f"\nExit Signal:\n  action : {self.last_signal}\n  z_score : {z_score}\n  exit_threshold : {exit_threshold}\n")
                 return True
             elif self.last_signal == Signal.Overvalued and z_score <= exit_threshold:
                 self.last_signal = Signal.Exit_Overvalued
-                self.logger.info(f"\nExit Signal:\n  z_score : {z_score}\n  entry_threshold : {exit_threshold}\n  action : {self.last_signal}")
+                self.logger.info(f"\nExit Signal:\n  action : {self.last_signal}\n  z_score : {z_score}\n  exit_threshold : {exit_threshold}\n")
                 return True
         else: 
             return False
@@ -339,7 +339,7 @@ class Cointegrationzscore(BaseStrategy):
         - float : The dollar value allocated.
         """
         trade_capital = self.portfolio_server.capital * trade_allocation
-        self.logger.info(f"\nTRADE CAPITAL ALLOCATION : {trade_capital}")
+        self.logger.info(f"\nTRADE CAPITAL ALLOCATION : {trade_capital}\n")
         return trade_capital
     
     def generate_trade_instructions(self, signal:Signal, trade_capital:float) -> List[TradeInstruction]:
@@ -358,7 +358,9 @@ class Cointegrationzscore(BaseStrategy):
         else:
             quantities = {}
             for ticker, position in self.portfolio_server.positions.items():
-                quantities[ticker] = position.quantity * -1
+                quantities[ticker] = abs(position.quantity)
+
+        self.logger.info(quantities)
 
 
         trade_instructions = []

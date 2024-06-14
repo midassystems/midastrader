@@ -12,10 +12,13 @@ def main():
         mode="BACKTEST",
         strategy_module="/Users/anthony/git-projects/midas/midasPython/tests/engine_integration/backtest/logic.py",
         strategy_class="Cointegrationzscore",
+        # risk_module="/Users/anthony/git-projects/midas/midasPython/tests/engine_integration/backtest/logic.py",
+        # risk_class="Cointegrationzscore",
         session_id=1001,
         config_file="/Users/anthony/git-projects/midas/midasPython/tests/engine_integration/backtest/config.json",
         database_key=DATABASE_KEY,
         database_url=DATABASE_URL,
         log_output="file",
+        output_path="/Users/anthony/git-projects/midas/midasPython/tests/engine_integration/backtest/output/",
         log_level="INFO"
     )

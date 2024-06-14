@@ -7,6 +7,7 @@
     "test_end": "2024-05-07",
     "capital": 1000000,
     "data_type": "BAR",
+    "risk_free_rate": 0.4,
     "symbols": [
         {
             "type": "Future",
