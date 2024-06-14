@@ -2,9 +2,9 @@ import unittest
 import numpy as np
 import pandas as pd
 from decimal import Decimal
-from unittest.mock import Mock, patch, MagicMock
 from midas.shared.market_data import BarData
 from midas.shared.signal import TradeInstruction
+from unittest.mock import Mock, patch, MagicMock
 from midas.shared.orders import Action, OrderType
 from midas.engine.events import  SignalEvent, MarketEvent
 from midas.engine.strategies import BaseStrategy, load_strategy_class
