@@ -72,7 +72,7 @@ class OrderManager:
             symbol = self.symbols_map[trade.ticker]
             order = self._create_order(trade)
             current_price =  self.order_book.current_price(symbol.ticker)
-            order_value = symbol.order_value(order.quantity, current_price)
+            order_cost = symbol.cost(order.quantity, current_price)
             
             order_details = {
                 'timestamp': timestamp,
@@ -84,7 +84,7 @@ class OrderManager:
             }
             
             orders.append(order_details)
-            total_capital_required += order_value
+            total_capital_required += order_cost
 
         for order in orders:
             if order["action"] in [Action.SELL, Action.COVER] or total_capital_required <= self.portfolio_server.capital:
