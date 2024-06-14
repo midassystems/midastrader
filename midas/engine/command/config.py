@@ -1,24 +1,22 @@
 import queue
 import logging
 import threading
-from enum import Enum
 import pandas as pd
+from enum import Enum
 from typing import Union, Dict
-from decouple import config
 from abc import ABC, abstractmethod
-
 from midas.shared.symbol import Symbol
 from midas.client import DatabaseClient
 from midas.engine.observer import EventType
 from midas.engine.order_book import OrderBook
 from midas.engine.strategies import BaseStrategy
-from midas.engine.risk_model import BaseRiskModel
 from midas.engine.data_sync import DatabaseUpdater
 from midas.shared.utils.logger import SystemLogger
 from midas.engine.portfolio import PortfolioServer
 from midas.engine.order_manager import OrderManager
 from midas.engine.gateways.live import ContractManager
 from midas.engine.command.parameters import Parameters
+from midas.engine.risk import RiskHandler, BaseRiskModel
 from midas.engine.gateways.live import DataClient as LiveDataClient
 from midas.engine.performance.base_manager import BasePerformanceManager
 from midas.engine.gateways.backtest.data_client import DataClient as HistoricalDataClient
@@ -61,22 +59,23 @@ class Config:
     Raises:
     - ValueError: If the `mode` or `params` are not of the expected type.
     """
-    def __init__(self, session_id: int, mode: Mode, params: Parameters, database_key: str, database_url: str, risk_model: BaseRiskModel = None, logger_output="file", logger_level=logging.INFO):
+    def __init__(self, session_id: int, mode: Mode, params: Parameters, database_key: str, database_url: str, logger_output: str="file", logger_level=logging.INFO, output_path: str=""):
         # User Variables
         self.session_id = session_id
         self.mode = mode
         self.params = params
+        self.output_path = output_path
 
         # Components
         self.event_queue = queue.Queue()
         self.database = DatabaseClient(database_key, database_url)
-        self.logger = SystemLogger(params.strategy_name, output=logger_output, level=logger_level).logger
+        self.logger = SystemLogger(params.strategy_name, output_format=logger_output, output_file_path=output_path, level=logger_level).logger
         self.order_book: OrderBook
         self.strategy: BaseStrategy = None
         self.order_manager: OrderManager
         self.portfolio_server: PortfolioServer
         self.performance_manager: BasePerformanceManager
-        self.risk_model: BaseRiskModel
+        self.risk_handler: RiskHandler = None
         self.db_updater: DatabaseUpdater = None
         self.live_data_client: LiveDataClient
         self.hist_data_client: HistoricalDataClient
@@ -91,28 +90,15 @@ class Config:
         self.train_data : pd.DataFrame
 
         # Set-up
-        self._set_risk_model(risk_model)
         self._map_symbols()
 
         # Initialize components based on mode
-        if mode == Mode.LIVE:
+        if self.mode == Mode.LIVE:
             self.environment = LiveEnvironment(self)
-        elif mode == Mode.BACKTEST:
+        elif self.mode == Mode.BACKTEST:
             self.environment = BacktestEnvironment(self)
         
         self.environment.initialize_handlers()
-
-    def _set_risk_model(self, risk_model: BaseRiskModel) -> None:
-        """
-        Instantiates the risk model and sets to the instance vaariabel if the user passes one.
-
-        Parameters:
-        - risk_model(BaseRiskModel | None): Risk model passed by user else defualt None.
-        """
-        if not risk_model or not issubclass(risk_model, BaseRiskModel):
-            self.risk_model = None
-            return
-        self.risk_model = risk_model()
 
     def _map_symbols(self) -> None:
         """
@@ -123,6 +109,22 @@ class Config:
         for symbol in self.params.symbols:
             self.data_ticker_map[symbol.data_ticker] = symbol.ticker
             self.symbols_map[symbol.ticker] = symbol
+
+    def set_risk_model(self, risk_model:Union[BaseRiskModel, type]) -> None:
+        """
+        Instantiates the risk model and sets to the instance vaariabel if the user passes one.
+
+        Parameters:
+        - risk_model(BaseRiskModel | None): Risk model passed by user else defualt None.
+        """
+        if not isinstance(risk_model, type) or not issubclass(risk_model, BaseRiskModel):
+            raise ValueError(f"'risk_model' must be a class and a subclass of BaseRiskModel.")
+        
+        try:
+            if self.mode == Mode.LIVE:
+                self.risk_model = self.environment.initialize_risk_handler(risk_model)
+        except:
+            raise RuntimeError("Error creating risk model instance.")
 
     def set_strategy(self, strategy: Union[BaseStrategy, type]):
         """
@@ -206,16 +208,6 @@ class LiveEnvironment(BaseEnvironment):
         self.config.portfolio_server.attach(self.config.db_updater, EventType.ORDER_UPDATE)
         self.config.portfolio_server.attach(self.config.db_updater, EventType.ACCOUNT_DETAIL_UPDATE)
 
-        if self.config.risk_model:
-            # Attach the DatabaseUpdater as an observer to RiskModel
-            self.config.risk_model.attach(self.config.db_updater, EventType.RISK_MODEL_UPDATE)
-
-            # Attach the risk model as an observer to OrderBook and PortfolioServer
-            self.config.order_book.attach(self.config.risk_model, EventType.MARKET_EVENT)
-            self.config.portfolio_server.attach(self.config.risk_model, EventType.POSITION_UPDATE)
-            self.config.portfolio_server.attach(self.config.risk_model, EventType.ORDER_UPDATE)
-            self.config.portfolio_server.attach(self.config.risk_model, EventType.ACCOUNT_DETAIL_UPDATE)
-
     def _set_environment(self):
         """
         Sets up the environment necessary for live trading, including performance management and live data and broker clients.
@@ -263,6 +255,18 @@ class LiveEnvironment(BaseEnvironment):
                 self.config.live_data_client.get_data(data_type=self.config.params.data_type, contract=symbol.contract) 
         except ValueError:
             raise ValueError(f"Error loading live data for symbol {symbol.ticker}.")
+
+    def initialize_risk_handler(self, risk_model:BaseRiskModel):
+        self.config.risk_handler = RiskHandler(risk_model)
+        
+        # Attach the DatabaseUpdater as an observer to RiskModel
+        self.config.risk_handler.attach(self.config.db_updater, EventType.RISK_MODEL_UPDATE)
+
+        # Attach the risk model as an observer to OrderBook and PortfolioServer
+        self.config.order_book.attach(self.config.risk_handler, EventType.MARKET_EVENT)
+        self.config.portfolio_server.attach(self.config.risk_handler, EventType.POSITION_UPDATE)
+        self.config.portfolio_server.attach(self.config.risk_handler, EventType.ORDER_UPDATE)
+        self.config.portfolio_server.attach(self.config.risk_handler, EventType.ACCOUNT_DETAIL_UPDATE)
 
 class BacktestEnvironment(BaseEnvironment):
     def __init__(self, config:Config):

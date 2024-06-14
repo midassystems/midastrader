@@ -39,6 +39,7 @@ class Parameters:
     symbols: List[Symbol] = field(default_factory=list)
     train_end: str = None
     train_start: str = None
+    risk_free_rate: float = 0.4
     
     # Derived attribute, not directly passed by the user
     tickers: List[str] = field(default_factory=list)
@@ -61,6 +62,8 @@ class Parameters:
             raise TypeError(f"'test_start' field must be of type str.")
         if not isinstance(self.test_end, str):
             raise TypeError(f"'test_end' field must be of type str.")
+        if not isinstance(self.risk_free_rate, (int, float)):
+            raise TypeError(f"'risk_free_rate' field must be of type int or float.")
         if not isinstance(self.symbols, list):
             raise TypeError(f"'symbols' field must be of type list.")
         if not all(isinstance(symbol, Symbol) for symbol in self.symbols):
@@ -102,7 +105,8 @@ class Parameters:
             "train_end":  int(iso_to_unix(self.train_end)) if self.train_end else None, 
             "test_start": int(iso_to_unix(self.test_start)),
             "test_end": int(iso_to_unix(self.test_end)),
-            "tickers": self.tickers
+            "tickers": self.tickers,
+            "risk_free_rate": self.risk_free_rate
         }   
     
     @classmethod
@@ -126,7 +130,8 @@ class Parameters:
             missing_values_strategy=data['missing_values_strategy'],
             symbols=symbols,
             train_start=data.get('train_start'),
-            train_end=data.get('train_end')
+            train_end=data.get('train_end'),
+            risk_free_rate=data['risk_free_rate']
         )
 
     @classmethod

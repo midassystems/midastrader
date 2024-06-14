@@ -68,7 +68,8 @@ class TestParameters(unittest.TestCase):
                             train_end=self.train_end,
                             test_start=self.test_start,
                             test_end=self.test_end,
-                            symbols=self.symbols)
+                            symbols=self.symbols,
+                            risk_free_rate=0.9)
         # Validate
         self.assertEqual(params.strategy_name, self.strategy_name)
         self.assertEqual(params.capital, self.capital)
@@ -141,6 +142,7 @@ class TestParameters(unittest.TestCase):
     "test_end": "2023-12-31",
     "capital": 1000000,
     "data_type": "BAR",
+    "risk_free_rate": 0.5,
     "symbols": [
         {
             "type": "Future",
@@ -198,6 +200,7 @@ class TestParameters(unittest.TestCase):
         # Validate
         self.assertEqual(params.strategy_name, "TestStrategy")
         self.assertEqual(params.capital, 1000000)
+        self.assertEqual(params.risk_free_rate, 0.5)
         self.assertEqual(params.data_type, MarketDataType.BAR)
         self.assertEqual(params.missing_values_strategy, "fill_forward")
         self.assertEqual(params.train_start, "2020-01-01")

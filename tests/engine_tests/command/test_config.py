@@ -8,13 +8,13 @@ from unittest.mock import Mock, patch
 from midas.engine.observer import EventType
 from midas.engine.order_book import OrderBook
 from midas.engine.strategies import BaseStrategy
-from midas.engine.risk_model import BaseRiskModel
 from midas.engine.portfolio import PortfolioServer
 from midas.engine.data_sync import DatabaseUpdater
 from midas.engine.order_manager import OrderManager
 from midas.shared.market_data import MarketDataType
 from midas.engine.command.parameters import Parameters
 from midas.engine.gateways.backtest import DummyBroker
+from midas.engine.risk import BaseRiskModel, RiskHandler
 from midas.engine.performance.live import LivePerformanceManager
 from midas.engine.gateways.live import DataClient as LiveDataClient
 from midas.engine.gateways.live import BrokerClient as LiveBrokerClient 
@@ -31,6 +31,10 @@ DATABASE_URL = "MIDAS_URL"
 class TestRiskModel(BaseRiskModel):
     def __init__(self):
         pass
+
+    def evaluate_risk(self, data: dict) -> dict:
+        pass
+
 class TestStrategy(BaseStrategy):
     def __init__(self, symbols_map, historical_data, portfolio_server, logger, order_book,event_queue):
         pass
@@ -101,11 +105,11 @@ class TestConfig(unittest.TestCase):
 
     # Basic Validation 
     def test_set_risk_model(self):
-        mode = Mode.BACKTEST
+        mode = Mode.LIVE
 
         # Test
         with ExitStack() as stack:
-            mock_backtest_env = stack.enter_context(patch.object(BacktestEnvironment, 'initialize_handlers'))
+            mock_backtest_env = stack.enter_context(patch.object(LiveEnvironment, 'initialize_handlers'))
 
             # Initialize Config
             config = Config(
@@ -114,11 +118,18 @@ class TestConfig(unittest.TestCase):
                 params=self.params,
                 database_key=DATABASE_KEY,
                 database_url=DATABASE_URL,
-                risk_model=TestRiskModel
+                output_path="./tests/outputs/"
             )
+            
+            # Mock Methods
+            config.portfolio_server= Mock()
+            config.order_book = Mock()
+
+            # Test
+            config.set_risk_model(TestRiskModel)
 
         # Validate
-        self.assertIsInstance(config.risk_model, BaseRiskModel)
+        self.assertIsInstance(config.risk_handler,RiskHandler)
         mock_backtest_env.assert_called_once()
 
     def test_set_risk_model_null(self):
@@ -134,11 +145,12 @@ class TestConfig(unittest.TestCase):
                 mode=mode,
                 params=self.params,
                 database_key=DATABASE_KEY,
-                database_url=DATABASE_URL
+                database_url=DATABASE_URL,
+                output_path="./tests/outputs/"
             )
 
         # Validate
-        self.assertEqual(config.risk_model, None)
+        self.assertEqual(config.risk_handler, None)
         mock_live_env.assert_called_once()
 
     def test_symbols_map(self):
@@ -155,7 +167,8 @@ class TestConfig(unittest.TestCase):
                 mode=mode,
                 params=self.params,
                 database_key=DATABASE_KEY,
-                database_url=DATABASE_URL
+                database_url=DATABASE_URL,
+                output_path="./tests/outputs/"
             )
 
         # Validate
@@ -177,7 +190,8 @@ class TestConfig(unittest.TestCase):
                 mode=mode,
                 params=self.params,
                 database_key=DATABASE_KEY,
-                database_url=DATABASE_URL
+                database_url=DATABASE_URL,
+                output_path="./tests/outputs/"
             )
             config.train_data = Mock()
             config.portfolio_server= Mock()
@@ -202,7 +216,8 @@ class TestConfig(unittest.TestCase):
                 mode=mode,
                 params=self.params,
                 database_key=DATABASE_KEY,
-                database_url=DATABASE_URL
+                database_url=DATABASE_URL,
+                output_path="./tests/outputs/"
             )
 
             # Test
@@ -222,6 +237,7 @@ class TestConfig(unittest.TestCase):
                 params=self.params,
                 database_key=DATABASE_KEY,
                 database_url=DATABASE_URL,
+                output_path="./tests/outputs/"
             )
 
             # Validate
@@ -241,6 +257,7 @@ class TestConfig(unittest.TestCase):
                 params=self.params,
                 database_key=DATABASE_KEY,
                 database_url=DATABASE_URL,
+                output_path="./tests/outputs/"
             )
 
             # Validate
@@ -308,7 +325,8 @@ class TestBacktestEnvironment(unittest.TestCase):
                 mode=mode,
                 params=self.params,
                 database_key=DATABASE_KEY,
-                database_url=DATABASE_URL
+                database_url=DATABASE_URL,
+                output_path="./tests/outputs/"
             )
 
             # Create BacktestEnvironment object
@@ -465,7 +483,8 @@ class TestLiveEnvironment(unittest.TestCase):
                 mode=Mode.LIVE,
                 params=self.params,
                 database_key=DATABASE_KEY,
-                database_url=DATABASE_URL
+                database_url=DATABASE_URL,
+                output_path="./tests/outputs/"
             )
 
             self.environment = LiveEnvironment(self.config)
@@ -587,41 +606,22 @@ class TestLiveEnvironment(unittest.TestCase):
             self.config.portfolio_server.attach.assert_any_call(self.config.db_updater, EventType.ORDER_UPDATE)
             self.config.portfolio_server.attach.assert_any_call(self.config.db_updater, EventType.ACCOUNT_DETAIL_UPDATE)
         
-    # def test_initialize_observer_patterns_with_risk_model(self):
+    def test_initialize_risk_handler(self):
+        self.config.order_book = Mock()
+        self.config.portfolio_server = Mock()
+        self.config.db_updater = Mock()
 
-    #     # test
-    #     with ExitStack() as stack:
-    #         self.init_handlers = stack.enter_context(patch.object(LiveEnvironment, 'initialize_handlers'))
+        # Test
+        self.environment.initialize_risk_handler(TestRiskModel)
 
-    #         # Initialize Config
-    #         self.config = Config(
-    #             session_id=10897,
-    #             mode=Mode.LIVE,
-    #             params=self.params,
-    #             database_key=DATABASE_KEY,
-    #             database_url=DATABASE_URL,
-    #             risk_model=BaseRiskModel
-    #         )
-
-    #         self.environment = LiveEnvironment(self.config)
-    #         self.config.order_book = Mock()
-    #         self.config.portfolio_server = Mock()
-
-    #     mock_db_updater = Mock()
-    #     # Mock the __init__ to set the return value properly
-    #     with patch.object(DatabaseUpdater, '__init__', side_effect=lambda *args, **kwargs: None):
-    #         with patch('midas.engine.data_sync.database_updater.DatabaseUpdater') as MockDatabaseUpdater:
-    #             MockDatabaseUpdater.return_value = mock_db_updater
-
-    #             # Run the method under test
-    #             self.environment._initialize_observer_patterns()
-
-    #         # validate
-    #         self.config.order_book.attach.assert_called_with(self.config.db_updater,EventType.MARKET_EVENT)
-    #         self.config.portfolio_server.attach.assert_any_call(self.config.db_updater, EventType.POSITION_UPDATE)
-    #         self.config.portfolio_server.attach.assert_any_call(self.config.db_updater, EventType.ORDER_UPDATE)
-    #         self.config.portfolio_server.attach.assert_any_call(self.config.db_updater, EventType.ACCOUNT_DETAIL_UPDATE)
-
+        # Validate
+        self.assertIsInstance(self.config.risk_handler, RiskHandler)
+        self.config.risk_handler.attach(self.config.db_updater, EventType.RISK_MODEL_UPDATE)
+        self.config.order_book.attach.assert_called_with(self.config.risk_handler,EventType.MARKET_EVENT)
+        self.config.portfolio_server.attach.assert_any_call(self.config.risk_handler, EventType.POSITION_UPDATE)
+        self.config.portfolio_server.attach.assert_any_call(self.config.risk_handler, EventType.ORDER_UPDATE)
+        self.config.portfolio_server.attach.assert_any_call(self.config.risk_handler, EventType.ACCOUNT_DETAIL_UPDATE)
+    
 
 
 if __name__ == "__main__":
