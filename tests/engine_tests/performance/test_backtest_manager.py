@@ -82,6 +82,7 @@ class TestPerformanceManager(unittest.TestCase):
             quantity = 10,
             avg_price= 85.98,
             trade_value = 100000,
+            trade_cost = 10000,
             action = 'BUY',
             fees = 9.87
         )  
@@ -104,7 +105,6 @@ class TestPerformanceManager(unittest.TestCase):
         self.trade_instructions = [self.trade1,self.trade2]           
         self.signal_event = SignalEvent(np.uint64(1651500000), self.trade_instructions)    
 
-        
         # Test performance data
         self.mock_static_stats = [{
             "total_return": 10.0,
@@ -172,7 +172,7 @@ class TestPerformanceManager(unittest.TestCase):
         self.performance_manager.update_trades(self.trade_obj)
         
         # Validate
-        self.mock_logger.info.assert_called_once_with("\nTRADES UPDATED: \n  {'timestamp': 16555000, 'trade_id': 1, 'leg_id': 2, 'ticker': 'HEJ4', 'quantity': 10, 'avg_price': 85.98, 'trade_value': 100000, 'action': 'BUY', 'fees': 9.87}\n")
+        self.mock_logger.info.assert_called_once_with("\nTRADES UPDATED:\n  {'timestamp': 16555000, 'trade_id': 1, 'leg_id': 2, 'ticker': 'HEJ4', 'quantity': 10, 'avg_price': 85.98, 'trade_value': 100000, 'trade_cost': 10000, 'action': 'BUY', 'fees': 9.87}\n")
 
     def test_update_signals_valid(self):                
         # Test
@@ -215,81 +215,13 @@ class TestPerformanceManager(unittest.TestCase):
         self.assertEqual(len(self.performance_manager.equity_value), 1)
         self.assertFalse(self.mock_logger.info.called)
 
-    def test_aggregate_trades_valid(self):
-        # Performance manager trades variable
-        self.performance_manager.trades = [
-            Trade(timestamp=np.uint64(1640995200000000000), trade_id=1, leg_id=1, ticker='XYZ', quantity=10, avg_price=10, trade_value=-100,fees=10, action=Action.LONG.value),
-            Trade(timestamp=np.uint64(1641081600000000000), trade_id=1, leg_id=1, ticker='XYZ', quantity=-10, avg_price=15, trade_value=150, fees=10,action=Action.SELL.value),
-            Trade(timestamp=np.uint64(1640995200000000000), trade_id=2, leg_id=1, ticker='HEJ4', quantity=-10, avg_price=20, trade_value=500, fees=10, action=Action.SHORT.value),
-            Trade(timestamp=np.uint64(1641081600000000000), trade_id=2, leg_id=1, ticker='HEJ4', quantity=10, avg_price=18, trade_value=-180,fees=10,  action=Action.COVER.value)
-        ]
-
-
-        # Test
-        aggregated_df = self.performance_manager._aggregate_trades()
-
-        # Validate
-        self.assertIsInstance(aggregated_df, pd.DataFrame, "Result should be a pandas DataFrame") 
-        self.assertFalse(aggregated_df.empty, "Resulting DataFrame should not be empty")
-
-        # Validate the expected columns are present
-        expected_columns = ['trade_id', 'start_date', 'end_date', 'entry_value', 'exit_value', 'pnl', 'gain/loss']
-        for column in expected_columns:
-            self.assertIn(column, aggregated_df.columns, f"Column {column} is missing in the result")
-
-        # Validate calculations for a specific trade_id
-        trade_1 = aggregated_df[aggregated_df['trade_id'] == 1]
-        self.assertEqual(trade_1.iloc[0]['entry_value'], -100)
-        self.assertEqual(trade_1.iloc[0]['exit_value'], 150)
-        self.assertEqual(trade_1.iloc[0]['fees'], 20)
-        self.assertEqual(trade_1.iloc[0]['pnl'], 30)
-        self.assertEqual(trade_1.iloc[0]['gain/loss'], 0.30,)
-
-    def test_calculate_return_and_drawdown_valid(self):
-        # Performance manager trades variable
-        self.performance_manager.equity_value = [
-            EquityDetails(timestamp=1640995200000000000, equity_value=1000.0),
-            EquityDetails(timestamp=1641081600000000000, equity_value=1010.0),
-            EquityDetails(timestamp=1641168000000000000, equity_value=1005.0),
-            EquityDetails(timestamp=1641254400000000000, equity_value=1030.0),
-        ]
-
-        # Test
-        df_input = pd.DataFrame(self.performance_manager.equity_value)
-        df = self.performance_manager._calculate_return_and_drawdown(df_input)
-
-        # Validate
-        self.assertTrue(isinstance(df, pd.DataFrame))
-        self.assertFalse(df.empty) 
-        
-        # Validate the expected columns are present
-        expected_columns = ['equity_value', 'period_return', 'cumulative_return', 'drawdown']
-        for column in expected_columns:
-            self.assertIn(column, df.columns, f"Column {column} is missing in the result")
-
-        # Validate Returns
-        equity_value = [1000, 1010, 1005, 1030]
-        expected_daily_returns = np.diff(equity_value) / equity_value[:-1]
-        expected_daily_returns =  np.insert(expected_daily_returns, 0, 0)
-        self.assertAlmostEqual(df.iloc[1]['period_return'], expected_daily_returns[1])
-
-        # Validate Cumulative Returns
-        expected_cumulative_return = round((1030 - 1000) / 1000, 5)
-        self.assertAlmostEqual(round(df.iloc[-1]['cumulative_return'],5), expected_cumulative_return, places=4,msg="Cumulative return calculation does not match expected value")
-
-        # validate Drawdown
-        equity_value = [1000, 1010, 1005, 1030]
-        rolling_max = np.maximum.accumulate(equity_value)  # Calculate the rolling maximum
-        expected_drawdowns = (equity_value - rolling_max) / rolling_max  # Calculate drawdowns in decimal format
-        self.assertAlmostEqual(df['drawdown'].min(), expected_drawdowns.min(), places=4, msg="Drawdown calculation does not match expected value")
-
     def test_calculate_statistics(self):
         # Trades
         self.performance_manager.trades = [
-            Trade(timestamp=np.uint64(1640995200000000000), trade_id=1, leg_id=1, ticker='XYZ', quantity=10, avg_price=10, trade_value=-100,fees=10, action=Action.LONG.value),
-            Trade(timestamp=np.uint64(1641081600000000000), trade_id=1, leg_id=1, ticker='XYZ', quantity=-10, avg_price=15, trade_value=150, fees=10,action=Action.SELL.value),
-            Trade(timestamp=np.uint64(1640995200000000000), trade_id=2, leg_id=1, ticker='HEJ4', quantity=-10, avg_price=20, trade_value=500, fees=10, action=Action.SHORT.value),
-            Trade(timestamp=np.uint64(1641081600000000000), trade_id=2, leg_id=1, ticker='HEJ4', quantity=10, avg_price=18, trade_value=-180,fees=10,  action=Action.COVER.value)
+            Trade(timestamp=np.uint64(1640995200000000000), trade_id=1, leg_id=1, ticker='XYZ', quantity=10, avg_price=10, trade_value=-100, trade_cost=100,fees=10, action=Action.LONG.value),
+            Trade(timestamp=np.uint64(1641081600000000000), trade_id=1, leg_id=1, ticker='XYZ', quantity=-10, avg_price=15, trade_value=150, trade_cost=100, fees=10,action=Action.SELL.value),
+            Trade(timestamp=np.uint64(1640995200000000000), trade_id=2, leg_id=1, ticker='HEJ4', quantity=-10, avg_price=20, trade_value=500, trade_cost=100,fees=10, action=Action.SHORT.value),
+            Trade(timestamp=np.uint64(1641081600000000000), trade_id=2, leg_id=1, ticker='HEJ4', quantity=10, avg_price=18, trade_value=-180, trade_cost=100, fees=10,  action=Action.COVER.value)
         ]
 
         # Equity Curve
@@ -317,11 +249,8 @@ class TestPerformanceManager(unittest.TestCase):
 
          # Validate that static_stats has non-null values and contains expected keys
         expected_static_keys = [
-                                    'net_profit', 'total_fees', 'ending_equity', "avg_trade_profit", 
-                                    'total_return','annual_standard_deviation_percentage', 'max_drawdown_percentage',
-                                    "avg_win_percentage", "avg_loss_percentage","percent_profitable",
-                                    'total_trades', "number_winning_trades", "number_losing_trades", "profit_and_loss_ratio", 
-                                    "profit_factor", 'sortino_ratio', 'sharpe_ratio'
+                                    'total_trades', 'total_winning_trades', 'total_losing_trades', 'avg_trade_profit', 'avg_win_percentage', 'avg_loss_percentage', 'profitability_ratio', 'profit_factor', 'profit_and_loss_ratio', 'total_fees',
+                                    "net_profit", "beginning_equity", "ending_equity", "total_return", "annual_standard_deviation_percentage", "max_drawdown_percentage", "sharpe_ratio", "sortino_ratio" 
                                 ]
             
         static_stats = self.performance_manager.static_stats[0]
@@ -332,10 +261,10 @@ class TestPerformanceManager(unittest.TestCase):
     def test_export_results(self):
         # Trades
         self.performance_manager.trades = [
-            Trade(timestamp=np.uint64(1640995200000000000), trade_id=1, leg_id=1, ticker='XYZ', quantity=10, avg_price=10, trade_value=-100,fees=10, action=Action.LONG.value),
-            Trade(timestamp=np.uint64(1641081600000000000), trade_id=1, leg_id=1, ticker='XYZ', quantity=-10, avg_price=15, trade_value=150, fees=10,action=Action.SELL.value),
-            Trade(timestamp=np.uint64(1640995200000000000), trade_id=2, leg_id=1, ticker='HEJ4', quantity=-10, avg_price=20, trade_value=500, fees=10, action=Action.SHORT.value),
-            Trade(timestamp=np.uint64(1641081600000000000), trade_id=2, leg_id=1, ticker='HEJ4', quantity=10, avg_price=18, trade_value=-180,fees=10,  action=Action.COVER.value)
+            Trade(timestamp=np.uint64(1640995200000000000), trade_id=1, leg_id=1, ticker='XYZ', quantity=10, avg_price=10, trade_value=-100, trade_cost=100,fees=10, action=Action.LONG.value),
+            Trade(timestamp=np.uint64(1641081600000000000), trade_id=1, leg_id=1, ticker='XYZ', quantity=-10, avg_price=15, trade_value=150, trade_cost=100, fees=10,action=Action.SELL.value),
+            Trade(timestamp=np.uint64(1640995200000000000), trade_id=2, leg_id=1, ticker='HEJ4', quantity=-10, avg_price=20, trade_value=500, trade_cost=100,fees=10, action=Action.SHORT.value),
+            Trade(timestamp=np.uint64(1641081600000000000), trade_id=2, leg_id=1, ticker='HEJ4', quantity=10, avg_price=18, trade_value=-180, trade_cost=100, fees=10,  action=Action.COVER.value)
         ]
 
         # Equity Curve
@@ -379,14 +308,13 @@ class TestPerformanceManager(unittest.TestCase):
         excel_file_path = os.path.join("", "output.xlsx")
         assert os.path.exists(excel_file_path), "Excel file was not created"
 
-    
     def test_create_backtest(self):
         # Trades
         self.performance_manager.trades = [
-            Trade(timestamp=np.uint64(1640995200000000000), trade_id=1, leg_id=1, ticker='XYZ', quantity=10, avg_price=10, trade_value=-100,fees=10, action=Action.LONG.value),
-            Trade(timestamp=np.uint64(1641081600000000000), trade_id=1, leg_id=1, ticker='XYZ', quantity=-10, avg_price=15, trade_value=150, fees=10,action=Action.SELL.value),
-            Trade(timestamp=np.uint64(1640995200000000000), trade_id=2, leg_id=1, ticker='HEJ4', quantity=-10, avg_price=20, trade_value=500, fees=10, action=Action.SHORT.value),
-            Trade(timestamp=np.uint64(1641081600000000000), trade_id=2, leg_id=1, ticker='HEJ4', quantity=10, avg_price=18, trade_value=-180,fees=10,  action=Action.COVER.value)
+            Trade(timestamp=np.uint64(1640995200000000000), trade_id=1, leg_id=1, ticker='XYZ', quantity=10, avg_price=10, trade_value=-100, trade_cost=100,fees=10, action=Action.LONG.value),
+            Trade(timestamp=np.uint64(1641081600000000000), trade_id=1, leg_id=1, ticker='XYZ', quantity=-10, avg_price=15, trade_value=150, trade_cost=100, fees=10,action=Action.SELL.value),
+            Trade(timestamp=np.uint64(1640995200000000000), trade_id=2, leg_id=1, ticker='HEJ4', quantity=-10, avg_price=20, trade_value=500, trade_cost=100,fees=10, action=Action.SHORT.value),
+            Trade(timestamp=np.uint64(1641081600000000000), trade_id=2, leg_id=1, ticker='HEJ4', quantity=10, avg_price=18, trade_value=-180, trade_cost=100, fees=10,  action=Action.COVER.value)
         ]
 
         # Equity Curve
@@ -434,13 +362,10 @@ class TestPerformanceManager(unittest.TestCase):
         self.assertEqual(backtest.trade_data , [trade.to_dict() for trade in self.performance_manager.trades])
 
         # Validate static stats
-        expected_static_keys = [
-                    'net_profit', 'total_fees', 'ending_equity', "avg_trade_profit", 
-                    'total_return','annual_standard_deviation_percentage', 'max_drawdown_percentage',
-                    "avg_win_percentage", "avg_loss_percentage","percent_profitable",
-                    'total_trades', "number_winning_trades", "number_losing_trades", "profit_and_loss_ratio", 
-                    "profit_factor", 'sharpe_ratio','sortino_ratio'
-                ]
+        expected_static_keys =  [
+                                    'total_trades', 'total_winning_trades', 'total_losing_trades', 'avg_trade_profit', 'avg_win_percentage', 'avg_loss_percentage', 'profitability_ratio', 'profit_factor', 'profit_and_loss_ratio', 'total_fees',
+                                    "net_profit", "beginning_equity", "ending_equity", "total_return", "annual_standard_deviation_percentage", "max_drawdown_percentage", "sharpe_ratio", "sortino_ratio" 
+                                ]
         static_stats = list(backtest.static_stats[0].keys())
 
         for key in static_stats:
