@@ -100,14 +100,18 @@ class BrokerClient:
         """
         if not isinstance(event,ExecutionEvent):
             raise ValueError("'event' must be of type ExecutionEvent instance.")
-        
+
+        # Update trades look with current event        
         contract = event.contract
-        
-        self.update_positions()
-        self.update_account()
-        self.update_equity_value()
         self.update_trades(contract)
-  
+
+        # If last trade placed ex. only trade or last leg of a trade update data
+        trade_details = event.trade_details
+        if trade_details == self.broker.last_trade:
+            self.update_positions()
+            self.update_account()
+            self.update_equity_value()
+    
     def eod_update(self):
         """
         Performs end-of-day updates including marking positions to market values and checking margin requirements.
@@ -155,6 +159,7 @@ class BrokerClient:
                                                         quantity = trade['quantity'],
                                                         avg_price = round(trade['avg_price'],4),
                                                         trade_value = trade['trade_value'],
+                                                        trade_cost = trade['trade_cost'],
                                                         action = trade['action'],
                                                         fees = trade['fees']
                                                     ))
@@ -169,6 +174,7 @@ class BrokerClient:
                                                         quantity = trade['quantity'],
                                                         avg_price =  round(trade['avg_price'],4),
                                                         trade_value = trade['trade_value'],
+                                                        trade_cost = trade['trade_cost'],
                                                         action = trade['action'],
                                                         fees = trade['fees']
                                                     ))

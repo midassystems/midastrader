@@ -213,16 +213,17 @@ class TestDummyClient(unittest.TestCase):
             symbol = symbol.ticker,
             quantity = round(quantity,4),
             avg_price = fill_price,
-            trade_value = round(fill_price * symbol.price_multiplier * quantity * symbol.quantity_multiplier, 2),
+            trade_value = round(fill_price * quantity, 2),
+            trade_cost = round(abs(quantity) * fill_price, 2),
             action = action.value,
             fees = round(fees,4)
         )
         
         # Test
-        trade = self.dummy_broker._update_trades(timestamp, trade_id, leg_id, symbol, quantity, action, fill_price, fees)
+        self.dummy_broker._update_trades(timestamp, trade_id, leg_id, symbol, quantity, action, fill_price, fees)
 
         # Validate
-        self.assertEqual(self.dummy_broker.last_trade[symbol.contract], expected_trade)
+        self.assertEqual(self.dummy_broker.last_trades[symbol.contract], expected_trade)
 
     def test_set_execution(self):
         timestamp = np.uint64(1651500000)
@@ -296,10 +297,10 @@ class TestDummyClient(unittest.TestCase):
                 action = 'BUY',
                 avg_price = 10,
                 quantity = 80,
-                quantity_multiplier = 400000,
+                quantity_multiplier = 40000,
                 price_multiplier = 0.01,
                 market_price = 10,
-                initial_margin= 5000
+                initial_margin= 4564.17
         )
         hogs_contract = self.symbols_map['HEJ4'].contract
         self.dummy_broker.positions[hogs_contract] = hogs_position
@@ -311,11 +312,12 @@ class TestDummyClient(unittest.TestCase):
                 symbol=hogs_contract.symbol,
                 quantity=round(hogs_position.quantity, 4),
                 avg_price= hogs_position.avg_price,
-                trade_value=round(hogs_position.initial_margin * hogs_position.quantity, 2),
+                trade_value=round(hogs_position.avg_price * hogs_position.price_multiplier * hogs_position.quantity_multiplier * hogs_position.quantity, 2),
+                trade_cost = hogs_position.initial_margin * hogs_position.quantity,
                 action= hogs_position.action,
                 fees= 70
             )
-        self.dummy_broker.last_trade[hogs_contract] = hogs_trade
+        self.dummy_broker.last_trades[hogs_contract] = hogs_trade
 
         # Position2
         aapl_position = EquityPosition(
@@ -341,7 +343,7 @@ class TestDummyClient(unittest.TestCase):
                 action=aapl_position.action,
                 fees=70 
         )
-        self.dummy_broker.last_trade[aapl_contract] = aapl_trade
+        self.dummy_broker.last_trades[aapl_contract] = aapl_trade
         
         # Mock order book response
         current_price = 90
@@ -359,10 +361,12 @@ class TestDummyClient(unittest.TestCase):
                 symbol=hogs_contract.symbol,
                 quantity=round(hogs_position.quantity * -1, 4),
                 avg_price= current_price,
-                trade_value=round(hogs_position.initial_margin * hogs_position.quantity + ((current_price - hogs_position.avg_price) * hogs_position.quantity * hogs_position.quantity_multiplier * hogs_position.price_multiplier), 2),
+                trade_value=round((current_price * hogs_position.quantity * hogs_position.quantity_multiplier * hogs_position.price_multiplier), 2),
+                trade_cost= hogs_position.initial_margin * hogs_position.quantity ,
                 action= Action.SELL.value,
                 fees= 0.0
             )
+        
         aapl_trade_liquidated = ExecutionDetails(
                 timestamp=17777000000000,
                 trade_id=2,
@@ -371,13 +375,14 @@ class TestDummyClient(unittest.TestCase):
                 quantity=round(aapl_position.quantity * -1,4),
                 avg_price=current_price,
                 trade_value=round(current_price * aapl_position.quantity, 2),
+                trade_cost=round(current_price * abs(aapl_position.quantity), 2),
                 action=Action.SELL.value,
                 fees=0.0
         )
 
         # Validate
-        self.assertEqual(self.dummy_broker.last_trade[aapl_contract], aapl_trade_liquidated )
-        self.assertEqual(self.dummy_broker.last_trade[hogs_contract], hogs_trade_liquidated)
+        self.assertEqual(self.dummy_broker.last_trades[aapl_contract], aapl_trade_liquidated)
+        self.assertEqual(self.dummy_broker.last_trades[hogs_contract], hogs_trade_liquidated)
    
     def test_return_positions_quantity_not_zero(self):
         # Variables

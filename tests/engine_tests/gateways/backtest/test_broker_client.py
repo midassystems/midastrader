@@ -121,6 +121,7 @@ class TestBrokerClient(unittest.TestCase):
                 quantity= round(aapl_quantity,4),
                 avg_price= aapl_entry_price,
                 trade_value=round(aapl_entry_price * aapl_quantity, 2),
+                trade_cost=round(aapl_entry_price * aapl_quantity, 2),
                 action= aapl_action.value,
                 fees= 70 
             )
@@ -216,6 +217,9 @@ class TestBrokerClient(unittest.TestCase):
             mock_m2 = stack.enter_context(patch.object(self.broker_client,'update_account'))
             mock_m3 = stack.enter_context(patch.object(self.broker_client,'update_equity_value'))
             mock_m4 = stack.enter_context(patch.object(self.broker_client,'update_trades'))
+
+            # Mock last trade
+            self.broker_client.broker.last_trade = valid_trade
 
             # Test
             self.broker_client.on_execution(exec)

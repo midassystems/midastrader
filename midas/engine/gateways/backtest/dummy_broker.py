@@ -48,7 +48,8 @@ class DummyBroker:
         self.unrealized_pnl: Dict[str, float] = {"account": 0}
         self.margin_required: Dict[str, float] = {"account": 0}
         self.liquidation_value: Dict[str, float] = {"account": 0}
-        self.last_trade : Dict[str, ExecutionDetails] = {}
+        self.last_trades : Dict[str, ExecutionDetails] = {}
+        self.last_trade : ExecutionDetails = None
         # self.total_fees = 0
         self.account = Account(
                                 timestamp= None, 
@@ -157,12 +158,13 @@ class DummyBroker:
             symbol = symbol.ticker,
             quantity = round(quantity,4),
             avg_price = fill_price,
-            trade_value = round((fill_price * symbol.price_multiplier) * (quantity * symbol.quantity_multiplier), 2),
+            trade_value = round(symbol.value(quantity, fill_price), 2),
+            trade_cost = round(symbol.cost(quantity, fill_price), 2),
             action = action.value,
             fees = round(fees,4)
         )
 
-        self.last_trade[symbol.contract] = trade
+        self.last_trades[symbol.contract] = trade
 
         return trade
    
@@ -177,6 +179,7 @@ class DummyBroker:
         - contract (Contract): The contract associated with the trade.
         """
         try:
+            self.last_trade = trade_details
             execution_event = ExecutionEvent(timestamp, trade_details, action, symbol.contract)
             self.event_queue.put(execution_event)
         except (ValueError, TypeError) as e:
@@ -215,27 +218,29 @@ class DummyBroker:
         Liquidates all positions to allow for full performance calculations.
         """
         for contract, position in list(self.positions.items()):  
+            symbol = self.symbols_map[contract.symbol]
             current_price = self.order_book.current_price(contract.symbol)
             position.market_price = current_price
             position.calculate_liquidation_value()
 
             trade = ExecutionDetails(
                 timestamp= self.order_book.last_updated,
-                trade_id= self.last_trade[contract]['trade_id'],
-                leg_id= self.last_trade[contract]['leg_id'],
+                trade_id= self.last_trades[contract]['trade_id'],
+                leg_id= self.last_trades[contract]['leg_id'],
                 symbol= contract.symbol,
                 quantity= round(position.quantity * -1, 4),
                 avg_price=current_price,
-                trade_value=position.liquidation_value,
+                trade_value=round(symbol.value(position.quantity, current_price), 2),
+                trade_cost=symbol.cost(position.quantity * -1, current_price),
                 action= Action.SELL.value if position.action == 'BUY' else Action.COVER.value,
                 fees= 0.0 # because not actually a trade
             )
 
-            self.last_trade[contract] = trade
+            self.last_trades[contract] = trade
 
         # Output liquidation
         string = f"Positions liquidate:"
-        for contract, trade in self.last_trade.items():
+        for contract, trade in self.last_trades.items():
             string += f"\n  {contract} : {trade}"
         
         self.logger.info(f"\n{string}")
@@ -278,9 +283,9 @@ class DummyBroker:
         - Union[dict, ExecutionDetails]: Dictionary or ExecutionDetails object containing details of executed trades.
         """
         if contract:
-            return self.last_trade[contract]
+            return self.last_trades[contract]
         else:
-            return self.last_trade
+            return self.last_trades
 
     def return_equity_value(self) -> EquityDetails:
         """
