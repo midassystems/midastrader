@@ -72,7 +72,7 @@ class TradeInstruction:
             f"Trade ID: {self.trade_id}, "
             f"Leg ID: {self.leg_id}, "
             f"Weight: {self.weight}, "
-            f"Quantity: {self.quantity}"
-            f"Limit Price: {self.limit_price if self.limit_price != None else ''}"
+            f"Quantity: {self.quantity}, "
+            f"Limit Price: {self.limit_price if self.limit_price != None else ''}, "
             f"Aux Price:  {self.aux_price if self.aux_price != None else ''}"
         )

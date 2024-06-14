@@ -41,8 +41,8 @@ class ExecutionEvent:
     def __str__(self) -> str:
         return (
             f"\n{self.type} EVENT:\n" 
-            f"Timestamp: {self.timestamp}\n"  
-            f"Action: {self.action}\n"  
-            f"Contract: {self.contract}\n"  
-            f"Execution Details: {self.trade_details}\n"
+            f"  Timestamp: {self.timestamp}\n"  
+            f"  Action: {self.action}\n"  
+            f"  Contract: {self.contract}\n"  
+            f"  Execution Details: {self.trade_details}\n"
         )
