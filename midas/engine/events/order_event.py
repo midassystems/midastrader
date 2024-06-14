@@ -52,11 +52,11 @@ class OrderEvent:
     def __str__(self) -> str:
         return (
             f"\n{self.type} EVENT:\n"  
-            f"Timestamp: {self.timestamp}\n"  
-            f"Trade ID: {self.trade_id}\n"  
-            f"Leg ID: {self.leg_id}\n"  
-            f"Action: {self.action}\n"  
-            f"Contract: {self.contract}\n"
-            f"Order: {self.order.__dict__}\n"
+            f"  Timestamp: {self.timestamp}\n"  
+            f"  Trade ID: {self.trade_id}\n"  
+            f"  Leg ID: {self.leg_id}\n"  
+            f"  Action: {self.action}\n"  
+            f"  Contract: {self.contract}\n"
+            f"  Order: {self.order.__dict__}\n"
         )
     

@@ -38,8 +38,8 @@ class SignalEvent:
         instructions_str = "\n    ".join(str(instruction) for instruction in self.trade_instructions)
         return (
             f"\n{self.type} EVENT:\n"  
-            f"Timestamp: {self.timestamp}\n"  
-            f"Trade Instructions:\n    {instructions_str}"
+            f"  Timestamp: {self.timestamp}\n"  
+            f"  Trade Instructions:\n    {instructions_str}\n"
         )
     
     def to_dict(self):
