@@ -63,19 +63,23 @@ class TradesManager:
         """
         trades_df = self._aggregate_trades()    
         trades_pnl = trades_df["pnl"].to_numpy()
-        trades_gain_loss = trades_df["gain/loss"].to_numpy()
+        trades_pnl_percent = trades_df["pnl_percentage"].to_numpy()
+        # trades_gain_loss = trades_df["gain/loss"].to_numpy()
 
         return {
             "total_trades": self.total_trades(trades_pnl),
-            "total_winning_trades": self.total_winning_trades(trades_pnl),
-            "total_losing_trades": self.total_losing_trades(trades_pnl),
-            "avg_trade_profit": self.avg_trade_profit(trades_pnl),
-            "avg_win_percentage": self.avg_win(trades_gain_loss),
-            "avg_loss_percentage": self.avg_loss(trades_gain_loss),
-            "profitability_ratio": self.profitability_ratio(trades_pnl),
-            "profit_factor": self.profit_factor(trades_pnl),
-            "profit_and_loss_ratio": self.profit_and_loss_ratio(trades_pnl),
-            "total_fees": round(trades_df['fees'].sum(), 4),
+            "total_winning_trades": int(self.total_winning_trades(trades_pnl)),
+            "total_losing_trades": int(self.total_losing_trades(trades_pnl)),
+            "avg_profit": float(self.avg_profit(trades_pnl)),
+            "avg_profit_percent": float(self.avg_profit_percent(trades_pnl_percent)),
+            "avg_gain": float(self.avg_gain(trades_pnl)),
+            "avg_gain_percent": float(self.avg_gain_percent(trades_pnl_percent)),
+            "avg_loss": float(self.avg_loss(trades_pnl)),
+            "avg_loss_percent": float(self.avg_loss_percent(trades_pnl_percent)),
+            "profitability_ratio": float(self.profitability_ratio(trades_pnl)),
+            "profit_factor": float(self.profit_factor(trades_pnl)),
+            "profit_and_loss_ratio": float(self.profit_and_loss_ratio(trades_pnl)),
+            "total_fees": round(float(trades_df['fees'].sum()), 4),
         }
 
     @staticmethod
@@ -91,13 +95,34 @@ class TradesManager:
         return np.sum(trades_pnl < 0)
 
     @staticmethod
-    def avg_win(trades_pnl: np.ndarray) -> float:
+    def avg_profit(trade_pnl: np.ndarray) -> float:
+        net_profit = trade_pnl.sum()
+        total_trades = len(trade_pnl)
+        return round(net_profit / total_trades, 4) if total_trades > 0 else 0.0
+    
+    @staticmethod
+    def avg_profit_percent(trade_pnl_percent: np.ndarray) -> float:
+        total_trades = len(trade_pnl_percent)
+        return round(trade_pnl_percent.mean(), 4) if total_trades > 0 else 0.0
+    
+    @staticmethod
+    def avg_gain(trades_pnl: np.ndarray) -> float:
         winning_trades = trades_pnl[trades_pnl > 0]
         return round(winning_trades.mean(), 4) if winning_trades.size > 0 else 0.0
-
+    
+    @staticmethod
+    def avg_gain_percent(trade_pnl_percent: np.ndarray) -> float:
+        winning_trades = trade_pnl_percent[trade_pnl_percent > 0]
+        return round(winning_trades.mean(), 4) if winning_trades.size > 0 else 0.0
+    
     @staticmethod
     def avg_loss(trades_pnl: np.ndarray) -> float:
         losing_trades = trades_pnl[trades_pnl < 0]
+        return round(losing_trades.mean(), 4) if losing_trades.size > 0 else 0.0
+    
+    @staticmethod
+    def avg_loss_percent(trade_pnl_percent: np.ndarray) -> float:
+        losing_trades = trade_pnl_percent[trade_pnl_percent < 0]
         return round(losing_trades.mean(), 4) if losing_trades.size > 0 else 0.0
 
     @staticmethod
@@ -105,12 +130,6 @@ class TradesManager:
         total_winning_trades = TradesManager.total_winning_trades(trade_pnl)
         total_trades = len(trade_pnl)
         return round(total_winning_trades / total_trades, 4) if total_trades > 0 else 0.0
-
-    @staticmethod
-    def avg_trade_profit(trade_pnl: np.ndarray) -> float:
-        net_profit = trade_pnl.sum()
-        total_trades = len(trade_pnl)
-        return round(net_profit / total_trades, 4) if total_trades > 0 else 0.0
 
     @staticmethod
     def profit_factor(trade_pnl: np.ndarray) -> float:
@@ -158,7 +177,7 @@ class EquityManager:
         data.fillna(0, inplace=True)  # Replace NaN with 0 for the first element
         return data
     
-    def calculate_equity_statistics(self, risk_free_rate: float = 0.04) -> Dict[str, float]:
+    def calculate_equity_statistics(self, risk_free_rate: float=0.04) -> Dict[str, float]:
         """
         Calculates statistics related to equity curve and returns them in a dictionary.
         """
@@ -173,16 +192,19 @@ class EquityManager:
 
         raw_equity_curve = raw_equity_df['equity_value'].to_numpy()
         daily_returns = self.daily_timeseries_stats["period_return"].to_numpy()
+        period_returns = self.period_timeseries_stats["period_return"].to_numpy()
 
         return {
-            "net_profit": PerformanceStatistics.net_profit(raw_equity_curve),
-            "beginning_equity": raw_equity_curve[0],
-            "ending_equity": raw_equity_curve[-1],
-            "total_return": PerformanceStatistics.total_return(raw_equity_curve),
-            "annual_standard_deviation_percentage": RiskAnalysis.annual_standard_deviation(daily_returns),
-            "max_drawdown_percentage": RiskAnalysis.max_drawdown(daily_returns),
-            "sharpe_ratio": RiskAnalysis.sharpe_ratio(daily_returns, risk_free_rate),
-            "sortino_ratio": RiskAnalysis.sortino_ratio(daily_returns),
+            "net_profit": float(PerformanceStatistics.net_profit(raw_equity_curve)),
+            "beginning_equity": float(raw_equity_curve[0]),
+            "ending_equity": float(raw_equity_curve[-1]),
+            "total_return": float(PerformanceStatistics.total_return(raw_equity_curve)),
+            "daily_standard_deviation_percentage": float(RiskAnalysis.standard_deviation(daily_returns)),
+            "annual_standard_deviation_percentage": float(RiskAnalysis.annual_standard_deviation(daily_returns)),
+            "max_drawdown_percentage_period": float(RiskAnalysis.max_drawdown(period_returns)),
+            "max_drawdown_percentage_daily": float(RiskAnalysis.max_drawdown(daily_returns)),
+            "sharpe_ratio": float(RiskAnalysis.sharpe_ratio(daily_returns, risk_free_rate)),
+            "sortino_ratio": float(RiskAnalysis.sortino_ratio(daily_returns, risk_free_rate)),
         }
 
 class BasePerformanceManager(TradesManager, EquityManager):    
@@ -285,145 +307,4 @@ class BasePerformanceManager(TradesManager, EquityManager):
         Implemented in the child classes for live and backtest.
         """
         pass
-
-    
-        
-
-    # @staticmethod
-    # def total_trades(trade_pnl: np.ndarray) -> int:
-    #     """
-    #     Calculate the total number of trades in the trade PnL array.
-
-    #     Parameters:
-    #     - trade_pnl (np.ndarray): Array of trade profit and loss.
-
-    #     Returns:
-    #     - int: The total number of trades.
-    #     """
-    #     return len(trade_pnl)
-    
-    # @staticmethod
-    # def total_winning_trades(trade_pnl: np.ndarray) -> int:
-    #     """
-    #     Calculate the total number of winning trades in the trade PnL array.
-
-    #     Parameters:
-    #     - trade_pnl (np.ndarray): Array of trade profit and loss.
-
-    #     Returns:
-    #     - int: The total number of winning trades.
-    #     """
-    #     return np.sum(trade_pnl > 0)
-    
-    # @staticmethod
-    # def total_losing_trades(trade_pnl: np.ndarray) -> int:
-    #     """
-    #     Calculate the total number of losing trades in the trade PnL array.
-
-    #     Parameters:
-    #     - trade_pnl (np.ndarray): Array of trade profit and loss.
-
-    #     Returns:
-    #     - int: The total number of losing trades.
-    #     """
-    #     return np.sum(trade_pnl < 0)
-    
-    # @staticmethod
-    # def avg_win_dollars(gain_loss: np.ndarray) -> float:
-    #     """
-    #     Calculate the average return rate of winning trades in the trade gain/loss array.
-
-    #     Parameters:
-    #     - gain_loss (np.ndarray): Array of trade gain and loss.
-
-    #     Returns:
-    #     - float: The average return rate of winning trades, rounded to four decimal places.
-    #              Returns 0 if there are no winning trades.
-    #     """
-    #     winning_trades = gain_loss[gain_loss > 0]
-    #     return round(winning_trades.mean(), 4) if winning_trades.size > 0 else 0.0
-
-    # @staticmethod
-    # def avg_loss_dollars(gain_loss: np.ndarray) -> float:
-    #     """
-    #     Calculate the average return rate of losing trades in the trade gain/loss array.
-
-    #     Parameters:
-    #     - gain_loss (np.ndarray): Array of trade gain and loss.
-
-    #     Returns:
-    #     - float: The average return rate of losing trades, rounded to four decimal places.
-    #              Returns 0 if there are no losing trades.
-    #     """
-    #     losing_trades = gain_loss[gain_loss < 0]
-    #     return round(losing_trades.mean(), 4) if losing_trades.size > 0 else 0.0
-    
-    # @staticmethod
-    # def profitability_ratio(trade_pnl: np.ndarray) -> float:
-    #     """
-    #     Calculate the profitability ratio of the trades in the trade PnL array.
-
-    #     Parameters:
-    #     - trade_pnl (np.ndarray): Array of trade profit and loss.
-
-    #     Returns:
-    #     - float: The profitability ratio, rounded to four decimal places. Returns 0.0 if there are
-    #              no trades.
-    #     """
-    #     total_winning_trades = TradesManager.total_winning_trades(trade_pnl)
-    #     total_trades = len(trade_pnl)
-    #     return round(total_winning_trades / total_trades, 4) if total_trades > 0 else 0.0
-    
-    # @staticmethod
-    # def avg_trade_profit(trade_pnl: np.ndarray) -> float:
-    #     """
-    #     Calculate the average profit per trade in the trade PnL array.
-
-    #     Parameters:
-    #     - trade_pnl (np.ndarray): Array of trade profit and loss.
-
-    #     Returns:
-    #     - float: The average profit per trade, rounded to four decimal places. Returns 0 if there
-    #              are no trades.
-    #     """
-    #     net_profit = trade_pnl.sum()
-    #     total_trades = len(trade_pnl)
-    #     return round(net_profit / total_trades, 4) if total_trades > 0 else 0.0
-    
-    # @staticmethod
-    # def profit_factor(trade_pnl: np.ndarray) -> float:
-    #     """
-    #     Calculate the Profit Factor.
-
-    #     Parameters:
-    #     - trade_pnl (np.ndarray): Array of trade profit and loss.
-
-    #     Returns:
-    #     - float: The profit factor, rounded to four decimal places. Returns 0 if there are no trades
-    #              or if the gross losses are zero.
-    #     """
-    #     gross_profits = trade_pnl[trade_pnl > 0].sum()
-    #     gross_losses = abs(trade_pnl[trade_pnl < 0].sum())
-        
-    #     return round(gross_profits / gross_losses, 4) if gross_losses > 0 else 0.0
-
-    # @staticmethod
-    # def profit_and_loss_ratio(trade_pnl: np.ndarray) -> float:
-    #     """
-    #     Calculate the ratio of average winning trade to average losing trade.
-
-    #     Parameters:
-    #     - trade_pnl (np.ndarray): Array of trade profit and loss.
-
-    #     Returns:
-    #     - float: The ratio of average winning trade to average losing trade, rounded to four decimal
-    #              places. Returns 0 if there are no trades or if the average loss is zero.
-    #     """
-    #     avg_win = trade_pnl[trade_pnl > 0].mean()
-    #     avg_loss = trade_pnl[trade_pnl < 0].mean()
-        
-    #     if avg_loss != 0:
-    #         return round(abs(avg_win / avg_loss), 4)
-        
-    #     return 0.0
 

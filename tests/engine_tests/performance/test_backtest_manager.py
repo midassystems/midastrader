@@ -249,9 +249,31 @@ class TestPerformanceManager(unittest.TestCase):
 
          # Validate that static_stats has non-null values and contains expected keys
         expected_static_keys = [
-                                    'total_trades', 'total_winning_trades', 'total_losing_trades', 'avg_trade_profit', 'avg_win_percentage', 'avg_loss_percentage', 'profitability_ratio', 'profit_factor', 'profit_and_loss_ratio', 'total_fees',
-                                    "net_profit", "beginning_equity", "ending_equity", "total_return", "annual_standard_deviation_percentage", "max_drawdown_percentage", "sharpe_ratio", "sortino_ratio" 
+            "total_trades", 
+            "total_winning_trades", 
+            "total_losing_trades",
+            "avg_profit",
+            "avg_profit_percent", 
+            "avg_gain",
+            "avg_gain_percent",
+            "avg_loss",
+            "avg_loss_percent",
+            "profitability_ratio",
+            "profit_factor",
+            "profit_and_loss_ratio",
+            "total_fees",
+            "net_profit",
+            "beginning_equity",
+            "ending_equity",
+            "total_return",
+            "daily_standard_deviation_percentage",
+            "annual_standard_deviation_percentage",
+            "max_drawdown_percentage_period",
+            "max_drawdown_percentage_daily",
+            "sharpe_ratio",
+            "sortino_ratio" 
                                 ]
+        
             
         static_stats = self.performance_manager.static_stats[0]
         for key in expected_static_keys:
@@ -362,10 +384,32 @@ class TestPerformanceManager(unittest.TestCase):
         self.assertEqual(backtest.trade_data , [trade.to_dict() for trade in self.performance_manager.trades])
 
         # Validate static stats
-        expected_static_keys =  [
-                                    'total_trades', 'total_winning_trades', 'total_losing_trades', 'avg_trade_profit', 'avg_win_percentage', 'avg_loss_percentage', 'profitability_ratio', 'profit_factor', 'profit_and_loss_ratio', 'total_fees',
-                                    "net_profit", "beginning_equity", "ending_equity", "total_return", "annual_standard_deviation_percentage", "max_drawdown_percentage", "sharpe_ratio", "sortino_ratio" 
+        expected_static_keys = [
+            "total_trades", 
+            "total_winning_trades", 
+            "total_losing_trades",
+            "avg_profit",
+            "avg_profit_percent", 
+            "avg_gain",
+            "avg_gain_percent",
+            "avg_loss",
+            "avg_loss_percent",
+            "profitability_ratio",
+            "profit_factor",
+            "profit_and_loss_ratio",
+            "total_fees",
+            "net_profit",
+            "beginning_equity",
+            "ending_equity",
+            "total_return",
+            "daily_standard_deviation_percentage",
+            "annual_standard_deviation_percentage",
+            "max_drawdown_percentage_period",
+            "max_drawdown_percentage_daily",
+            "sharpe_ratio",
+            "sortino_ratio" 
                                 ]
+        
         static_stats = list(backtest.static_stats[0].keys())
 
         for key in static_stats:
