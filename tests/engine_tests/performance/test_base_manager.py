@@ -62,7 +62,20 @@ class TestTradesManager(unittest.TestCase):
         result = self.trades_manager.calculate_trade_statistics()
 
         # Expected
-        keys = ['total_trades', 'total_winning_trades', 'total_losing_trades', 'avg_trade_profit', 'avg_win_percentage', 'avg_loss_percentage', 'profitability_ratio', 'profit_factor', 'profit_and_loss_ratio', 'total_fees']
+        keys = ["total_trades", 
+                "total_winning_trades", 
+                "total_losing_trades",
+                "avg_profit",
+                "avg_profit_percent", 
+                "avg_gain",
+                "avg_gain_percent",
+                "avg_loss",
+                "avg_loss_percent",
+                "profitability_ratio",
+                "profit_factor",
+                "profit_and_loss_ratio",
+                "total_fees"
+            ]
         
         # Validate
         for key in keys:
@@ -102,7 +115,7 @@ class TestTradesManager(unittest.TestCase):
         expected_avg_win = 32274.20
 
         # Test
-        avg_win_return_rate = self.trades_manager.avg_win(self.pnl)
+        avg_win_return_rate = self.trades_manager.avg_gain(self.pnl)
 
         # Validate
         self.assertAlmostEqual(avg_win_return_rate, expected_avg_win, places=4)
@@ -132,7 +145,7 @@ class TestTradesManager(unittest.TestCase):
         expected_avg_trade_profit = 11683.0125
 
         # Test
-        average_trade_profit = self.trades_manager.avg_trade_profit(self.pnl)
+        average_trade_profit = self.trades_manager.avg_profit(self.pnl)
 
         # Validate
         self.assertEqual(average_trade_profit, expected_avg_trade_profit)
@@ -205,10 +218,8 @@ class TestEquityManager(unittest.TestCase):
                 0.000000, 0.002786, 0.002648, 0.007413, -0.009052, -0.005988, -0.004009, -0.011889,
                 -0.012809, 0.044516, 0.044390, 0.044390, 0.044390, 0.044390
             ],
-            'drawdown': [
-                0.0000, 0.0000, -0.0001, 0.0000, -0.0163, -0.0133, -0.0113, -0.0192, -0.0201, 0.0000,
-                -0.0001, -0.0001, -0.0001, -0.0001
-            ]
+            'drawdown': [0.0, 0.0, -0.000138, 0.0, -0.016344, -0.013303, -0.011338, -0.019159, -0.020072, 0.0, -0.000121, -0.000121, -0.000121, -0.000121]
+            
         }
         expected_df = pd.DataFrame(data)
         expected_df.set_index('timestamp', inplace=True)
@@ -221,7 +232,18 @@ class TestEquityManager(unittest.TestCase):
         result = self.equity_manager.calculate_equity_statistics()
 
         # Expected
-        keys = ["net_profit", "beginning_equity", "ending_equity", "total_return", "annual_standard_deviation_percentage", "max_drawdown_percentage", "sharpe_ratio", "sortino_ratio" ]
+        keys = [
+                "net_profit",
+                "beginning_equity",
+                "ending_equity",
+                "total_return",
+                "daily_standard_deviation_percentage",
+                "annual_standard_deviation_percentage",
+                "max_drawdown_percentage_period",
+                "max_drawdown_percentage_daily",
+                "sharpe_ratio",
+                "sortino_ratio"  
+            ]
 
         # Validate
         for key in keys:

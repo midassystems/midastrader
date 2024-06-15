@@ -9,8 +9,8 @@ from quantAnalytics.risk import RiskAnalysis
 from midas.engine.strategies import BaseStrategy
 # from midas.engine.command.parameters import Parameters
 from midas.shared.utils import resample_daily, unix_to_iso
-from quantAnalytics.performance import PerformanceStatistics
 from midas.engine.performance import BasePerformanceManager
+from quantAnalytics.performance import PerformanceStatistics
 
 class BacktestPerformanceManager(BasePerformanceManager):
     """
@@ -44,7 +44,7 @@ class BacktestPerformanceManager(BasePerformanceManager):
 
         # Combine all statistics into a single dictionary
         all_stats = {**trade_stats, **equity_stats}
-        
+
         # Append to static stats
         self.static_stats.append(all_stats)
         self.logger.info(f"Backtest statistics successfully calculated.")
@@ -125,12 +125,13 @@ class BacktestPerformanceManager(BasePerformanceManager):
 
         # Create Backtest Object
         self.backtest = Backtest(parameters=self.params.to_dict(), 
-                                 static_stats=self.static_stats,
-                                 period_timeseries_stats=self.period_timeseries_stats.to_dict(orient='records'),
-                                 daily_timeseries_stats=self.daily_timeseries_stats.to_dict(orient='records'),
+                                 static_stats= self.static_stats,
+                                 period_timeseries_stats= self.period_timeseries_stats.to_dict(orient='records'),
+                                 daily_timeseries_stats= self.daily_timeseries_stats.to_dict(orient='records'),
                                  trade_data=[trade.to_dict() for trade in self.trades],
                                  signal_data=self.signals
                                  )
+        # print(self.backtest)
         
         # Save Backtest Object
         response = self.database.create_backtest(self.backtest)

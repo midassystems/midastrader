@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-from quantAnalytics.returns import Returns
 from quantAnalytics.risk import RiskAnalysis
 from midas.shared.utils import resample_daily
 from midas.research.strategy import BaseStrategy
@@ -152,9 +151,9 @@ class VectorizedBacktest(PerformanceStatistics):
         equity_values = pd.to_numeric(self.test_data['equity_value'], errors='coerce').fillna(0)
 
         # Compute simple and cumulative returns
-        period_returns = Returns.simple_returns(equity_values.values)
+        period_returns = self.simple_returns(equity_values.values)
         period_returns_adjusted = np.insert(period_returns, 0, 0)  # Adjust for initial zero return
-        cumulative_returns = Returns.cumulative_returns(equity_values.values)
+        cumulative_returns = self.cumulative_returns(equity_values.values)
         cumulative_returns_adjusted = np.insert(cumulative_returns, 0, 0)
 
         # Update test DataFrame 
@@ -163,9 +162,9 @@ class VectorizedBacktest(PerformanceStatistics):
         self.test_data['drawdown'] = RiskAnalysis.drawdown(period_returns_adjusted)
 
         # Compute simple and cumulative returns daily data
-        daily_returns = Returns.simple_returns(daily_equity_values.values)
+        daily_returns = self.simple_returns(daily_equity_values.values)
         daily_returns_adjusted = np.insert(daily_returns, 0, 0)  # Adjust for initial zero return
-        daily_cumulative_returns = Returns.cumulative_returns(daily_equity_values.values)
+        daily_cumulative_returns = self.cumulative_returns(daily_equity_values.values)
         daily_cumulative_returns_adjusted = np.insert(daily_cumulative_returns, 0, 0)
 
         # Update daily dataframe
