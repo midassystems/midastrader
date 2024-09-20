@@ -1,7 +1,10 @@
 import numpy as np
-from typing  import Dict
+from typing import Dict
 from dataclasses import dataclass, field
-from midas.shared.market_data import MarketData
+
+# from midas.shared.market_data import MarketData
+from mbn import RecordMsg
+
 
 @dataclass
 class MarketEvent:
@@ -16,26 +19,31 @@ class MarketEvent:
     - data (Dict[str, MarketData]): A dictionary mapping each contract's identifier to its respective MarketData object.
     - type (str): Automatically set to 'MARKET_DATA', indicating the type of event.
     """
-    timestamp : np.uint64
-    data: Dict[str, MarketData]
-    type: str = field(init=False, default='MARKET_DATA')
+
+    timestamp: np.uint64
+    data: Dict[str, RecordMsg]
+    type: str = field(init=False, default="MARKET_DATA")
 
     def __post_init__(self):
         # Type Check
-        if not isinstance(self.timestamp, np.uint64):
-            raise TypeError("'timestamp' field must be of type np.uint64.")
-        if not isinstance(self.data, dict):
-            raise TypeError("'data' field must be of type dict.")
-        if not all(isinstance(marketdata, MarketData) and isinstance(key, str) for  key, marketdata in self.data.items()):
-            raise TypeError("All keys in 'data' field must be of type str and all values 'data' must be instances of MarketData.")
-        
-        # Constraint check
-        if not self.data:
-            raise ValueError("'data' field cannot be empty.")
-
+        # if not isinstance(self.timestamp, np.uint64):
+        #     raise TypeError("'timestamp' field must be of type np.uint64.")
+        # if not isinstance(self.data, dict):
+        #     raise TypeError("'data' field must be of type dict.")
+        # if not all(isinstance(marketdata, MarketData) and isinstance(key, str) for  key, marketdata in self.data.items()):
+        #     raise TypeError("All keys in 'data' field must be of type str and all values 'data' must be instances of MarketData.")
+        #
+        # # Constraint check
+        # if not self.data:
+        #     raise ValueError("'data' field cannot be empty.")
+        pass
 
     def __str__(self) -> str:
         string = f"\n{self.type} : \n"
+        print(self.data)
+
         for contract, market_data in self.data.items():
-            string += f"  {contract} : {market_data.__dict__}\n"
+            st = str(market_data)
+            print(f"Helllo{st}")
+            string += f"  {contract} : {str(market_data)}\n"
         return string

@@ -1,0 +1,38 @@
+# config.toml
+[general]
+mode = "BACKTEST"
+session_id = 1001
+log_level = "INFO"
+log_output = "file"
+output_path = "tests/integration/backtest/output/"
+data_file = "/Users/anthony/projects/midas/engine/python/tests/integration/hogs_corn_ohlcv1m.bin"
+
+[database]
+url = "http://192.53.120.167:8080" #"http://127.0.0.1:8080"
+key = "your_database_key"
+
+[strategy.logic]
+module = "tests/integration/backtest/strategy/logic.py"
+class = "RandomSignalStrategy"
+
+[strategy.parameters]
+backtest_name = "djdbfeufe"
+strategy_name = "Cointegrationzscore"
+capital = 1000000
+data_type = "BAR"
+schema = "ohlcv-1m"
+train_start = "2024-01-01 00:00:00"
+train_end = "2024-01-03 12:00:00"
+test_start = "2024-01-03 12:00:01"
+test_end = "2024-05-04 00:00:00"
+missing_values_strategy = "drop"
+risk_free_rate = 0.04
+symbols = [
+  { type = "Future", ticker= "HE.n.0", security_type = "FUTURE", currency= "USD",exchange= "CME",fees= 0.85,initial_margin= 5627.17,quantity_multiplier= 40000,price_multiplier= 0.01,data_ticker= "HE.n.0",product_code= "HE",product_name= "Lean Hogs",industry= "AGRICULTURE",contract_size= 40000,contract_units= "POUNDS",tick_size= 0.00025,min_price_fluctuation= 10.0,continuous= true,lastTradeDateOrContractMonth= "202404",slippage_factor= 0},
+  { type= "Future",ticker= "ZC.n.0",security_type= "FUTURE",currency= "USD",exchange= "CBOT",fees= 0.85,initial_margin= 2075.36,quantity_multiplier= 5000,price_multiplier= 0.01,data_ticker= "ZC.n.0",product_code= "ZC",product_name= "Corn",industry= "AGRICULTURE",contract_size= 5000,contract_units= "BUSHELS",tick_size= 0.0025,min_price_fluctuation= 12.50,continuous= true, lastTradeDateOrContractMonth= "202404", slippage_factor= 0}
+]
+  
+[risk]
+module = ""
+class = ""
+
