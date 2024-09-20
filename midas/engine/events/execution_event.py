@@ -1,8 +1,9 @@
 import numpy as np
 from ibapi.contract import Contract
-from midas.shared.orders import Action
+from midas.orders import Action
+from midas.trade import Trade
 from dataclasses import dataclass, field
-from midas.shared.trade import ExecutionDetails
+
 
 @dataclass
 class ExecutionEvent:
@@ -21,28 +22,33 @@ class ExecutionEvent:
     - contract (Contract): The contract object detailing the financial instrument involved in the trade.
     - type (str): The type of the event, set to 'EXECUTION' by default.
     """
+
     timestamp: np.uint64
-    trade_details: ExecutionDetails
-    action: Action 
+    trade_details: Trade
+    action: Action
     contract: Contract
-    type: str = field(init=False, default='EXECUTION')
+    type: str = field(init=False, default="EXECUTION")
 
     def __post_init__(self):
         # Type Check
-        if not isinstance(self.timestamp, np.uint64):
-            raise TypeError("'timestamp' field must be of type np.uint64.")
+        # if not isinstance(self.timestamp, np.uint64):
+        #     raise TypeError("'timestamp' field must be of type np.uint64.")
         if not isinstance(self.action, Action):
             raise TypeError("'action' field must be of type Action enum.")
-        if not isinstance(self.trade_details, dict):
-            raise TypeError("'trade_details' field must be of type ExecutionDetails dict.")
+        if not isinstance(self.trade_details, Trade):
+            raise TypeError(
+                "'trade_details' field must be of type Trade instance."
+            )
         if not isinstance(self.contract, Contract):
-            raise TypeError("'contract' field must be of type Contract instance.")
+            raise TypeError(
+                "'contract' field must be of type Contract instance."
+            )
 
     def __str__(self) -> str:
         return (
-            f"\n{self.type} EVENT:\n" 
-            f"  Timestamp: {self.timestamp}\n"  
-            f"  Action: {self.action}\n"  
-            f"  Contract: {self.contract}\n"  
-            f"  Execution Details: {self.trade_details}\n"
+            f"\n{self.type} EVENT:\n"
+            f"  Timestamp: {self.timestamp}\n"
+            f"  Action: {self.action}\n"
+            f"  Contract: {self.contract}\n"
+            f"  Execution Details: {self.trade_details.to_dict()}\n"
         )
