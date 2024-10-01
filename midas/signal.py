@@ -12,7 +12,7 @@ from midas.orders import (
 
 @dataclass
 class TradeInstruction:
-    ticker: str
+    instrument: int
     order_type: OrderType
     action: Action
     trade_id: int
@@ -24,8 +24,8 @@ class TradeInstruction:
 
     def __post_init__(self):
         # Type Check
-        if not self.ticker or not isinstance(self.ticker, str):
-            raise TypeError("'ticker' field must be of type string.")
+        if not isinstance(self.instrument, int):
+            raise TypeError("'instrument' field must be of type int.")
         if not isinstance(self.order_type, OrderType):
             raise TypeError(
                 "'order_type' field must be of type OrderType enum."
@@ -56,28 +56,26 @@ class TradeInstruction:
             raise ValueError("'trade_id' field must be greater than zero.")
         if self.leg_id <= 0:
             raise ValueError("'leg_id' field must must be greater than zero.")
-        if self.limit_price != None and self.limit_price <= 0:
+        if self.limit_price and self.limit_price <= 0:
             raise ValueError(
                 "'limit_price' field must must be greater than zero."
             )
-        if self.aux_price != None and self.aux_price <= 0:
+        if self.aux_price and self.aux_price <= 0:
             raise ValueError(
                 "'aux_price' field must must be greater than zero."
             )
 
     def to_dict(self):
         return {
-            "ticker": self.ticker,
+            "ticker": self.instrument,
             "order_type": self.order_type.value,
             "action": self.action.value,
             "trade_id": self.trade_id,
             "leg_id": self.leg_id,
             "weight": round(self.weight, 4),
             "quantity": self.quantity,
-            "limit_price": (
-                self.limit_price if self.limit_price != None else ""
-            ),
-            "aux_price": self.aux_price if self.aux_price != None else "",
+            "limit_price": (self.limit_price if self.limit_price else ""),
+            "aux_price": self.aux_price if self.aux_price else "",
         }
 
     def to_order(self) -> BaseOrder:
@@ -98,13 +96,13 @@ class TradeInstruction:
 
     def __str__(self) -> str:
         return (
-            f"Ticker: {self.ticker}, "
+            f"Instrument: {self.instrument}, "
             f"Order Type: {self.order_type.name}, "
             f"Action: {self.action.name}, "
             f"Trade ID: {self.trade_id}, "
             f"Leg ID: {self.leg_id}, "
             f"Weight: {self.weight}, "
             f"Quantity: {self.quantity}, "
-            f"Limit Price: {self.limit_price if self.limit_price != None else ''}, "
-            f"Aux Price:  {self.aux_price if self.aux_price != None else ''}"
+            f"Limit Price: {self.limit_price if self.limit_price else ''}, "
+            f"Aux Price:  {self.aux_price if self.aux_price else ''}"
         )

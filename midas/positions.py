@@ -124,7 +124,7 @@ class Position(ABC):
             f"{indent}Quantity: {self.quantity}\n"
             f"{indent}Price Multiplier: {self.price_multiplier}\n"
             f"{indent}Quantity Multiplier: {self.quantity_multiplier}\n"
-            f"{indent}Initial Value: {self.initial_value}\n"
+            f"{indent}Notional Value: {self.initial_value}\n"
             f"{indent}Initial Cost: {self.initial_cost}\n"
             f"{indent}Market Price: {self.market_price}\n"
             f"{indent}Market Value: {self.market_value}\n"

@@ -18,9 +18,8 @@ def run(config_path: str):
         .create_database_client()  # Set up the database client
         .create_symbols_map()  # Create the map for the trading symbols
         .create_core_components()  # Initialize order book, portfolio, etc.
-        .create_observer()  # Set up the observer (for live trading)
-        .create_performance_manager()  # Initialize performance tracking
         .create_gateways()  # Set up live or backtest gateways
+        .create_observers()  # Set up the observer (for live trading)
         .build()  # Finalize the engine setup
     )
 
