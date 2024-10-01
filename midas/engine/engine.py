@@ -1,24 +1,20 @@
 import time
 import queue
-import threading
 import signal
 from typing import Union, Optional
 from midas.symbol import SymbolMap
 from midasClient.client import DatabaseClient
-from midas.engine.components.observer import EventType
 from midas.engine.components.order_book import OrderBook
 from midas.engine.components.observer.database_updater import DatabaseUpdater
 from midas.utils.logger import SystemLogger
-from midas.engine.components.portfolio_server import PortfolioServer
-from midas.engine.components.order_manager import OrderManager
+from midas.engine.components.portfolio.portfolio_server import PortfolioServer
+from midas.engine.components.order_manager import OrderExecutionManager
 from midas.engine.components.risk.risk_handler import RiskHandler
-from midas.engine.components.performance.base import BasePerformanceManager
-from midas.engine.components.performance.live import LivePerformanceManager
+from midas.engine.components.performance.base import PerformanceManager
 from midas.engine.config import Parameters
-from midas.engine.components.performance.backtest import (
-    BacktestPerformanceManager,
-)
 from midas.engine.components.base_strategy import load_strategy_class
+from midas.engine.config import Config, Mode
+from midas.engine.components.observer.base import EventType
 from midas.engine.components.gateways.backtest import (
     DataClient as BacktestDataClient,
     BrokerClient as BacktestBrokerClient,
@@ -29,21 +25,12 @@ from midas.engine.components.gateways.live import (
     BrokerClient as LiveBrokerClient,
     ContractManager,
 )
-from midas.engine.config import Config, Mode
-from midas.engine.events import (
-    MarketEvent,
-    OrderEvent,
-    SignalEvent,
-    ExecutionEvent,
-    EODEvent,
-)
 
 
 class EngineBuilder:
     def __init__(self, config_path: str):
         self.config = self._load_config(config_path)
         self.event_queue = queue.Queue()
-        self.logger = None
         self.params = None
         self.database_client = None
         self.symbols_map = None
@@ -64,12 +51,12 @@ class EngineBuilder:
 
     def create_logger(self):
         """Step 1: Create logger"""
-        self.logger = SystemLogger(
+        SystemLogger(
             self.config.strategy_parameters["strategy_name"],
             self.config.log_output,
             self.config.output_path,
             self.config.log_level,
-        ).logger
+        )
         return self
 
     def create_parameters(self):
@@ -87,107 +74,110 @@ class EngineBuilder:
         symbols = self.params.symbols
 
         for symbol in symbols:
-            self.symbols_map.add_symbol(symbol.ticker, symbol)
-        # self.symbols_map = symbol_map
+            self.symbols_map.add_symbol(symbol=symbol)
         return self
 
     def create_core_components(self):
         """Step 4: Create order book, portfolio server, and order manager"""
-        self.order_book = OrderBook(self.event_queue)
-        self.portfolio_server = PortfolioServer(
+        self.order_book = OrderBook(self.symbols_map)
+        self.portfolio_server = PortfolioServer(self.symbols_map)
+        self.order_manager = OrderExecutionManager(
             self.symbols_map,
-            self.logger,
-            self.database_client,
-        )
-        self.order_manager = OrderManager(
-            self.symbols_map,
-            self.event_queue,
             self.order_book,
             self.portfolio_server,
-            self.logger,
         )
-        return self
-
-    def create_observer(self):
-        """Step 5: Create observer (for live mode only)"""
-        if self.config.mode == Mode.LIVE:
-            self.observer = DatabaseUpdater(
-                self.database_client,
-                self.config.session_id,
-            )
-            self.order_book.attach(self.observer, EventType.MARKET_EVENT)
-            self.portfolio_server.attach(
-                self.observer,
-                EventType.POSITION_UPDATE,
-            )
-            self.config.portfolio_server.attach(
-                self.observer,
-                EventType.ORDER_UPDATE,
-            )
-            self.config.portfolio_server.attach(
-                self.observer,
-                EventType.ACCOUNT_DETAIL_UPDATE,
-            )
-        return self
-
-    def create_performance_manager(self):
-        """Step 6: Create performance manager based on mode"""
-        if self.config.mode == Mode.LIVE:
-            self.performance_manager = LivePerformanceManager(
-                self.database_client,
-                self.logger,
-                self.config.strategy_parameters,
-            )
-        else:
-            self.performance_manager = BacktestPerformanceManager(
-                self.database_client,
-                self.logger,
-                self.config.strategy_parameters,
-                None,
-            )
+        self.performance_manager = PerformanceManager(
+            self.database_client,
+            self.params,
+            self.symbols_map,
+        )
         return self
 
     def create_gateways(self):
-        """Step 7: Create data and broker clients (for live and backtest)"""
+        """Step 5: Create data and broker clients (for live and backtest)"""
         if self.config.mode == Mode.LIVE:
             self.hist_data_client = BacktestDataClient(
-                self.config.event_queue,
-                self.config.database,
-                self.config.order_book,
-                None,
+                self.database_client,
+                self.symbols_map,
             )
             self.live_data_client = LiveDataClient(
-                self.event_queue, self.order_book, self.logger
+                self.config,
+                self.symbols_map,
             )
             self.broker_client = LiveBrokerClient(
-                self.event_queue,
-                self.logger,
-                self.portfolio_server,
-                self.performance_manager,
+                self.config,
+                self.symbols_map,
             )
+
         else:
-            self.eod_event_flag = threading.Event()
             self.hist_data_client = BacktestDataClient(
-                self.event_queue,
                 self.database_client,
-                self.order_book,
-                self.eod_event_flag,
+                self.symbols_map,
             )
             self.dummy_broker = DummyBroker(
                 self.symbols_map,
-                self.event_queue,
                 self.order_book,
                 self.config.strategy_parameters.get("capital", 0),
-                self.logger,
             )
             self.broker_client = BacktestBrokerClient(
-                self.event_queue,
-                self.logger,
-                self.portfolio_server,
-                self.performance_manager,
                 self.dummy_broker,
-                self.eod_event_flag,
+                self.symbols_map,
             )
+        return self
+
+    def create_observers(self):
+        """Step 5: Create observer (for live mode only)"""
+        if self.config.mode == Mode.BACKTEST:
+            self.hist_data_client.attach(
+                self.dummy_broker, EventType.EOD_EVENT
+            )
+            self.hist_data_client.attach(
+                self.order_book, EventType.MARKET_DATA
+            )
+            self.order_book.attach(self.broker_client, EventType.ORDER_BOOK)
+            self.dummy_broker.attach(
+                self.broker_client, EventType.TRADE_EXECUTED
+            )
+            self.dummy_broker.attach(self.broker_client, EventType.EOD_EVENT)
+            self.broker_client.attach(
+                self.portfolio_server, EventType.POSITION_UPDATE
+            )
+            self.broker_client.attach(
+                self.portfolio_server, EventType.ACCOUNT_UPDATE
+            )
+            self.broker_client.attach(
+                self.performance_manager, EventType.TRADE_UPDATE
+            )
+            self.broker_client.attach(
+                self.performance_manager, EventType.EQUITY_VALUE_UPDATE
+            )
+            self.order_manager.attach(
+                self.broker_client, EventType.ORDER_CREATED
+            )
+
+        if self.config.mode == Mode.LIVE:
+            self.live_data_client.app.attach(
+                self.order_book, EventType.MARKET_DATA
+            )
+            self.broker_client.app.attach(
+                self.portfolio_server, EventType.POSITION_UPDATE
+            )
+            self.broker_client.app.attach(
+                self.portfolio_server, EventType.ACCOUNT_UPDATE
+            )
+            self.broker_client.app.attach(
+                self.performance_manager, EventType.TRADE_UPDATE
+            )
+            self.broker_client.app.attach(
+                self.performance_manager, EventType.EQUITY_VALUE_UPDATE
+            )
+            self.order_manager.attach(
+                self.broker_client, EventType.ORDER_CREATED
+            )
+            self.broker_client.app.attach(
+                self.portfolio_server, EventType.ORDER_UPDATE
+            )
+
         return self
 
     def build(self):
@@ -196,7 +186,6 @@ class EngineBuilder:
             config=self.config,
             event_queue=self.event_queue,
             symbols_map=self.symbols_map,
-            logger=self.logger,
             params=self.params,
             order_book=self.order_book,
             portfolio_server=self.portfolio_server,
@@ -219,12 +208,11 @@ class Engine:
         config: Config,
         event_queue: queue.Queue,
         symbols_map: SymbolMap,
-        logger: SystemLogger,
         params: Parameters,
         order_book: OrderBook,
         portfolio_server: PortfolioServer,
-        performance_manager: BasePerformanceManager,
-        order_manager: OrderManager,
+        performance_manager: PerformanceManager,
+        order_manager: OrderExecutionManager,
         observer: Optional[DatabaseUpdater],
         data_client: Union[LiveDataClient, BacktestDataClient],
         hist_data_client: Optional[BacktestDataClient],
@@ -233,7 +221,7 @@ class Engine:
         self.config = config
         self.event_queue = event_queue
         self.symbols_map = symbols_map
-        self.logger = logger
+        self.logger = SystemLogger.get_logger()
         self.parameters = params
         self.order_book = order_book
         self.portfolio_server = portfolio_server
@@ -246,7 +234,7 @@ class Engine:
         self.strategy = None
         self.contract_manager = None
         self.risk_model = None
-        self.hist_data = None
+        self.train_data = None
 
     def initialize(self):
         """
@@ -281,13 +269,13 @@ class Engine:
         self.broker_client.connect()
 
         # Validate Contracts
-        self.contract_handler = ContractManager(self.data_client, self.logger)
-        for ticker, symbol in self.symbols_map.items():
+        self.contract_handler = ContractManager(self.broker_client)
+        for symbol in self.symbols_map.symbols:
             if not self.contract_handler.validate_contract(symbol.contract):
-                raise RuntimeError(f"{ticker} invalid contract.")
+                raise RuntimeError(f"{symbol.broker_ticker} invalid contract.")
 
         # Laod Hist Data
-        self._load_hist_data()
+        self._load_train_data()
 
         # Load Live Data
         self.data_client.connect()
@@ -297,17 +285,20 @@ class Engine:
         """
         Set up the backtest environment, including loading historical data.
         """
-        # Load Hist Data
-        self._load_hist_data()
+        # Load Train Data
+        self._load_train_data()
+
+        # Load Backtest Data
+        self._load_backtest_data()
 
     def _load_live_data(self):
         """
         Loads and subscribes to live data feeds for the symbols in the strategy.
         """
         try:
-            for _, symbol in self.symbols_map.items():
+            for symbol in self.symbols_map.symbols:
                 self.data_client.get_data(
-                    data_type=self.params.data_type,
+                    data_type=self.parameters.data_type,
                     contract=symbol.contract,
                 )
         except ValueError:
@@ -315,32 +306,34 @@ class Engine:
                 f"Error loading live data for symbol {symbol.ticker}."
             )
 
-    def _load_hist_data(self):
+    def _load_train_data(self):
         """
-        Loads historical data for the period specified in the parameters.
+        Loads histroical training data for the period specified in the parameters.
         """
-        tickers = self.symbols_map.tickers
-        response = self.hist_data_client.get_data(
-            tickers,
+        self.train_data = self.hist_data_client.get_data(
+            self.symbols_map.midas_tickers,
+            self.parameters.train_start,
+            self.parameters.train_end,
+            self.parameters.schema,
+            self.config.train_data_file,
+        )
+        self.logger.info("Training data loaded.")
+
+    def _load_backtest_data(self):
+        """
+        Loads backtest data for the period specified in the parameters.
+        """
+
+        response = self.hist_data_client.load_backtest_data(
+            self.symbols_map.midas_tickers,
             self.parameters.test_start,
             self.parameters.test_end,
             self.parameters.schema,
-            self.config.data_file,
+            self.config.test_data_file,
         )
 
         if response:
             self.logger.info("Backtest data loaded.")
-            if self.config.mode == Mode.LIVE:
-                self.hist_data = self.hist_data_client.data.decode_to_df()
-
-                # # Extract contract details for mapping
-                contracts_map = {
-                    symbol.data_ticker: symbol.ticker
-                    for symbol in self.symbols_map.symbols
-                }
-                self.hist_data["symbol"] = self.hist_data["symbol"].map(
-                    contracts_map
-                )
         else:
             raise RuntimeError("Backtest data did not load.")
 
@@ -365,16 +358,17 @@ class Engine:
             self.config.strategy_class,
         )
 
-        # strategy_class = self.config.strategy_class
         self.strategy = strategy_class(
             symbols_map=self.symbols_map,
-            # historical_data=self.config.historical_data,
             portfolio_server=self.portfolio_server,
-            logger=self.logger,
             order_book=self.order_book,
-            event_queue=self.event_queue,
         )
-        self.strategy.prepare(self.hist_data)
+        self.performance_manager.set_strategy(self.strategy)
+        self.order_book.attach(self.strategy, EventType.ORDER_BOOK)
+        self.strategy.attach(self.order_manager, EventType.SIGNAL)
+        self.strategy.attach(self.performance_manager, EventType.SIGNAL)
+
+        self.strategy.prepare(self.train_data)
         self.logger.info("Strategy set successfully.")
 
     def start(self):
@@ -396,10 +390,7 @@ class Engine:
         signal.signal(signal.SIGINT, self._signal_handler)
 
         while self.running:
-            while not self.event_queue.empty():
-                event = self.event_queue.get()
-                self.logger.info(event)
-                self._handle_event(event)
+            continue
 
         # Perform cleanup here
         self.database_updater.delete_session()
@@ -411,44 +402,20 @@ class Engine:
 
     def _run_backtest_event_loop(self):
         """Event loop for backtesting."""
+        # Load Initial account data
+        self.broker_client.update_account()
+
         while self.hist_data_client.data_stream():
-            while not self.event_queue.empty():
-                event = self.event_queue.get()
-                self.logger.info(f"Processing event: {event}")
-                self._handle_event(event)
+            continue
 
         # Perform EOD operations for the last trading day
-        self.broker_client.eod_update()
         self.broker_client.liquidate_positions()
 
         # Finalize and save to database
-        self.performance_manager.save(self.output_path)
-
-    def _handle_event(self, event):
-        """Handles different event types (market data, signal, order, etc.)."""
-        if isinstance(event, MarketEvent):
-            if self.config.mode == Mode.BACKTEST:
-                self.broker_client.update_equity_value()  # Updates equity value for backtests
-            self.strategy.handle_market_data()
-
-        elif isinstance(event, SignalEvent):
-            self.performance_manager.update_signals(event)
-            self.order_manager.on_signal(event)
-            # self.s trategy.handle_signal(event)
-
-        elif isinstance(event, OrderEvent):
-            self.broker_client.on_order(event)
-
-        elif isinstance(event, ExecutionEvent):
-            self.broker_client.on_execution(event)
-
-        elif isinstance(event, EODEvent):
-            self.broker_client.eod_update()
-
-    def _signal_handler(self, signum, frame):
-        """Handles signals like SIGINT to gracefully shut down the event loop."""
-        self.logger.info("Signal received, preparing to shut down.")
-        self.running = False  # Stop the event loop
+        self.performance_manager.save(
+            self.config.mode,
+            self.config.output_path,
+        )
 
     def stop(self):
         """Gracefully shut down the engine."""
@@ -457,19 +424,7 @@ class Engine:
             self.data_client.disconnect()
         self.logger.info("Engine shutdown complete.")
 
-    # def start(self):
-    #     """
-    #     Start the trading session, either live or backtest, by triggering the event controller.
-    #     """
-    #     controller = create_event_controller(self.config)
-    #     controller.run()
-
-    # def stop(self):
-    #     """
-    #     Gracefully shut down the trading system.
-    #     """
-    #     self.logger.info("Shutting down the trading system...")
-    #     # You can add shutdown logic here like saving performance metrics or closing connections
-    #     if self.config.mode == Mode.LIVE:
-    #         self.data_client.disconnect()
-    #     self.logger.info("Trading system shutdown complete.")
+    def _signal_handler(self, signum, frame):
+        """Handles signals like SIGINT to gracefully shut down the event loop."""
+        self.logger.info("Signal received, preparing to shut down.")
+        self.running = False  # Stop the event loop
