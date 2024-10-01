@@ -1,9 +1,6 @@
-import numpy as np
-from typing import Dict
+from typing import Union
+from mbn import OhlcvMsg, BboMsg
 from dataclasses import dataclass, field
-
-# from midas.shared.market_data import MarketData
-from mbn import RecordMsg
 
 
 @dataclass
@@ -15,35 +12,23 @@ class MarketEvent:
     other components of new market conditions.
 
     Attributes:
-    - timestamp (np.uint64): The UNIX timestamp in nanoseconds when the market data was received.
-    - data (Dict[str, MarketData]): A dictionary mapping each contract's identifier to its respective MarketData object.
+    - timestamp (int): The UNIX timestamp in nanoseconds when the market data was received.
+    - data (RecordMsg): RecordMsg object.
     - type (str): Automatically set to 'MARKET_DATA', indicating the type of event.
     """
 
-    timestamp: np.uint64
-    data: Dict[str, RecordMsg]
+    timestamp: int
+    data: Union[OhlcvMsg, BboMsg]
     type: str = field(init=False, default="MARKET_DATA")
 
     def __post_init__(self):
         # Type Check
-        # if not isinstance(self.timestamp, np.uint64):
-        #     raise TypeError("'timestamp' field must be of type np.uint64.")
-        # if not isinstance(self.data, dict):
-        #     raise TypeError("'data' field must be of type dict.")
-        # if not all(isinstance(marketdata, MarketData) and isinstance(key, str) for  key, marketdata in self.data.items()):
-        #     raise TypeError("All keys in 'data' field must be of type str and all values 'data' must be instances of MarketData.")
-        #
-        # # Constraint check
-        # if not self.data:
-        #     raise ValueError("'data' field cannot be empty.")
-        pass
+        if not isinstance(self.timestamp, int):
+            raise TypeError("'timestamp' field must be of type int.")
+        if not isinstance(self.data, (OhlcvMsg, BboMsg)):
+            raise TypeError("'data' field must be of type OhlcvMsg or BboMsg.")
 
     def __str__(self) -> str:
         string = f"\n{self.type} : \n"
-        print(self.data)
-
-        for contract, market_data in self.data.items():
-            st = str(market_data)
-            print(f"Helllo{st}")
-            string += f"  {contract} : {str(market_data)}\n"
+        string += f"  {self.data.instrument_id} : {self.data}\n"
         return string

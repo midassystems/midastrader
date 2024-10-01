@@ -1,4 +1,3 @@
-import numpy as np
 from ibapi.contract import Contract
 from dataclasses import dataclass, field
 from midas.orders import BaseOrder, Action
@@ -13,7 +12,7 @@ class OrderEvent:
     It helps in tracking the lifecycle of trades and ensuring the system responds appropriately to changes in order status.
 
     Attributes:
-    - timestamp (np.uint64): The UNIX timestamp in nanoseconds when the order event occurred.
+    - timestamp (int): The UNIX timestamp in nanoseconds when the order event occurred.
     - trade_id (int): A unique identifier for the trade associated with this order.
     - leg_id (int): Identifies the specific leg of a multi-leg order.
     - action (Action): The type of action (e.g., BUY, SELL) associated with the order.
@@ -22,7 +21,7 @@ class OrderEvent:
     - type (str): Automatically set to 'ORDER', denoting the event type.
     """
 
-    timestamp: np.uint64
+    timestamp: int
     trade_id: int
     leg_id: int
     action: Action
@@ -32,8 +31,8 @@ class OrderEvent:
 
     def __post_init__(self):
         # Type Check
-        # if not isinstance(self.timestamp, np.uint64):
-        #     raise TypeError("'timestamp' field must be of type np.uint64.")
+        if not isinstance(self.timestamp, int):
+            raise TypeError("'timestamp' field must be of type int.")
         if not isinstance(self.trade_id, int):
             raise TypeError("'trade_id' field must be of type int.")
         if not isinstance(self.leg_id, int):

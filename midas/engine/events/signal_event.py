@@ -1,4 +1,3 @@
-import numpy as np
 from typing import List
 from dataclasses import dataclass, field
 from midas.signal import TradeInstruction
@@ -19,18 +18,16 @@ class SignalEvent:
     - type (str): A string identifier for the event type, set to 'SIGNAL'.
     """
 
-    timestamp: np.uint64
+    timestamp: int
     trade_instructions: List[TradeInstruction]
     type: str = field(init=False, default="SIGNAL")
 
     def __post_init__(self):
         # Type Check
-        # if not isinstance(self.timestamp, np.uint64):
-        #     raise TypeError("'timestamp' field must be of type np.uint64.")
+        if not isinstance(self.timestamp, int):
+            raise TypeError("'timestamp' field must be of type int.")
         if not isinstance(self.trade_instructions, list):
-            raise TypeError(
-                f"'trade_instructions' field must be of type list."
-            )
+            raise TypeError("'trade_instructions' field must be of type list.")
         if not all(
             isinstance(instruction, TradeInstruction)
             for instruction in self.trade_instructions
