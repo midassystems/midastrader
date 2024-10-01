@@ -1,5 +1,5 @@
 import unittest
-from midas.shared.active_orders import ActiveOrder
+from midas.active_orders import ActiveOrder
 
 
 class ActiceOrderTest(unittest.TestCase):
@@ -11,7 +11,7 @@ class ActiceOrderTest(unittest.TestCase):
             orderId=5,
             parentId=5,
             account="DU12546",
-            symbol="AAPL",
+            instrument=1234,
             secType="STK",
             exchange="NASDAQ",
             action="BUY",
@@ -35,4 +35,3 @@ class ActiceOrderTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

@@ -1,73 +1,72 @@
-import numpy as np
 from dataclasses import dataclass
 from typing import Optional, TypedDict, Dict
 
 
 class EquityDetails(TypedDict):
-    timestamp: np.uint64
+    timestamp: int
     equity_value: float
-
-
-# class AccountDetails(TypedDict):
-#     timestamp: np.uint64
-#     full_available_funds: float
-#     full_init_margin_req: float
-#     net_liquidation: float
-#     unrealized_pnl: float
-#     full_maint_margin_req: Optional[float]
-#     excess_liquidity: Optional[float]
-#     currency: Optional[str]
-#     buying_power: Optional[float]
-#     futures_pnl: Optional[float]
-#     total_cash_balance: Optional[float]
 
 
 @dataclass
 class Account:
-    timestamp: np.uint64
+    timestamp: int
     full_available_funds: float  # Available funds of whole portfolio with no discounts or intraday credits
-    full_init_margin_req: (
-        float  # Initial Margin of whole portfolio with no discounts or intraday credits
-    )
-    net_liquidation: (
-        float  # The basis for determining the price of the assets in your account
-    )
+    full_init_margin_req: float  # Initial Margin of whole portfolio with no discounts or intraday credits
+    net_liquidation: float  # The basis for determining the price of the assets in your account
     unrealized_pnl: float  # The difference between the current market value of your open positions and the average cost, or Value - Average Cost
     full_maint_margin_req: Optional[float] = 0
     excess_liquidity: Optional[float] = 0
     currency: Optional[str] = ""  # USD or CAD
     buying_power: Optional[float] = 0.0
     futures_pnl: Optional[float] = 0.0
-    total_cash_balance: Optional[float] = 0.0  # Total Cash Balance including Future PNL
+    total_cash_balance: Optional[float] = (
+        0.0  # Total Cash Balance including Future PNL
+    )
 
     def __post_init__(self):
         # Type Check
-        if not isinstance(self.timestamp, (np.uint64, type(None))):
-            raise TypeError("'timestamp' field must be of type int or np.uint64.")
+        if not isinstance(self.timestamp, (int, type(None))):
+            raise TypeError(
+                "'timestamp' field must be of type int or np.uint64."
+            )
         if not isinstance(self.full_available_funds, (int, float)):
             raise TypeError(
                 "'full_available_funds' field must be of type int or float."
             )
         if not isinstance(self.full_init_margin_req, (int, float)):
-            raise TypeError("'full_init_margin_req' must be of type int or float.")
+            raise TypeError(
+                "'full_init_margin_req' must be of type int or float."
+            )
         if not isinstance(self.net_liquidation, (int, float)):
-            raise TypeError("'net_liquidation' field must be of type int or float.")
+            raise TypeError(
+                "'net_liquidation' field must be of type int or float."
+            )
         if not isinstance(self.unrealized_pnl, (int, float)):
-            raise TypeError("'unrealized_pnl' field must be of type int or float.")
+            raise TypeError(
+                "'unrealized_pnl' field must be of type int or float."
+            )
         if not isinstance(self.full_maint_margin_req, (int, float)):
             raise TypeError(
                 "'full_maint_margin_req' field must be of type int or float."
             )
         if not isinstance(self.excess_liquidity, (int, float)):
-            raise TypeError("'excess_liquidity' field must be of type int or float.")
+            raise TypeError(
+                "'excess_liquidity' field must be of type int or float."
+            )
         if not isinstance(self.buying_power, (int, float)):
-            raise TypeError("'buying_power' field must be of type int or float.")
+            raise TypeError(
+                "'buying_power' field must be of type int or float."
+            )
         if not isinstance(self.futures_pnl, (int, float)):
-            raise TypeError("'futures_pnl' field must be of type int or float.")
+            raise TypeError(
+                "'futures_pnl' field must be of type int or float."
+            )
         if not isinstance(self.currency, str):
             raise TypeError("'currency' field must be of type str.")
         if not isinstance(self.total_cash_balance, (int, float)):
-            raise TypeError("'total_cash_balance' field must be of type int or float.")
+            raise TypeError(
+                "'total_cash_balance' field must be of type int or float."
+            )
 
     @property
     def capital(self):
@@ -107,7 +106,8 @@ class Account:
          - EquityDetails (dict): Representing the equity value at a point in time.
         """
         return EquityDetails(
-            timestamp=self.timestamp, equity_value=round(self.net_liquidation, 2)
+            timestamp=self.timestamp,
+            equity_value=round(self.net_liquidation, 2),
         )
 
     def check_margin_call(self) -> bool:

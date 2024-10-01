@@ -1,12 +1,11 @@
 import unittest
-import numpy as np
-from midas.shared.account import Account, EquityDetails
+from midas.account import Account, EquityDetails
 
 
 class AccountTest(unittest.TestCase):
     def setUp(self) -> None:
         # Create account object
-        self.timestamp = np.uint64(1704214800000000000)
+        self.timestamp = 1704214800000000000
         self.FullAvailableFunds = 502398.7799999999
         self.FullInitMarginReq = 497474.57
         self.NetLiquidation = 999873.3499999999
@@ -65,7 +64,8 @@ class AccountTest(unittest.TestCase):
 
         # Expected
         expected = EquityDetails(
-            timestamp=self.timestamp, equity_value=round(self.NetLiquidation, 2)
+            timestamp=self.timestamp,
+            equity_value=round(self.NetLiquidation, 2),
         )
 
         # Validate
@@ -119,4 +119,3 @@ class AccountTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

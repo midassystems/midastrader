@@ -26,7 +26,7 @@ class ActiveOrder:
     parentId: int
     status: str  # Options : PendingSubmit, PendingCancel PreSubmitted, Submitted, Cancelled, Filled, Inactive
     account: Optional[str] = field(default=None)
-    symbol: Optional[str] = field(default=None)
+    instrument: Optional[int] = field(default=None)
     secType: Optional[str] = field(default=None)
     exchange: Optional[str] = field(default=None)
     action: Optional[str] = field(default=None)
@@ -60,7 +60,7 @@ class ActiveOrder:
             "orderId": self.orderId,
             "parentId": self.parentId,
             "account": self.account,
-            "symbol": self.symbol,
+            "instrument": self.instrument,
             "secType": self.secType,
             "exchange": self.exchange,
             "action": self.action,
@@ -85,7 +85,7 @@ class ActiveOrder:
             f"{indent}orderId: {self.orderId}\n"
             # f"{indent}parentId: {self.parentId}\n"
             # f"{indent}account: {self.account}\n"
-            f"{indent}symbol: {self.symbol}\n"
+            f"{indent}instrument: {self.instrument}\n"
             # f"{indent}secType: {self.secType}\n"
             # f"{indent}exchange: {self.exchange}\n"
             f"{indent}action: {self.action}\n"
