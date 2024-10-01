@@ -3,26 +3,19 @@ from enum import Enum
 from typing import List
 from dataclasses import dataclass, field
 from midas.utils.unix import iso_to_unix
-from midas.market_data import MarketDataType
-from midas.symbol import (
-    Symbol,
-    Equity,
-    Future,
-    Option,
-    Index,
-    SecurityType,
-    ContractUnits,
-    Venue,
-    Currency,
-    Industry,
-    Right,
-)
+from midas.symbol import Symbol, SymbolFactory
 from mbn import Schema
+from datetime import datetime
 
 
 class Mode(Enum):
     LIVE = "LIVE"
     BACKTEST = "BACKTEST"
+
+
+class LiveDataType(Enum):
+    TICK = "TICK"
+    BAR = "BAR"
 
 
 class Config:
@@ -37,6 +30,8 @@ class Config:
         self.database = config_dict.get("database", {})
         self.strategy = config_dict.get("strategy", {})
         self.risk = config_dict.get("risk", {})
+        self.broker = config_dict.get("broker", {})
+        self.data_source = config_dict.get("data_source", {})
 
         # General settings
         self.session_id = self.general.get("session_id")
@@ -44,8 +39,9 @@ class Config:
         self.log_level = self.general.get("log_level", "INFO")
         self.log_output = self.general.get("log_output", "file")
         self.output_path = self.general.get("output_path", "")
-        self.data_file = self.general.get("data_file", "")
-        # print(self.data_file)
+        self.train_data_file = self.general.get("train_data_file", "")
+        self.test_data_file = self.general.get("test_data_file", "")
+
         # Database settings
         self.database_url = self.database.get("url")
         self.database_key = self.database.get("key")
@@ -54,6 +50,9 @@ class Config:
         self.strategy_module = self.strategy.get("logic", {}).get("module")
         self.strategy_class = self.strategy.get("logic", {}).get("class")
         self.strategy_parameters = self.strategy.get("parameters", {})
+        self.strategy_parameters["symbols"] = list(
+            self.strategy.get("symbols").values()
+        )
 
         # Risk settings
         self.risk_module = self.risk.get("module")
@@ -66,7 +65,6 @@ class Config:
         """
         with open(config_path, "r") as f:
             config_dict = toml.load(f)
-        # print(config_dict)
         return cls(config_dict)
 
 
@@ -99,11 +97,11 @@ class Parameters:
     strategy_name: str
     capital: int
     schema: Schema
-    data_type: MarketDataType
+    data_type: LiveDataType
+    train_start: str
+    train_end: str
     test_start: str
     test_end: str
-    train_end: str
-    train_start: str
     risk_free_rate: float = 0.4
     symbols: List[Symbol] = field(default_factory=list)
 
@@ -116,16 +114,14 @@ class Parameters:
             raise TypeError("'strategy_name' field must be of type str.")
         if not isinstance(self.capital, (int, float)):
             raise TypeError("'capital' field must be of type int or float.")
-        if not isinstance(self.data_type, MarketDataType):
+        if not isinstance(self.data_type, LiveDataType):
             raise TypeError(
                 "'data_type' field must be an instance of MarketDataType."
             )
-        # if not isinstance(self.missing_values_strategy, str):
-        #     raise TypeError("'missing_values_strategy' field must be of type str.")
-        if not isinstance(self.train_start, (str, type(None))):
-            raise TypeError("'train_start' field must be of type str or None.")
-        if not isinstance(self.train_end, (str, type(None))):
-            raise TypeError("'train_end' field must be of type str or None.")
+        if not isinstance(self.train_start, str):
+            raise TypeError("'train_start' field must be of type str.")
+        if not isinstance(self.train_end, str):
+            raise TypeError("'train_end' field must be of type str.")
         if not isinstance(self.test_start, str):
             raise TypeError("'test_start' field must be of type str.")
         if not isinstance(self.test_end, str):
@@ -145,8 +141,8 @@ class Parameters:
         if self.capital <= 0:
             raise ValueError("'capital' field must be greater than zero.")
 
-        # Populate the tickers list based on the provided symbols
-        self.tickers = [symbol.ticker for symbol in self.symbols]
+        # # Populate the tickers list based on the provided symbols
+        self.tickers = [symbol.midas_ticker for symbol in self.symbols]
 
     def to_dict(self):
         return {
@@ -154,14 +150,8 @@ class Parameters:
             "capital": self.capital,
             "data_type": self.data_type.value,
             "schema": self.schema,
-            "train_start": (
-                int(iso_to_unix(self.train_start))
-                if self.train_start
-                else None
-            ),
-            "train_end": (
-                int(iso_to_unix(self.train_end)) if self.train_end else None
-            ),
+            "train_start": (int(iso_to_unix(self.train_start))),
+            "train_end": (int(iso_to_unix(self.train_end))),
             "test_start": int(iso_to_unix(self.test_start)),
             "test_end": int(iso_to_unix(self.test_end)),
             "tickers": self.tickers,
@@ -170,14 +160,13 @@ class Parameters:
 
     @classmethod
     def from_dict(cls, data: dict) -> "Parameters":
-        # with open(config_file, "r") as file:
-        #     data = json.load(file)
-
         # Validate data_type
-        data_type = cls._validate_data_type(data["data_type"])
+        data_type = LiveDataType[data["data_type"].upper()]
 
         # Parse and map symbols
-        symbols = cls._parse_symbols(data["symbols"])
+        symbols = []
+        for symbol_data in data["symbols"]:
+            symbols.append(SymbolFactory.from_dict(symbol_data))
 
         # Create and return Parameters instance
         return cls(
@@ -185,76 +174,11 @@ class Parameters:
             strategy_name=data["strategy_name"],
             capital=data["capital"],
             data_type=data_type,
-            test_start=data["test_start"],
-            test_end=data["test_end"],
-            # missing_values_strategy=data["missing_values_strategy"],
-            symbols=symbols,
-            schema=data["schema"],
             train_start=data["train_start"],
             train_end=data["train_end"],
+            test_start=data["test_start"] or data["train_end"],
+            symbols=symbols,
+            schema=data["schema"],
+            test_end=data["test_end"] or datetime.now().strftime("%Y-%m-%d"),
             risk_free_rate=data["risk_free_rate"],
         )
-
-    @classmethod
-    def _validate_data_type(cls, data_type_str: str) -> MarketDataType:
-        if data_type_str not in MarketDataType.__members__:
-            raise ValueError(
-                f"Invalid data_type '{data_type_str}' in configuration file. Must be one of {list(MarketDataType.__members__.keys())}."
-            )
-        return MarketDataType[data_type_str]
-
-    @classmethod
-    def _parse_symbols(cls, symbols_data: list) -> List[Symbol]:
-        symbols = []
-        for symbol_data in symbols_data:
-            symbol_type = symbol_data.pop("type")
-            symbol_class = cls._get_symbol_class(symbol_type)
-            symbol_data = cls._map_symbol_enum_fields(symbol_data)
-            symbols.append(symbol_class(**symbol_data))
-        return symbols
-
-    @classmethod
-    def _get_symbol_class(cls, symbol_type: str):
-        symbol_classes = {
-            "Equity": Equity,
-            "Future": Future,
-            "Option": Option,
-            "Index": Index,
-        }
-        if symbol_type not in symbol_classes:
-            raise ValueError(
-                f"Invalid symbol type '{symbol_type}' in configuration file."
-            )
-        return symbol_classes[symbol_type]
-
-    @classmethod
-    def _map_symbol_enum_fields(cls, symbol_data: dict) -> dict:
-        symbol_data["security_type"] = cls._map_enum(
-            SecurityType, symbol_data["security_type"]
-        )
-        symbol_data["currency"] = cls._map_enum(
-            Currency, symbol_data["currency"]
-        )
-        symbol_data["exchange"] = cls._map_enum(Venue, symbol_data["exchange"])
-        if "industry" in symbol_data:
-            symbol_data["industry"] = cls._map_enum(
-                Industry, symbol_data["industry"]
-            )
-        if "contract_units" in symbol_data:
-            symbol_data["contract_units"] = cls._map_enum(
-                ContractUnits, symbol_data["contract_units"]
-            )
-        if "option_type" in symbol_data:
-            symbol_data["option_type"] = cls._map_enum(
-                Right, symbol_data["option_type"]
-            )
-        return symbol_data
-
-    @staticmethod
-    def _map_enum(enum_class, value):
-        try:
-            return enum_class[value]
-        except KeyError:
-            raise ValueError(
-                f"Invalid value '{value}' for enum {enum_class.__name__}"
-            )
