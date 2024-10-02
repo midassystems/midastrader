@@ -14,10 +14,8 @@ class Backtest:
     def __post_init__(self):
         if not isinstance(self.parameters, dict):
             raise ValueError("'parameters' field must be a dictionary.")
-        if not all(isinstance(item, dict) for item in self.static_stats):
-            raise ValueError(
-                "'static_stats' field must be a list of dictionaries."
-            )
+        if not isinstance(self.static_stats, dict):
+            raise ValueError("'static_stats' field must be a dictionaries.")
         if not all(isinstance(item, dict) for item in self.trade_data):
             raise ValueError(
                 "'trade_data' field must be a list of dictionaries."

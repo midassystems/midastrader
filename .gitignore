@@ -9,6 +9,7 @@ __pycache__/
 *.html
 *.pdf
 *.xlsx
+*.bin
 
 # Django
 /db.sqlite3

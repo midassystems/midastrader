@@ -1,17 +1,12 @@
-import logging
 import numpy as np
 import pandas as pd
 from typing import List, Dict
 from midas.trade import Trade
 from midas.engine.events import SignalEvent
 from quantAnalytics.risk import RiskAnalysis
-from midas.engine.components.base_strategy import BaseStrategy
-
-# from midas.engine.command.parameters import Parameters
-from midas.utils.unix import resample_daily, unix_to_iso
+from midas.utils.unix import resample_timestamp, unix_to_iso
 from quantAnalytics.performance import PerformanceStatistics
 from midas.account import EquityDetails, Account
-from midasClient.client import DatabaseClient
 
 
 def _convert_timestamp(df: pd.DataFrame, column: str = "timestamp") -> None:
@@ -23,9 +18,9 @@ def _convert_timestamp(df: pd.DataFrame, column: str = "timestamp") -> None:
 
 
 class TradeManager:
-    def __init__(self):
-        # self.trades: List[Trade] = []
+    def __init__(self, logger):
         self.trades: Dict[str, Trade] = {}
+        self.logger = logger
 
     def update_trades(self, trade_id: str, trade_data: Trade) -> None:
         """
@@ -61,18 +56,6 @@ class TradeManager:
                 f"Trade ID {trade_id} not found for commission update."
             )
 
-    # def update_trades(self, trade: Trade):
-    #     """
-    #     Updates and logs the trade history.
-    #
-    #     Parameters:
-    #     - trade (Trade): The trade object to be logged.
-    #     """
-    #     # super().update_trades(trade)
-    #     if trade not in self.trades:
-    #         self.trades.append(trade)
-    #         self.logger.info(f"\nTRADES UPDATED:\n{self._output_trades()}")
-
     def _output_trades(self) -> str:
         """
         Creates a string representation of all trades for logging.
@@ -95,7 +78,7 @@ class TradeManager:
         if not self.trades:
             return pd.DataFrame()  # Return an empty DataFrame for consistency
 
-        df = pd.DataFrame(self.trades)
+        df = pd.DataFrame(self.trades.values())
 
         # Group by trade_id to calculate aggregated values
         aggregated = df.groupby("trade_id").agg(
@@ -147,7 +130,7 @@ class TradeManager:
         # Calculate percentage gain/loss based on the entry value
         aggregated["gain/loss"] = (
             aggregated["exit_value"] + aggregated["entry_value"]
-        ) * -1  #  aggregated['pnl'] / aggregated['entry_value'].abs()
+        ) * -1
 
         # Calculate Profit and Loss (PnL)
         aggregated["pnl"] = (
@@ -167,13 +150,10 @@ class TradeManager:
         """
         Calculates statistics related to trades and returns them in a dictionary.
         """
+
         trades_df = self._aggregate_trades()
         trades_pnl = trades_df["pnl"].to_numpy()
         trades_pnl_percent = trades_df["pnl_percentage"].to_numpy()
-        # TODO: DELeTE
-        trades_pnl_percent = np.array([1, 2, 3, 4, 6, 7, 8])
-        print(trades_df)
-        print(trades_pnl_percent)
 
         return {
             "total_trades": self.total_trades(trades_pnl),
@@ -199,6 +179,10 @@ class TradeManager:
             "total_fees": round(float(trades_df["fees"].sum()), 4),
         }
 
+    @property
+    def trades_dict(self) -> List[dict]:
+        return [trade.to_dict() for trade in self.trades.values()]
+
     @staticmethod
     def total_trades(trades_pnl: np.ndarray) -> int:
         return len(trades_pnl)
@@ -220,7 +204,6 @@ class TradeManager:
     @staticmethod
     def avg_profit_percent(trade_pnl_percent: np.ndarray) -> float:
         total_trades = len(trade_pnl_percent)
-        print("TEstign ghri {}", trade_pnl_percent.mean())
         return round(trade_pnl_percent.mean(), 4) if total_trades > 0 else 0.0
 
     @staticmethod
@@ -279,10 +262,11 @@ class TradeManager:
 
 
 class EquityManager:
-    def __init__(self):
+    def __init__(self, logger):
         self.equity_value: List[EquityDetails] = []
         self.daily_stats: pd.DataFrame = None
         self.period_stats: pd.DataFrame = None
+        self.logger = logger
 
     def update_equity(self, equity_details: EquityDetails):
         """
@@ -296,6 +280,18 @@ class EquityManager:
             self.logger.info(
                 f"\nEQUITY UPDATED: \n  {self.equity_value[-1]}\n"
             )
+        else:
+            self.logger.info(
+                f"Equity update already included ignoring: {equity_details}"
+            )
+
+    @property
+    def period_stats_dict(self) -> dict:
+        return self.period_stats.to_dict(orient="records")
+
+    @property
+    def daily_stats_dict(self) -> dict:
+        return self.daily_stats.to_dict(orient="records")
 
     def _calculate_return_and_drawdown(
         self, data: pd.DataFrame
@@ -326,9 +322,23 @@ class EquityManager:
         data["percent_drawdown"] = RiskAnalysis.drawdown(
             period_returns_adjusted
         )
-        data.fillna(
-            0, inplace=True
-        )  # Replace NaN with 0 for the first element
+
+        # Replace NaN with 0 for the first element
+        data.fillna(0, inplace=True)
+        return data
+
+    def _remove_intermediate_updates(self, data: pd.DataFrame) -> pd.DataFrame:
+        """
+        Removes intermediate updates and keeps the last equity value for each timestamp.
+
+        Parameters:
+        - data (pd.DataFrame): The dataframe containing equity updates with timestamps.
+
+        Returns:
+        - pd.DataFrame: DataFrame with only the last entry per timestamp.
+        """
+        # Group by the timestamp and keep the last entry for each group
+        data = data.groupby("timestamp").last()
         return data
 
     def calculate_equity_statistics(
@@ -340,12 +350,18 @@ class EquityManager:
         raw_equity_df = pd.DataFrame(self.equity_value)
         raw_equity_df.set_index("timestamp", inplace=True)
 
-        daily_equity_curve = resample_daily(raw_equity_df.copy(), "EST")
-        print(daily_equity_curve)
+        # Remove intermediate updates before calculating returns/drawdowns
+        raw_equity_df = self._remove_intermediate_updates(raw_equity_df)
+
+        daily_equity_curve = resample_timestamp(
+            raw_equity_df.copy(),
+            interval="D",
+            tz_info="EST",
+        )
         self.period_stats = self._calculate_return_and_drawdown(
             raw_equity_df.copy()
         )
-        self.perio_stats.reset_index(inplace=True)
+        self.period_stats.reset_index(inplace=True)
         self.daily_stats = self._calculate_return_and_drawdown(
             daily_equity_curve.copy()
         )
@@ -353,9 +369,6 @@ class EquityManager:
 
         raw_equity_curve = raw_equity_df["equity_value"].to_numpy()
         daily_returns = self.daily_stats["period_return"].to_numpy()
-        # TODO: DELETE
-        daily_returns = np.array([1, 2, 3, -4, 5, 6, -7, 8, 1, 2, 3])
-        print(daily_returns)
         period_returns = self.period_stats["period_return"].to_numpy()
 
         return {
@@ -389,8 +402,9 @@ class EquityManager:
 
 
 class AccountManager:
-    def __init__(self):
+    def __init__(self, logger):
         self.account_log: List[Account] = []
+        self.logger = logger
 
     def update_account_log(self, account_details: Account):
         """
@@ -403,8 +417,9 @@ class AccountManager:
 
 
 class SignalManager:
-    def __init__(self):
-        self.signals: List[SignalEvent] = []
+    def __init__(self, logger):
+        self.signals: List[dict] = []
+        self.logger = logger
 
     def update_signals(self, signal: SignalEvent):
         """
@@ -414,7 +429,7 @@ class SignalManager:
         - signal (SignalEvent): The signal event to be logged.
         """
         self.signals.append(signal.to_dict())
-        self.logger.info(f"\nSIGNALS UPDATED: \n{self._output_signals()}")
+        self.logger.info(f"\nSIGNALS UPDATED: \n{signal}")
 
     def _output_signals(self) -> str:
         """
@@ -431,9 +446,10 @@ class SignalManager:
                 string += f"    {instruction}\n"
         return string
 
-    def _flatten_trade_instructions(
-        self, df: pd.DataFrame, column: str
-    ) -> pd.DataFrame:
+    def _flatten_trade_instructions(self) -> pd.DataFrame:
+        df = pd.DataFrame(self.signals)
+        column = "trade_instructions"
+
         # Expand the 'trade_instructions' column into separate rows
         expanded_rows = []
         for _, row in df.iterrows():
@@ -442,6 +458,7 @@ class SignalManager:
                 new_row.update(instruction)
                 expanded_rows.append(new_row)
         expanded_df = pd.DataFrame(expanded_rows)
+
         # Drop the original nested column
         if column in expanded_df.columns:
             expanded_df = expanded_df.drop(columns=[column])

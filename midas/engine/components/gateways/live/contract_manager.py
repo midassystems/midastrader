@@ -1,6 +1,8 @@
-import logging
 from ibapi.contract import Contract
-from midas.engine.components.gateways.live.data_client import DataClient
+from midas.utils.logger import SystemLogger
+from midas.engine.components.gateways.backtest.broker_client import (
+    BrokerClient,
+)
 
 
 class ContractManager:
@@ -13,7 +15,7 @@ class ContractManager:
     - validated_contracts (dict): A dictionary to store validated contracts.
     """
 
-    def __init__(self, client_instance: DataClient, logger: logging.Logger):
+    def __init__(self, client_instance: BrokerClient):
         """
         Initialize the ContractManager instance.
 
@@ -21,12 +23,10 @@ class ContractManager:
         - client_instance (DataClient): An instance of DataClient for communication with the IB API.
         - logger (logging.Logger): An instance of Logger for logging messages.
         """
-        self.logger = logger
+        self.logger = SystemLogger.get_logger()
         self.client = client_instance
         self.app = self.client.app
-        self.validated_contracts = (
-            {}
-        )  # Dictionary to store validated contracts
+        self.validated_contracts = {}
 
     def validate_contract(self, contract: Contract) -> bool:
         """

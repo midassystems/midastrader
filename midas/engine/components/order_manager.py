@@ -1,5 +1,3 @@
-import logging
-from queue import Queue
 from ibapi.contract import Contract
 from typing import List
 from midas.symbol import SymbolMap
@@ -8,9 +6,11 @@ from midas.signal import TradeInstruction
 from midas.orders import Action, BaseOrder
 from midas.engine.components.portfolio_server import PortfolioServer
 from midas.engine.events import SignalEvent, OrderEvent
+from midas.utils.logger import SystemLogger
+from midas.engine.components.observer.base import Subject, Observer, EventType
 
 
-class OrderExecutionManager:
+class OrderExecutionManager(Subject, Observer):
     """
     Manages order execution based on trading signals, interfacing with a portfolio server and order book.
     """
@@ -18,10 +18,8 @@ class OrderExecutionManager:
     def __init__(
         self,
         symbols_map: SymbolMap,
-        event_queue: Queue,
         order_book: OrderBook,
         portfolio_server: PortfolioServer,
-        logger: logging.Logger,
     ):
         """
         Initialize the OrderManager with necessary components for managing orders.
@@ -33,43 +31,51 @@ class OrderExecutionManager:
         - portfolio_server (PortfolioServer): Reference to the portfolio server for managing account and positions.
         - logger (logging.Logger): Logger for logging messages.
         """
-        self._event_queue = event_queue
+        super().__init__()
+        self.logger = SystemLogger.get_logger()
         self.portfolio_server = portfolio_server
         self.order_book = order_book
-        self.logger = logger
-
         self.symbols_map = symbols_map
 
-    def on_signal(self, event: SignalEvent):
+    def handle_event(
+        self,
+        subject: Subject,
+        event_type: EventType,
+        event: SignalEvent,
+    ) -> None:
         """
         Handle received signal events by initiating trade actions if applicable.
 
         Parameters:
         - event (SignalEvent): The signal event containing trade instructions.
         """
-        if not isinstance(event, SignalEvent):
-            raise TypeError("'event' must be of type SignalEvent instance.")
+        if event_type == EventType.SIGNAL:
+            self.logger.info(event)
+            if not isinstance(event, SignalEvent):
+                raise TypeError(
+                    "'event' must be of type SignalEvent instance."
+                )
 
-        trade_instructions = event.trade_instructions
-        timestamp = event.timestamp
+            trade_instructions = event.trade_instructions
+            timestamp = event.timestamp
 
-        # Get a list of tickers in active orders
-        active_orders_tickers = (
-            self.portfolio_server.get_active_order_tickers()
-        )
-        self.logger.info(f"Active order tickers {active_orders_tickers}")
-
-        # Check if any of the tickers in trade_instructions are in active orders or positions
-        if any(
-            trade.ticker in active_orders_tickers
-            for trade in trade_instructions
-        ):
-            self.logger.info(
-                "One or more tickers in the trade instructions have active orders; ignoring signal."
+            # Get a list of tickers in active orders
+            active_orders_tickers = (
+                self.portfolio_server.get_active_order_tickers()
             )
-            return
-        else:
-            self._handle_signal(timestamp, trade_instructions)
+            self.logger.info(f"Active order tickers {active_orders_tickers}")
+
+            # Check if any of the tickers in trade_instructions are in active orders or positions
+            if any(
+                trade.instrument in active_orders_tickers
+                for trade in trade_instructions
+            ):
+                self.logger.info(
+                    "One or more tickers in the trade instructions have active orders; ignoring signal."
+                )
+                return
+            else:
+                self._handle_signal(timestamp, trade_instructions)
 
     def _handle_signal(
         self, timestamp: int, trade_instructions: List[TradeInstruction]
@@ -87,14 +93,11 @@ class OrderExecutionManager:
         total_capital_required = 0
 
         for trade in trade_instructions:
-            symbol = self.symbols_map.map[trade.ticker]
+            self.logger.info(trade)
+            symbol = self.symbols_map.map[trade.instrument]
             order = self._create_order(trade)
-            current_price = self.order_book.retrieve_ticker(symbol.ticker)
-            print(
-                f"current_price: {current_price}"
-            )  # TODO: dynamic last price
+            current_price = self.order_book.retrieve(symbol.instrument_id)
             order_cost = symbol.cost(order.quantity, current_price)
-            print(order_cost)
 
             order_details = {
                 "timestamp": timestamp,
@@ -141,9 +144,7 @@ class OrderExecutionManager:
         try:
             return trade_instruction.to_order()
         except (ValueError, TypeError) as e:
-            raise RuntimeError(
-                f"Failed to create or queue SignalEvent due to input error: {e}"
-            ) from e
+            raise RuntimeError(f"Failed to create order due to input: {e}")
 
     def _set_order(
         self,
@@ -174,12 +175,8 @@ class OrderExecutionManager:
                 contract=contract,
                 order=order,
             )
-            self._event_queue.put(order_event)
+            self.notify(EventType.ORDER_CREATED, order_event)
         except (ValueError, TypeError) as e:
-            raise RuntimeError(
-                f"Failed to create or queue OrderEvent due to input error: {e}"
-            ) from e
+            raise RuntimeError(f"Failed to set OrderEvent due to input : {e}")
         except Exception as e:
-            raise RuntimeError(
-                f"Unexpected error when creating or queuing OrderEvent: {e}"
-            ) from e
+            raise RuntimeError(f"Unexpected error setting OrderEvent: {e}")

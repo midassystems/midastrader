@@ -1,20 +1,14 @@
 # client.py
-import logging
 import threading
-from queue import Queue
-from decouple import config
-from ibapi.order import Order
-from typing import get_type_hints
-from ibapi.contract import Contract
 from midas.engine.events import OrderEvent
-from midas.engine.components.portfolio_server import PortfolioServer
 from midas.account import Account
-from midas.engine.components.performance.base import BasePerformanceManager
+from midas.engine.components.gateways.base import BaseBrokerClient
+from midas.utils.logger import SystemLogger
+from midas.engine.config import Config
+from midas.symbol import SymbolMap
+from midas.engine.components.observer.base import Subject, EventType
 from midas.engine.components.gateways.live.broker_client.wrapper import (
     BrokerApp,
-)
-from midas.engine.components.gateways.base_broker_client import (
-    BaseBrokerClient,
 )
 
 
@@ -34,17 +28,7 @@ class BrokerClient(BaseBrokerClient):
     - lock (threading.Lock): A lock for managing thread safety.
     """
 
-    def __init__(
-        self,
-        event_queue: Queue,
-        logger: logging.Logger,
-        portfolio_server: PortfolioServer,
-        performance_manager: BasePerformanceManager,
-        host=config("HOST"),
-        port=config("PORT"),
-        clientId=config("TRADE_CLIENT_ID"),
-        ib_account=config("IB_ACCOUNT"),
-    ):
+    def __init__(self, config: Config, symbol_map: SymbolMap):
         """
         Initialize the BrokerClient instance.
 
@@ -58,15 +42,13 @@ class BrokerClient(BaseBrokerClient):
         - clientId (str, optional): The client ID used for identifying the client when connecting to the broker's API. Defaults to config('TRADE_CLIENT_ID').
         - ib_account (str, optional): The IB account used for managing accounts and positions. Defaults to config('IB_ACCOUNT').
         """
-        self.logger = logger
-        self.event_queue = event_queue
+        self.logger = SystemLogger.get_logger()
+        self.app = BrokerApp(symbol_map)
 
-        self.app = BrokerApp(logger, portfolio_server, performance_manager)
-        self.host = host
-        self.port = int(port)
-        self.clientId = clientId
-        self.account = ib_account
-
+        self.host = config.broker["host"]
+        self.port = int(config.broker["port"])
+        self.clientId = config.broker["client_id"]
+        self.account = config.broker["account_id"]
         self.lock = threading.Lock()  # create a lock
 
     # -- Helper --
@@ -110,7 +92,8 @@ class BrokerClient(BaseBrokerClient):
         Connect to the broker's API.
         """
         thread = threading.Thread(
-            target=self._websocket_connection, daemon=True
+            target=self._websocket_connection,
+            daemon=True,
         )
         thread.start()
 
@@ -146,21 +129,26 @@ class BrokerClient(BaseBrokerClient):
         return self.app.isConnected()
 
     # -- Orders --
-    def on_order(self, event: OrderEvent):
+    def handle_event(
+        self,
+        subject: Subject,
+        event_type: EventType,
+        event,
+    ) -> None:
         """
-        Handle order events.
+        Handles new order events from the event queue and initiates order processing.
 
         Parameters:
-        - event (OrderEvent): An instance of OrderEvent representing the order event.
+        - event (OrderEvent): The event containing order details for execution.
         """
-        if not isinstance(event, OrderEvent):
-            raise ValueError("'event' must be of type OrderEvent instance.")
+        if event_type == EventType.ORDER_CREATED:
+            if not isinstance(event, OrderEvent):
+                raise ValueError(
+                    "'event' must be of type OrderEvent instance."
+                )
+            self.handle_order(event)
 
-        contract = event.contract
-        order = event.order.order
-        self.handle_order(contract, order)
-
-    def handle_order(self, contract: Contract, order: Order):
+    def handle_order(self, event: OrderEvent):
         """
         Handle placing orders.
 
@@ -169,10 +157,11 @@ class BrokerClient(BaseBrokerClient):
         - order (Order): The order to be placed.
         """
         orderId = self._get_valid_id()
-        # self.logger.info(f"\n{contract} order : reqid {orderId}")
         try:
             self.app.placeOrder(
-                orderId=orderId, contract=contract, order=order
+                orderId=orderId,
+                contract=event.contract,
+                order=event.order.order,
             )
         except Exception as e:
             raise e
@@ -197,9 +186,6 @@ class BrokerClient(BaseBrokerClient):
         # Tags for request
         account_info_keys = Account.get_account_key_mapping().keys()
         tags_string = ",".join(account_info_keys)
-        # print(test)
-        # account_info_keys = get_type_hints(AccountDetails).keys()
-        # self.logger.info(f"Requesting account summary.")
 
         try:
             self.app.reqAccountSummary(reqId, "All", tags_string)

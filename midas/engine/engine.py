@@ -7,7 +7,7 @@ from midasClient.client import DatabaseClient
 from midas.engine.components.order_book import OrderBook
 from midas.engine.components.observer.database_updater import DatabaseUpdater
 from midas.utils.logger import SystemLogger
-from midas.engine.components.portfolio.portfolio_server import PortfolioServer
+from midas.engine.components.portfolio_server import PortfolioServer
 from midas.engine.components.order_manager import OrderExecutionManager
 from midas.engine.components.risk.risk_handler import RiskHandler
 from midas.engine.components.performance.base import PerformanceManager

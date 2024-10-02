@@ -1,13 +1,12 @@
 # client.py
-import logging
 import threading
-from queue import Queue
-from decouple import config
 from ibapi.contract import Contract
-from midas.engine.components.order_book import OrderBook
-from midas.market_data import MarketDataType
 from midas.engine.components.gateways.live.data_client.wrapper import DataApp
-from midas.engine.components.gateways.base_data_client import BaseDataClient
+from midas.engine.components.gateways.base import BaseDataClient
+from midas.utils.logger import SystemLogger
+from midas.engine.config import Config, LiveDataType
+from midas.symbol import SymbolMap
+from mbn import BboMsg, BidAskPair, Side
 
 
 class DataClient(BaseDataClient):
@@ -36,16 +35,7 @@ class DataClient(BaseDataClient):
     - cancel_all_quote_data(): Cancels all active quote data streams.
     """
 
-    def __init__(
-        self,
-        event_queue: Queue,
-        order_book: OrderBook,
-        logger: logging.Logger,
-        host=config("HOST"),
-        port=config("PORT"),
-        clientId=config("DATA_CLIENT_ID"),
-        ib_account=config("IB_ACCOUNT"),
-    ):
+    def __init__(self, config: Config, symbols_map: SymbolMap):
         """
         Initializes the DataClient instance.
 
@@ -58,13 +48,13 @@ class DataClient(BaseDataClient):
         - clientId (str): Unique client identifier for this connection.
         - ib_account (str): IB account identifier for which data will be fetched.
         """
-        self.logger = logger
-        self.app = DataApp(event_queue, order_book, logger)
-        self.host = host
-        self.port = int(port)
-        self.clientId = clientId
-        self.account = ib_account
-
+        self.logger = SystemLogger.get_logger()
+        self.app = DataApp(config.strategy_parameters["tick_interval"])
+        self.symbols_map = symbols_map
+        self.host = config.data_source["host"]
+        self.port = int(config.data_source["port"])
+        self.clientId = config.data_source["client_id"]
+        self.account = config.data_source["account_id"]
         self.lock = threading.Lock()  # create a lock
 
     # -- Helper --
@@ -117,7 +107,7 @@ class DataClient(BaseDataClient):
         return self.app.isConnected()
 
     # -- Data --
-    def get_data(self, data_type: MarketDataType, contract: Contract):
+    def get_data(self, data_type: LiveDataType, contract: Contract):
         """
         Initiates data requests for the specified market data type and contract. Raises an error if an unsupported
         data type is specified.
@@ -126,13 +116,13 @@ class DataClient(BaseDataClient):
         - data_type (MarketDataType): The type of market data to request (e.g., QUOTE, BAR).
         - contract (Contract): The contract for which the data is requested.
         """
-        if data_type == MarketDataType.QUOTE:
+        if data_type == LiveDataType.TICK:
             self.stream_quote_data(contract)
-        elif data_type == MarketDataType.BAR:
+        elif data_type == LiveDataType.BAR:
             self.stream_5_sec_bars(contract)
         else:
             raise ValueError(
-                f"'data_type' must be of type MarketDataType enum."
+                "'data_type' must be of type MarketDataType enum."
             )
 
     def stream_5_sec_bars(self, contract: Contract):
@@ -143,11 +133,12 @@ class DataClient(BaseDataClient):
         - contract (Contract): The contract for which the 5-second bars are requested.
         """
         reqId = self._get_valid_id()
+        instrument_id = self.symbols_map.get_id(contract.symbol)
 
         # TODO: may not need the reqId check
         if (
-            reqId not in self.app.reqId_to_symbol_map.keys()
-            and contract.symbol not in self.app.reqId_to_symbol_map.values()
+            reqId not in self.app.reqId_to_instrument.keys()
+            and instrument_id not in self.app.reqId_to_instrument.values()
         ):
             self.app.reqRealTimeBars(
                 reqId=reqId,
@@ -157,7 +148,7 @@ class DataClient(BaseDataClient):
                 useRTH=False,
                 realTimeBarsOptions=[],
             )
-            self.app.reqId_to_symbol_map[reqId] = contract.symbol
+            self.app.reqId_to_instrument[reqId] = instrument_id
             self.logger.info(f"Started 5 sec bar data stream for {contract}.")
         else:
             self.logger.error(
@@ -167,9 +158,9 @@ class DataClient(BaseDataClient):
     def cancel_all_bar_data(self):
         """Cancels all active 5-second bar data streams and clears related mappings."""
         # Cancel real time bars for all reqId ** May not all be on bar data **
-        for reqId in self.app.reqId_to_symbol_map.keys():
+        for reqId in self.app.reqId_to_instrument.keys():
             self.app.cancelRealTimeBars(reqId)
-        self.app.reqId_to_symbol_map.clear()
+        self.app.reqId_to_instrument.clear()
 
     def stream_quote_data(self, contract: Contract):
         """
@@ -179,10 +170,11 @@ class DataClient(BaseDataClient):
         - contract (Contract): The contract for which the quote data is requested.
         """
         reqId = self._get_valid_id()
+        instrument_id = self.symbols_map.get_id(contract.symbol)
 
         if (
-            reqId not in self.app.reqId_to_symbol_map.keys()
-            and contract.symbol not in self.app.reqId_to_symbol_map.values()
+            reqId not in self.app.reqId_to_instrument.keys()
+            and instrument_id not in self.app.reqId_to_instrument.values()
         ):
             self.app.reqMktData(
                 reqId=reqId,
@@ -192,7 +184,28 @@ class DataClient(BaseDataClient):
                 regulatorySnapshot=False,
                 mktDataOptions=[],
             )
-            self.app.reqId_to_symbol_map[reqId] = contract.symbol
+            self.app.reqId_to_instrument[reqId] = instrument_id
+            bbo_obj = BboMsg(
+                instrument_id=instrument_id,
+                ts_event=0,
+                price=0,
+                size=0,
+                side=Side.NONE,
+                flags=0,
+                ts_recv=0,
+                sequence=0,
+                levels=[
+                    BidAskPair(
+                        bid_px=0,
+                        ask_px=0,
+                        bid_sz=0,
+                        ask_sz=0,
+                        bid_ct=0,
+                        ask_ct=0,
+                    )
+                ],
+            )
+            self.app.tick_data[reqId] = bbo_obj
             self.logger.info(
                 f"Requested top of book tick data stream for {contract}."
             )
@@ -204,10 +217,10 @@ class DataClient(BaseDataClient):
         Cancels all active quote data streams and clears the associated mappings.
         """
         # Cancel real tiem bars for all reqId ** May not all be on bar data **
-        for reqId in self.app.reqId_to_symbol_map.keys():
+        for reqId in self.app.reqId_to_instrument.keys():
             self.app.cancelMktData(reqId)
 
-        self.app.reqId_to_symbol_map.clear()
+        self.app.reqId_to_instrument.clear()
 
     # def cancel_market_data_stream(self,contract:Contract):
     #     for key, value in self.app.market_data_top_book.items():

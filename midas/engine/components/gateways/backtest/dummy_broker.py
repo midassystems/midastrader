@@ -1,17 +1,18 @@
-import logging
-from queue import Queue
 from ibapi.contract import Contract
-from typing import Dict, Union, Union
+from typing import Dict, Union
 from midas.symbol import Symbol
 from midas.engine.components.order_book import OrderBook
 from midas.engine.events import ExecutionEvent
 from midas.trade import Trade
 from midas.orders import Action, BaseOrder
 from midas.account import Account, EquityDetails
-from midas.positions import position_factory, Position, Impact
+from midas.positions import position_factory, Position
+from midas.utils.logger import SystemLogger
+from midas.engine.components.observer.base import Subject, Observer, EventType
+from midas.symbol import SymbolMap
 
 
-class DummyBroker:
+class DummyBroker(Subject, Observer):
     """
     Simulates a broker for trading operations in a backtest environment.
 
@@ -31,11 +32,9 @@ class DummyBroker:
 
     def __init__(
         self,
-        symbols_map: Dict[str, Symbol],
-        event_queue: Queue,
+        symbols_map: SymbolMap,
         order_book: OrderBook,
         capital: float,
-        logger: logging.Logger,
     ):
         """
         Initializes the DummyBroker with necessary components and account details.
@@ -47,9 +46,9 @@ class DummyBroker:
         - capital (float): Initial capital available in the broker's account.
         - logger (Logger): The logger instance for recording broker activities.
         """
-        self.logger = logger
+        super().__init__()
+        self.logger = SystemLogger.get_logger()
         self.order_book = order_book
-        self.event_queue = event_queue
         self.symbols_map = symbols_map
 
         # Variables
@@ -59,7 +58,6 @@ class DummyBroker:
         self.liquidation_value: Dict[str, float] = {"account": 0}
         self.last_trades: Dict[str, Trade] = {}
         self.last_trade: Union[Trade, None] = None
-        # self.total_fees = 0
         self.account = Account(
             timestamp=None,
             full_available_funds=capital,
@@ -67,6 +65,18 @@ class DummyBroker:
             full_init_margin_req=0,
             unrealized_pnl=0,
         )
+
+    def handle_event(
+        self,
+        subject: Subject,
+        event_type: EventType,
+        event,
+    ) -> None:
+        if event_type == EventType.EOD_EVENT:
+            self.logger.info(event)
+            self.mark_to_market()
+            self.check_margin_call()
+            self.notify(EventType.EOD_EVENT, event)
 
     def placeOrder(
         self,
@@ -88,12 +98,11 @@ class DummyBroker:
         - contract (Contract): The contract for which the order is placed.
         - order (BaseOrder): The order details including quantity, price, etc.
         """
-        symbol = self.symbols_map.map[contract.symbol]
+        symbol = self.symbols_map.get_symbol(contract.symbol)
 
         # Order Data
         quantity = order.quantity  # +/- values
-        mkt_data = self.order_book.retrieve_ticker(symbol.ticker)
-        # price = mkt_data.pretty_price
+        mkt_data = self.order_book.retrieve(symbol.instrument_id)
         fill_price = symbol.slippage_price(mkt_data.pretty_price, action)
         fees = symbol.commission_fees(quantity)
 
@@ -159,9 +168,9 @@ class DummyBroker:
 
     def _update_account(self):
         for contract, position in self.positions.items():
-            mkt_data = self.order_book.retrieve_ticker(contract.symbol)
+            symbol = self.symbols_map.get_symbol(contract.symbol)
+            mkt_data = self.order_book.retrieve(symbol.instrument_id)
             position.market_price = mkt_data.pretty_price
-            # position.market_price = self.order_book.current_price(contract.symbol)
             impact = position.position_impact()
 
             # Update postion specific account values
@@ -216,7 +225,7 @@ class DummyBroker:
             timestamp=timestamp,
             trade_id=trade_id,
             leg_id=leg_id,
-            ticker=symbol.ticker,
+            instrument=symbol.instrument_id,
             quantity=round(quantity, 4),
             avg_price=fill_price,
             trade_value=round(symbol.value(quantity, fill_price), 2),
@@ -250,7 +259,7 @@ class DummyBroker:
             execution_event = ExecutionEvent(
                 timestamp, trade_details, action, symbol.contract
             )
-            self.event_queue.put(execution_event)
+            self.notify(EventType.TRADE_EXECUTED, execution_event)
         except (ValueError, TypeError) as e:
             raise RuntimeError(
                 f"Failed to create or queue ExecutionEvent due to input error: {e}"
@@ -265,15 +274,7 @@ class DummyBroker:
         Marks all positions to market based on current market prices and updates account PnL accordingly.
         """
         self._update_account()
-        self.logger.info(f"Account marked-to-market.")
-
-        # for contract, position in self.positions.items():
-        #     position.market_price = self.order_book.current_price(contract.symbol)
-        #     impact = position.position_impact()
-
-        #     self.unrealized_pnl[contract] = impact.unrealized_pnl
-        #     self.margin_required[contract] = impact.margin_required
-        #     self.liquidation_value[contract] = impact.liquidation_value
+        self.logger.info("Account marked-to-market.")
 
     def check_margin_call(self) -> None:
         """
@@ -291,8 +292,8 @@ class DummyBroker:
         Liquidates all positions to allow for full performance calculations.
         """
         for contract, position in list(self.positions.items()):
-            symbol = self.symbols_map[contract.symbol]
-            mkt_data = self.order_book.retrieve_ticker(contract.symbol)
+            symbol = self.symbols_map.get_symbol(contract.symbol)
+            mkt_data = self.order_book.retrieve(symbol.instrument_id)
             current_price = mkt_data.pretty_price
             position.market_price = current_price
             position.calculate_liquidation_value()
@@ -301,7 +302,7 @@ class DummyBroker:
                 timestamp=self.order_book.last_updated,
                 trade_id=self.last_trades[contract].trade_id,
                 leg_id=self.last_trades[contract].leg_id,
-                ticker=contract.symbol,
+                instrument=symbol.instrument_id,
                 quantity=round(position.quantity * -1, 4),
                 avg_price=current_price,
                 trade_value=round(
@@ -319,7 +320,7 @@ class DummyBroker:
             self.last_trades[contract] = trade
 
         # Output liquidation
-        string = f"Positions liquidate:"
+        string = "Positions liquidate:"
         for contract, trade in self.last_trades.items():
             string += f"\n  {contract} : {trade}"
 

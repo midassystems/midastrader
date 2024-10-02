@@ -1,4 +1,4 @@
-from .observer import Observer, Subject, EventType
+from .base import Observer, Subject, EventType
 
 
 # Public API of the 'engine' module

@@ -1,9 +1,7 @@
 import os
 import pytz
 import time
-import logging
 import threading
-import numpy as np
 from copy import deepcopy
 from decimal import Decimal
 from threading import Timer
@@ -15,15 +13,16 @@ from midas.trade import Trade
 from ibapi.execution import Execution
 from ibapi.order_state import OrderState
 from midas.account import Account
-from midas.engine.components.portfolio_server import PortfolioServer
 from midas.positions import position_factory
 from midas.active_orders import ActiveOrder
 from ibapi.commission_report import CommissionReport
 from ibapi.contract import Contract, ContractDetails
-from midas.engine.components.performance.base import BasePerformanceManager
+from midas.utils.logger import SystemLogger
+from midas.engine.components.observer.base import Subject, EventType
+from midas.symbol import SymbolMap
 
 
-class BrokerApp(EWrapper, EClient):
+class BrokerApp(EWrapper, EClient, Subject):
     """
     Class representing the application interfacing with the broker's API.
 
@@ -46,12 +45,7 @@ class BrokerApp(EWrapper, EClient):
     - next_valid_order_id_lock (threading.Lock): Lock for managing thread safety of order IDs.
     """
 
-    def __init__(
-        self,
-        logger: logging.Logger,
-        portfolio_server: PortfolioServer,
-        performance_manager: BasePerformanceManager,
-    ):
+    def __init__(self, symbols_map: SymbolMap):
         """
         Initialize the BrokerApp instance.
 
@@ -61,10 +55,9 @@ class BrokerApp(EWrapper, EClient):
         - performance_manager (LivePerformanceManager): An instance of LivePerformanceManager for managing performance calculations.
         """
         EClient.__init__(self, self)
-        self.logger = logger
-        self.portfolio_server = portfolio_server
-        self.symbols_map = portfolio_server.symbols_map
-        self.performance_manager = performance_manager
+        Subject.__init__(self)
+        self.logger = SystemLogger.get_logger()
+        self.symbols_map = symbols_map
 
         #  Data Storage
         self.next_valid_order_id = None
@@ -72,14 +65,13 @@ class BrokerApp(EWrapper, EClient):
         self.account_update_timer = None
         self.account_info_keys = Account.get_account_key_mapping().keys()
         self.account_info = Account(
-            timestamp=np.uint64(0),
+            timestamp=0,
             full_available_funds=0,
             full_init_margin_req=0,
             net_liquidation=0,
             unrealized_pnl=0,
         )
         self.last_order_id = 0
-        # self.executed_orders = {}
 
         # Event Handling
         self.connected_event = threading.Event()
@@ -163,7 +155,7 @@ class BrokerApp(EWrapper, EClient):
         Parameters:
             reqId (int): The request ID associated with the end of contract details.
         """
-        self.logger.info(f"Contract Details Received.")
+        self.logger.info("Contract Details Received.")
         self.validate_contract_event.set()
 
     #### wrapper function for reqAccountUpdates. returns accoutninformation whenever there is a change
@@ -193,7 +185,8 @@ class BrokerApp(EWrapper, EClient):
                     self.account_update_timer.cancel()
                 # 2 seccond delay
                 self.account_update_timer = Timer(
-                    2, self.process_account_updates
+                    2,
+                    self.process_account_updates,
                 )
                 self.account_update_timer.start()
 
@@ -207,7 +200,7 @@ class BrokerApp(EWrapper, EClient):
             account_info_copy = deepcopy(self.account_info)
 
         # Updating portfolio server outside the lock to avoid deadlocks
-        self.portfolio_server.update_account_details(account_info_copy)
+        self.notify(EventType.ACCOUNT_UPDATE, account_info_copy)
         self.logger.info("Processed buffered account updates.")
 
     #### wrapper function for reqAccountUpdates. Get position information
@@ -246,8 +239,8 @@ class BrokerApp(EWrapper, EClient):
             accountName,
         )
 
-        if contract.symbol in self.symbols_map.keys():
-            symbol = self.symbols_map[contract.symbol]
+        if contract.symbol in self.symbols_map.broker_tickers:
+            symbol = self.symbols_map.get_symbol(contract.symbol)
             market_price = marketPrice / symbol.price_multiplier
             avg_price = averageCost / (
                 symbol.price_multiplier * symbol.quantity_multiplier
@@ -263,7 +256,9 @@ class BrokerApp(EWrapper, EClient):
             position = position_factory(
                 symbol.security_type, symbol, **details
             )
-            self.portfolio_server.update_positions(contract, position)
+            self.notify(
+                EventType.POSITION_UPDATE, symbol.instrument_id, position
+            )
 
     #### wrapper function for reqAccountUpdates. Signals the end of account information
     def accountDownloadEnd(self, accountName: str):
@@ -282,7 +277,7 @@ class BrokerApp(EWrapper, EClient):
                 self.account_update_timer = None
 
         self.process_account_updates()
-        self.performance_manager.update_account_log(self.account_info)
+        self.notify(EventType.ACCOUNT_UPDATE, self.account_info)
 
         self.logger.info(f"AccountDownloadEnd. Account: {accountName}")
         self.account_download_event.set()
@@ -304,6 +299,7 @@ class BrokerApp(EWrapper, EClient):
         - orderState (OrderState): The state of the order.
         """
         super().openOrder(orderId, contract, order, orderState)
+        instrument = self.symbols_map.get_id(contract.symbol)
 
         if self.last_order_id < orderId:
             order_data = ActiveOrder(
@@ -312,7 +308,7 @@ class BrokerApp(EWrapper, EClient):
                 orderId=orderId,
                 parentId=order.parentId,
                 account=order.account,
-                symbol=contract.symbol,
+                instrument=instrument,
                 secType=contract.secType,
                 exchange=contract.exchange,
                 action=order.action,
@@ -329,12 +325,12 @@ class BrokerApp(EWrapper, EClient):
             self.last_order_id = orderId
 
             # Update portfoli server orders log
-            self.portfolio_server.update_orders(order_data)
+            self.notify(EventType.ORDER_UPDATE, order_data)
 
     # Wrapper function for openOrderEnd
     def openOrderEnd(self):
         """Handle end of open orders."""
-        self.logger.info(f"Initial Open Orders Received.")
+        self.logger.info("Initial Open Orders Received.")
         self.open_orders_event.set()
 
     # Wrapper function for orderStatus
@@ -396,8 +392,7 @@ class BrokerApp(EWrapper, EClient):
             whyHeld=whyHeld,
             mktCapPrice=mktCapPrice,
         )
-
-        self.portfolio_server.update_orders(order_data)
+        self.notify(EventType.ORDER_UPDATE, order_data)
 
     #### Wrapper function for reqAccountSummary
     def accountSummary(
@@ -430,8 +425,7 @@ class BrokerApp(EWrapper, EClient):
         """
         self.account_info.timestamp = int(time.time() * 1e9)
         self.logger.info(f"Account Summary Request Complete: {reqId}")
-
-        self.performance_manager.update_account_log(self.account_info)
+        self.notify(EventType.ACCOUNT_UPDATE, self.account_info)
 
     ####   wrapper function for reqExecutions.   this function gives the executed orders
     def execDetails(
@@ -449,8 +443,8 @@ class BrokerApp(EWrapper, EClient):
         super().execDetails(reqId, contract, execution)
 
         # Symbol
-        if contract.symbol in self.symbols_map.keys():
-            symbol = self.symbols_map[contract.symbol]
+        if contract.symbol in self.symbols_map.broker_tickers:
+            symbol = self.symbols_map.get_symbol(contract.symbol)
 
             # Convert action to ["BUY", "SELL"]
             side = "SELL" if execution.side == "SLD" else "BUY"
@@ -466,7 +460,7 @@ class BrokerApp(EWrapper, EClient):
             # Create Trade
             trade = Trade(
                 timestamp=unix_ns,
-                ticker=contract.symbol,
+                instrument=symbol.instrument_id,
                 trade_id=execution.orderId,
                 leg_id=1,
                 quantity=quantity,  # Decimal
@@ -476,8 +470,7 @@ class BrokerApp(EWrapper, EClient):
                 action=side,
                 fees=0,
             )
-
-            self.performance_manager.update_trades(execution.execId, trade)
+            self.notify(EventType.TRADE_UPDATE, execution.execId, trade)
 
     def commissionReport(self, commissionReport: CommissionReport):
         """
@@ -486,8 +479,10 @@ class BrokerApp(EWrapper, EClient):
         Parameters:
         - commissionReport (CommissionReport): The commission report.
         """
-        self.performance_manager.update_trade_commission(
-            commissionReport.execId, commissionReport.commission
+        self.notify(
+            EventType.TRADE_COMMISSION_UPDATE,
+            commissionReport.execId,
+            commissionReport.commission,
         )
 
 
@@ -513,6 +508,6 @@ def datetime_to_unix_ns(datetime_str: str, timezone_str: str):
     unix_timestamp_seconds = dt_aware.timestamp()
 
     # Convert the Unix timestamp to nanoseconds
-    unix_timestamp_nanoseconds = np.uint64(unix_timestamp_seconds * 1e9)
+    unix_timestamp_nanoseconds = int(unix_timestamp_seconds * 1e9)
 
     return unix_timestamp_nanoseconds

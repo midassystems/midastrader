@@ -31,7 +31,7 @@ class DatabaseUpdater(Observer):
         # Create trading session
         self.database_client.create_session(self.session_id)
 
-    def update(self, subject, event_type: EventType):
+    def handle_event(self, subject, event_type: EventType):
         """
         Responds to events by updating the database based on the event type.
 
@@ -63,7 +63,7 @@ class DatabaseUpdater(Observer):
             }
             # data = {"data": subject.get_active_orders.to_dict()}
             self._update_orders(data)
-        elif event_type == EventType.ACCOUNT_DETAIL_UPDATE:
+        elif event_type == EventType.ACCOUNT_UPDATE:
             account = subject.get_account
             data = {"data": account.to_dict()}
             self._update_account(data)
