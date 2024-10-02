@@ -9,7 +9,7 @@ class SystemLogger:
         cls,
         name="system",
         output_format="file",
-        output_file_path="",
+        output_file_path="output/",
         level=logging.INFO,
     ):
         if cls._instance is None:

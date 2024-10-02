@@ -2,10 +2,6 @@ import importlib.util
 from typing import Type
 from abc import ABC, abstractmethod
 
-# from midas.engine.components.order_book import OrderBook
-# from midas.engine.components.portfolio_server import PortfolioServer
-# from midas.engine.components.observer import Observer, Subject, EventType
-
 
 class BaseRiskModel(ABC):
     """

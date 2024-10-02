@@ -4,6 +4,8 @@ from midas.engine.components.portfolio_server import PortfolioServer
 from midas.engine.components.observer import Observer, Subject, EventType
 from midas.engine.components.risk import BaseRiskModel
 
+# TODO: logic implementation
+
 
 class RiskHandler(Observer, Subject):
     def __init__(self, risk_model_class: Type[BaseRiskModel]):
@@ -50,20 +52,3 @@ class RiskHandler(Observer, Subject):
         # Implement logic to handle risk updates,
         # e.g., send data to a dashboard, log, or take action.
         print(f"Risk update received: {risk_data}")
-
-
-# class BaseRiskModel(Observer, Subject):
-#     def __init__(self ):
-#         Subject.__init__(self)  # Initialize subject part
-
-#     def update(self, subject, event_type: EventType, data=None):
-#         # Handle updates from PortfolioServer and OrderBook
-#         if isinstance(subject, PortfolioServer) or isinstance(subject, OrderBook):
-#             self.evaluate_risk()
-
-#     def evaluate_risk(self):
-#         # Placeholder for risk evaluation logic
-#         # self.logger.info("Evaluating risk...")
-#         # After evaluating, notify observers about the risk update
-#         # self.notify(EventType.RISK_MODEL_UPDATE, self.current_risk_level)/
-#         pass

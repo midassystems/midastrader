@@ -1,24 +1,16 @@
-import threading
-import numpy as np
-import pandas as pd
 from typing import List, Optional
-from queue import Queue
-from decimal import Decimal
-from dateutil import parser
-from datetime import datetime
 from mbn import Schema, BufferStore, RecordMsg
 from midasClient.client import DatabaseClient, RetrieveParams
 from midas.utils.unix import unix_to_iso
-from midas.engine.events import MarketEvent, EODEvent
-from midas.engine.components.gateways.base_data_client import BaseDataClient
-from midas.engine.components.order_book import OrderBook
+from midas.engine.events import EODEvent
+from midas.engine.components.gateways.base import BaseDataClient
+from midas.engine.components.observer.base import Subject, EventType
+from midas.symbol import SymbolMap
+from datetime import datetime
+from midas.utils.logger import SystemLogger
 
-# from midas.client import DatabaseClient
-# from quantAnalytics.dataprocessor import DataProcessor
-# from midas.shared.market_data import BarData, QuoteData
 
-
-class DataClient(BaseDataClient, DatabaseClient):
+class DataClient(Subject, BaseDataClient):
     """
     Manages data fetching, processing, and streaming for trading simulations, extending the DatabaseClient for specific trading data operations.
 
@@ -33,10 +25,8 @@ class DataClient(BaseDataClient, DatabaseClient):
 
     def __init__(
         self,
-        event_queue: Queue,
-        data_client: DatabaseClient,
-        order_book: OrderBook,
-        eod_event_flag: threading.Event,
+        database_client: DatabaseClient,
+        symbols_map: SymbolMap,
     ):
         """
         Initializes the DataClient with the necessary components for market data management.
@@ -46,19 +36,35 @@ class DataClient(BaseDataClient, DatabaseClient):
         - data_client (DatabaseClient): The database client used for retrieving market data.
         - order_book (OrderBook): The order book where the market data will be used for trading operations.
         """
-        self.event_queue = event_queue
-        self.data_client = data_client
-        self.order_book = order_book
-        self.eod_event_flag = eod_event_flag
-        if self.eod_event_flag:
-            self.eod_event_flag.set()
-
-        # Data
-        self.data: BufferStore  # pd.DataFrame
-        self.unique_timestamps: list
+        super().__init__()
+        self.logger = SystemLogger.get_logger()
+        self.database_client = database_client
+        self.symbols_map = symbols_map
+        self.data: BufferStore
+        self.last_ts = None
         self.next_date = None
-        self.current_date_index = 0
-        self.current_day = None
+        self.current_date = None
+        self.eod_triggered = False
+
+    def load_backtest_data(
+        self,
+        tickers: List[str],
+        start_date: str,
+        end_date: str,
+        schema: Schema,
+        data_file_path: Optional[str] = None,
+    ) -> bool:
+        """Loads backtest data."""
+
+        self.data = self.get_data(
+            tickers,
+            start_date,
+            end_date,
+            schema,
+            data_file_path,
+        )
+
+        return True
 
     def get_data(
         self,
@@ -66,8 +72,8 @@ class DataClient(BaseDataClient, DatabaseClient):
         start_date: str,
         end_date: str,
         schema: Schema,
-        data_file_path: Optional[str] = None,  # New argument for file path
-    ) -> bool:
+        data_file_path: Optional[str] = None,
+    ) -> BufferStore:
         """
         Retrieves historical market data from the database or a file and initializes the data processing.
 
@@ -81,60 +87,76 @@ class DataClient(BaseDataClient, DatabaseClient):
         Returns:
         - bool: True if data retrieval and initial processing are successful.
         """
-        print(data_file_path)
         if data_file_path:
-            self.data = BufferStore.from_file(data_file_path)
+            data = BufferStore.from_file(data_file_path)
         else:
             params = RetrieveParams(tickers, start_date, end_date, schema)
-            self.data = self.data_client.get_records(params)
+            data = self.database_client.get_records(params)
 
-        return True
+        return data
 
-    # --  SIMULATE DATA STREAM --
     def data_stream(self) -> bool:
+        """
+        Simulate data stream.
+        """
         record = self.data.replay()
 
         if record is None:
             return False
 
-        # Update the next_date here
-        self.next_date = record.hd.ts_event
-        iso = unix_to_iso(self.next_date)
-        next_day = parser.parse(iso).date()
+        # Adjust instrument id
+        id = record.hd.instrument_id
+        ticker = self.data.metadata.mappings.get_ticker(id)
+        new_id = self.symbols_map.get_symbol(ticker).instrument_id
+        record.instrument_id = new_id
 
-        if self.current_day is None or next_day != self.current_day:
-            if self.current_day is not None:
-                # Perform EOD operations for the previous day
-                self.eod_event_flag.clear()
-                self._process_eod(self.current_day)
-
-            # Update the current day
-            self.current_day = next_day
-
-        # Non-blocking wait with timeout
-        while not self.eod_event_flag.is_set():
-            self.eod_event_flag.wait(timeout=0.1)
-            if not self.event_queue.empty():
-                return True
+        # Check for end of trading da
+        self._check_eod(record)
 
         # Update market data
-        self._set_market_data(record)
+        self.notify(EventType.MARKET_DATA, record)
+        # elf.notify_market_data(record)
 
         return True
 
-    def _process_eod(self, current_day):
+    def _check_eod(self, record: RecordMsg):
         """
-        Processes End-of-Day operations.
+        Checks if the current record marks the end of a trading day.
+        """
+        ts = datetime.fromisoformat(
+            unix_to_iso(record.ts_event, tz_info="America/New_York")
+        )
+        date = ts.date()
 
-        Parameters:
-        - current_day (datetime.date): The current day to process EOD operations.
-        """
-        self.event_queue.put(EODEvent(timestamp=current_day))
+        if not self.current_date or date > self.current_date:
+            self.current_date = date
+            self.eod_triggered = False
 
-    def _set_market_data(self, record: RecordMsg):
-        """
-        Posts the latest market data to the order book for trading simulation.
-        """
-        id = record.hd.instrument_id
-        ticker = self.data.metadata.mappings.get_ticker(id)
-        self.order_book.update(record, ticker)
+        symbol = self.symbols_map.map[record.instrument_id]
+
+        if not self.eod_triggered and symbol.after_day_session(
+            record.ts_event
+        ):
+            self.logger.info("EOD triggered")
+            self.eod_triggered = True
+            self.notify(
+                EventType.EOD_EVENT,
+                EODEvent(timestamp=self.current_date),
+            )
+
+            # self.notify_eod_event()
+
+    # def notify_eod_event(self):
+    #     """
+    #     Processes End-of-Day operations.
+    #
+    #     Parameters:
+    #     - current_day (datetime.date): The current day to process EOD operations.
+    #     """
+    #     self.notify(EventType.EOD_EVENT, EODEvent(timestamp=self.current_date))
+    #
+    # def notify_market_data(self, record: RecordMsg):
+    #     """
+    #     Posts the latest market data to the order book for trading simulation.
+    #     """
+    #     self.notify(EventType.MARKET_DATA, record)

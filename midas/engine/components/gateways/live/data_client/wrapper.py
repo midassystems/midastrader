@@ -1,20 +1,20 @@
 import os
-import logging
+from datetime import datetime
 import threading
-import numpy as np
-from typing import Union
-from queue import Queue
+from typing import Union, Optional
 from decimal import Decimal
 from ibapi.client import EClient
 from ibapi.wrapper import EWrapper
 from ibapi.contract import ContractDetails
-from midas.engine.components.order_book import OrderBook
-from mbn import OhlcvMsg, Mbp1Msg, RecordMsg
+from mbn import OhlcvMsg
+from midas.utils.logger import SystemLogger
+from midas.engine.components.observer.base import Subject, EventType
+from ibapi.ticktype import TickType
+from ibapi.common import TickAttrib
+import time
 
-# from midas.shared.market_data import BarData, QuoteData
 
-
-class DataApp(EWrapper, EClient):
+class DataApp(EWrapper, EClient, Subject):
     """
     A specialized class that handles the interaction with the Interactive Brokers (IB) API, managing the flow of data,
     handling errors, and executing event-driven responses. It extends functionality from both EWrapper and EClient
@@ -35,9 +35,7 @@ class DataApp(EWrapper, EClient):
     - next_valid_order_id_lock (threading.Lock): Lock to ensure thread-safe operations on next_valid_order_id.
     """
 
-    def __init__(
-        self, event_queue: Queue, order_book: OrderBook, logger: logging.Logger
-    ):
+    def __init__(self, tick_interval: Optional[int]):
         """
         Initializes a new instance of the DataApp, setting up the necessary attributes for managing data interactions
         with the Interactive Brokers API.
@@ -48,16 +46,14 @@ class DataApp(EWrapper, EClient):
         - logger (logging.Logger): Used for logging messages, errors, and other important information.
         """
         EClient.__init__(self, self)
-        self.event_queue = event_queue
-        self.logger = logger
-        self.order_book = order_book
+        Subject.__init__(self)
+        self.logger = SystemLogger.get_logger()
 
         #  Data Storage
         self.next_valid_order_id = None
         self.is_valid_contract = None
-        self.reqId_to_symbol_map = {}
-        self.market_data_top_book = {}
-        self.current_bar_data = {}
+        self.reqId_to_instrument = {}
+        self.tick_data = {}
 
         # Event Handling
         self.connected_event = threading.Event()
@@ -66,6 +62,29 @@ class DataApp(EWrapper, EClient):
 
         # Thread Locks
         self.next_valid_order_id_lock = threading.Lock()
+
+        # Tick interval updater
+        self.update_interval = (
+            tick_interval  # Seconds interval for pushing the event
+        )
+        self.is_running = True
+        self.timer_thread = threading.Thread(
+            target=self._run_timer,
+            daemon=True,
+        )
+        self.timer_thread.start()
+
+    def _run_timer(self):
+        """A continuously running timer in a separate thread that checks every 5 seconds."""
+        while self.is_running:
+            time.sleep(self.update_interval)
+            self.push_market_event()
+
+    def stop(self):
+        """Gracefully stop the timer thread and other resources."""
+        self.is_running = False
+        self.timer_thread.join()
+        self.logger.info("Shutting down the DataApp.")
 
     def error(
         self,
@@ -177,69 +196,77 @@ class DataApp(EWrapper, EClient):
         - count (int): The count of trades during the bar.
         """
         super().realtimeBar(
-            reqId, time, open_, high, low, close, volume, wap, count
+            reqId,
+            time,
+            open_,
+            high,
+            low,
+            close,
+            volume,
+            wap,
+            count,
         )
-        """ Updates the real time 5 seconds bars """
-        symbol = self.reqId_to_symbol_map[reqId]
+        instrument_id = self.reqId_to_instrument[reqId]
 
-        timestamp = np.uint64(time * 1e9)
-
-        new_bar_entry = BarData(
-            ticker=symbol,
-            timestamp=timestamp,
-            open=Decimal(open_),
-            high=Decimal(high),
-            low=Decimal(low),
-            close=Decimal(close),
-            volume=np.uint64(volume),
+        bar = OhlcvMsg(
+            instrument_id=instrument_id,
+            ts_event=int(time * 1e9),
+            open=int(open_ * 1e9),
+            high=int(high * 1e9),
+            low=int(low * 1e9),
+            close=int(close * 1e9),
+            volume=int(volume),
         )
-        self.current_bar_data[symbol] = new_bar_entry
+        self.notify(EventType.MARKET_DATA, bar)
 
-        if len(self.current_bar_data) == len(self.reqId_to_symbol_map):
-            self.order_book.update_market_data(
-                timestamp=timestamp, data=self.current_bar_data
-            )
-            # market_data_event = MarketEvent(timestamp=time, data=self.current_bar_data)
-            # self.event_queue.put(market_data_event)
-            # Reset current bar data for the next bar
-            self.current_bar_data = {}
+    def tickPrice(
+        self,
+        reqId: int,
+        tickType: TickType,
+        price: float,
+        attrib: TickAttrib,
+    ):
+        """Market data tick price callback. Handles all price related ticks."""
+        print(tickType)
+        if tickType == 1:  # BID
+            print("dbid")
+            self.tick_data[reqId].levels[0].bid_px = int(price * 1e9)
+            print(self.tick_data)
+            self.logger.info(f"BID : {reqId} : {price}")
+        elif tickType == 2:  # ASK
+            self.tick_data[reqId].levels[0].ask_px = int(price * 1e9)
+            self.logger.info(f"ASK : {reqId} : {price}")
+        elif tickType == 4:
+            self.tick_data[reqId].price = int(price * 1e9)
+            self.logger.info(f"Last : {reqId} :  {price}")
 
-    # def tickPrice(self, reqId: int, tickType, price: float, attrib):
-    #     """Market data tick price callback. Handles all price related ticks."""
-    #     super().tickPrice(reqId, tickType, price, attrib)
+    def tickSize(self, reqId: int, tickType, size: Decimal):
+        """Market data tick size callback. Handles all size-related ticks."""
 
-    #     if reqId not in self.market_data_top_book:
-    #         self.market_data_top_book[reqId] = TickData(reqId)
+        if tickType == 0:  # BID_SIZE
+            self.tick_data[reqId].levels[0].bid_sz = int(size)
+            self.logger.info(f"BID SIZE : {reqId} : {size}")
+        elif tickType == 3:  # ASK_SIZE
+            self.tick_data[reqId].levels[0].ask_sz = int(size)
+            self.logger.info(f"ASK SIZE : {reqId} : {size}")
+        elif tickType == 5:  # Last_SIZE
+            self.tick_data[reqId].size = int(size)
+            self.logger.info(f"Last SIZE : {reqId} : {size}")
 
-    #     if tickType == 1:  # BID
-    #         self.market_data_top_book[reqId].BID = price
-    #     elif tickType == 2:  # ASK
-    #         self.market_data_top_book[reqId].ASK = price
+    def tickString(self, reqId: int, tickType: TickType, value: str):
+        """Handles string-based market data updates."""
 
-    #     self.logger.info(vars(self.market_data_top_book[reqId]))
+        if tickType == 45:  # TIMESTAMP
+            self.tick_data[reqId].hd.ts_event = int(int(value) * 1e9)
+            self.logger.info(f"Time Last : {reqId} : {value}")
+            self.logger.info(f"Recv :{datetime.now()}")
 
-    # def tickSize(self, reqId: int, tickType, size: int):
-    #     """Market data tick size callback. Handles all size-related ticks."""
-    #     super().tickSize(reqId, tickType, size)
+    def push_market_event(self):
+        """Pushes a market event after processing the tick data."""
 
-    #     if reqId not in self.market_data_top_book:
-    #         self.market_data_top_book[reqId] = TickData(reqId)
+        self.logger.info(f"Market event pushed at {datetime.now()}")
 
-    #     if tickType == 0:  # BID_SIZE
-    #         self.market_data_top_book[reqId].BID_SIZE = size
-    #     elif tickType == 3:  # ASK_SIZE
-    #         self.market_data_top_book[reqId].ASK_SIZE = size
-
-    #     self.logger.info(vars(self.market_data_top_book[reqId]))
-
-    # def tickString(self, reqId: int, tickType, value: str):
-    #     """Handles string-based market data updates."""
-    #     super().tickString(reqId, tickType, value)
-
-    #     if reqId not in self.market_data_top_book:
-    #         self.market_data_top_book[reqId] = TickData(reqId)
-
-    #     if tickType == 45:  # TIMESTAMP
-    #         self.market_data_top_book[reqId].TIMESTAMP = value
-
-    #     self.logger.info(vars(self.market_data_top_book[reqId]))
+        # Process the latest tick data (This is just an example)
+        for _, data in self.tick_data.items():
+            # Notify system with the processed tick data
+            self.notify(EventType.MARKET_DATA, data)

@@ -1,8 +1,6 @@
-import logging
 import pandas as pd
 import importlib.util
 from typing import Type
-from queue import Queue
 from typing import List
 from abc import ABC, abstractmethod
 from midas.engine.components.order_book import OrderBook
@@ -10,9 +8,11 @@ from midas.signal import TradeInstruction
 from midas.engine.components.portfolio_server import PortfolioServer
 from midas.engine.events import SignalEvent, MarketEvent
 from midas.symbol import SymbolMap
+from midas.engine.components.observer.base import Subject, Observer, EventType
+from midas.utils.logger import SystemLogger
 
 
-class BaseStrategy(ABC):
+class BaseStrategy(Subject, Observer, ABC):
     """
     Abstract base class for trading strategies, providing a framework for handling market data,
     generating signals, and managing orders. Designed to be extended with specific strategy implementations.
@@ -21,11 +21,8 @@ class BaseStrategy(ABC):
     def __init__(
         self,
         symbols_map: SymbolMap,
-        # historical_data: pd.DataFrame,
         portfolio_server: PortfolioServer,
         order_book: OrderBook,
-        logger: logging.Logger,
-        event_queue: Queue,
     ):
         """
         Initialize the strategy with necessary components for data handling and event management.
@@ -36,10 +33,10 @@ class BaseStrategy(ABC):
         - logger (logging.Logger): Logger for recording activity and debugging.
         - event_queue (Queue): Queue for dispatching events like signals and orders.
         """
+        super().__init__()
+        self.logger = SystemLogger.get_logger()
         self.symbols_map = symbols_map
-        self.logger = logger
         self.order_book = order_book
-        self._event_queue = event_queue
         self.portfolio_server = portfolio_server
         self.historical_data = None
 
@@ -50,76 +47,19 @@ class BaseStrategy(ABC):
         """
         pass
 
-    def on_market_data(self, event: MarketEvent):
-        """
-        Callback to handle and process new market data events.
-
-        Parameters:
-        - event (MarketEvent): The market event containing new data to be processed.
-        """
-        if not isinstance(event, MarketEvent):
-            raise TypeError("'event' must be of type Market Event instance.")
-
-        self.handle_market_data()
-
     @abstractmethod
-    def handle_market_data(self):
-        """
-        Process the latest market data and generate corresponding trading signals.
-        This method needs to be implemented by subclasses to specify the strategy's logic.
-        """
-        pass
-
-    def set_signal(
-        self, trade_instructions: List[TradeInstruction], timestamp: int
+    def handle_event(
+        self,
+        subject: Subject,
+        event_type: EventType,
+        event: MarketEvent,
     ):
         """
-        Creates and queues a signal event based on the strategy's trade instructions.
+        Handle the event based on the type.
 
-        Parameters:
-        - trade_instructions (List[TradeInstruction]): Specific trade instructions to execute.
-        - timestamp (int): The time at which the signal is generated.
-        """
-        try:
-            signal_event = SignalEvent(timestamp, trade_instructions)
-            self._event_queue.put(signal_event)
-        except (ValueError, TypeError) as e:
-            raise RuntimeError(
-                f"Failed to create or queue SignalEvent due to input error: {e}"
-            ) from e
-        except Exception as e:
-            raise RuntimeError(
-                f"Unexpected error when creating or queuing SignalEvent: {e}"
-            ) from e
-
-    @abstractmethod
-    def _entry_signal(self):
-        """
-        Define the logic to generate entry signals for trades based on market data.
-        This method should specify when and how trades should be entered.
-        """
-        pass
-
-    @abstractmethod
-    def _exit_signal(self):
-        """
-        Define the logic to generate exit signals for closing or adjusting trades based on market conditions.
-        This method should specify when and how trades should be exited.
-        """
-        pass
-
-    @abstractmethod
-    def _asset_allocation(self):
-        """
-        Define how the strategy allocates assets across different instruments or markets.
-        This method should detail the asset distribution method used by the strategy.
-        """
-        pass
-
-    def generate_signals(self):
-        """
-        Generate signals based on historical data for backtesting purposes.
-        This method typically involves a vectorized approach to signal generation.
+            Parameters:
+            - subject (Subject): The subject that triggered the event.
+                - event_type (EventType): The type of event that was triggered.
         """
         pass
 
@@ -130,9 +70,30 @@ class BaseStrategy(ABC):
         """
         pass
 
+    def set_signal(
+        self,
+        trade_instructions: List[TradeInstruction],
+        timestamp: int,
+    ):
+        """
+        Creates and queues a signal event based on the strategy's trade instructions.
+
+        Parameters:
+        - trade_instructions (List[TradeInstruction]): Specific trade instructions to execute.
+        - timestamp (int): The time at which the signal is generated.
+        """
+        try:
+            signal_event = SignalEvent(timestamp, trade_instructions)
+            self.notify(EventType.SIGNAL, signal_event)
+        except (ValueError, TypeError) as e:
+            raise RuntimeError(f"Failed to set SignalEvent : {e}")
+        except Exception as e:
+            raise RuntimeError(f"Unexpected error setting SignalEvent: {e}")
+
 
 def load_strategy_class(
-    module_path: str, class_name: str
+    module_path: str,
+    class_name: str,
 ) -> Type[BaseStrategy]:
     """
     Dynamically loads a strategy class from a given module path and class name.

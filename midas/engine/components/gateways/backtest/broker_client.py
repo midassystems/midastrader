@@ -1,25 +1,18 @@
-import logging
-import threading
-from queue import Queue
 from ibapi.contract import Contract
-from midas.trade import Trade
-from midas.engine.events import ExecutionEvent
-from midas.orders import Action, BaseOrder
-from midas.engine.components.portfolio_server import PortfolioServer
-from midas.engine.events import ExecutionEvent, OrderEvent
-from midas.positions import Position, position_factory
-from midas.engine.components.performance.backtest import (
-    BacktestPerformanceManager,
+from midas.utils.logger import SystemLogger
+from midas.engine.components.gateways.base import BaseBrokerClient
+from midas.engine.events import (
+    ExecutionEvent,
+    OrderEvent,
+    EODEvent,
+    MarketEvent,
 )
 from midas.engine.components.gateways.backtest.dummy_broker import DummyBroker
-
-# from midas.engine.gateways.base_data_client import BaseDataClient /
-from midas.engine.components.gateways.base_broker_client import (
-    BaseBrokerClient,
-)
+from midas.engine.components.observer.base import Observer, Subject, EventType
+from midas.symbol import SymbolMap
 
 
-class BrokerClient(BaseBrokerClient):
+class BrokerClient(Subject, Observer, BaseBrokerClient):
     """
     Simulates the execution of trades and updating account data.
 
@@ -45,15 +38,7 @@ class BrokerClient(BaseBrokerClient):
     - liquidate_positions(): Liquidates all positions at the end of a trading session or in response to market conditions.
     """
 
-    def __init__(
-        self,
-        event_queue: Queue,
-        logger: logging.Logger,
-        portfolio_server: PortfolioServer,
-        performance_manager: BacktestPerformanceManager,
-        broker: DummyBroker,
-        eod_event_flag: threading.Event,
-    ):
+    def __init__(self, broker: DummyBroker, symbols_map: SymbolMap):
         """
         Initializes a BrokerClient with the necessary components to simulate broker functionalities.
 
@@ -64,44 +49,50 @@ class BrokerClient(BaseBrokerClient):
         - performance_manager (BasePerformanceManager): Manages and calculates performance metrics.
         - broker (DummyBroker): The simulated broker backend for order execution and account management.
         """
-        # Subscriptions
-        self.performance_manager = performance_manager
-        self.portfolio_server = portfolio_server
+        Subject.__init__(self)
         self.broker = broker
-        self.logger = logger
-        self.event_queue = event_queue
-        self.eod_event_flag = eod_event_flag
+        self.symbols_map = symbols_map
+        self.logger = SystemLogger.get_logger()
 
-        self.update_account()
-
-    def on_order(self, event: OrderEvent):
+    def handle_event(
+        self,
+        subject: Subject,
+        event_type: EventType,
+        event,
+    ) -> None:
         """
         Handles new order events from the event queue and initiates order processing.
 
         Parameters:
         - event (OrderEvent): The event containing order details for execution.
         """
-        if not isinstance(event, OrderEvent):
-            raise ValueError("'event' must be of type OrderEvent instance.")
+        if event_type == EventType.ORDER_CREATED:
+            if not isinstance(event, OrderEvent):
+                raise ValueError(
+                    "'event' must be of type OrderEvent instance."
+                )
+            self.handle_order(event)
 
-        timestamp = event.timestamp
-        trade_id = event.trade_id
-        leg_id = event.leg_id
-        action = event.action
-        contract = event.contract
-        order = event.order
+        elif event_type == EventType.TRADE_EXECUTED:
+            if not isinstance(event, ExecutionEvent):
+                raise ValueError(
+                    "'event' must be of type ExecutionEvent instance."
+                )
+            self.handle_execution(event)
 
-        self.handle_order(timestamp, trade_id, leg_id, action, contract, order)
+        elif event_type == EventType.EOD_EVENT:
+            if not isinstance(event, EODEvent):
+                raise ValueError("'event' must be of type EODEvent.")
 
-    def handle_order(
-        self,
-        timestamp: int,
-        trade_id: int,
-        leg_id: int,
-        action: Action,
-        contract: Contract,
-        order: BaseOrder,
-    ):
+            self.handle_eod(event)
+
+        elif event_type == EventType.ORDER_BOOK:
+            if not isinstance(event, MarketEvent):
+                raise ValueError("'event' must be of MarketEvent.")
+
+            self.update_equity_value()
+
+    def handle_order(self, event: OrderEvent):
         """
         Directly processes and executes an order based on given details.
 
@@ -113,21 +104,32 @@ class BrokerClient(BaseBrokerClient):
         - contract (Contract): The financial instrument involved in the order.
         - order (BaseOrder): The specific order details including type and quantity.
         """
+        self.logger.info(event)
+
+        timestamp = event.timestamp
+        trade_id = event.trade_id
+        leg_id = event.leg_id
+        action = event.action
+        contract = event.contract
+        order = event.order
+
         self.broker.placeOrder(
-            timestamp, trade_id, leg_id, action, contract, order
+            timestamp,
+            trade_id,
+            leg_id,
+            action,
+            contract,
+            order,
         )
 
-    def on_execution(self, event: ExecutionEvent):
+    def handle_execution(self, event: ExecutionEvent):
         """
         Responds to execution events, updating system states such as positions and account details.
 
         Parameters:
             event (ExecutionEvent): The event detailing the trade execution.
         """
-        if not isinstance(event, ExecutionEvent):
-            raise ValueError(
-                "'event' must be of type ExecutionEvent instance."
-            )
+        self.logger.info(event)
 
         # Update trades look with current event
         contract = event.contract
@@ -140,20 +142,14 @@ class BrokerClient(BaseBrokerClient):
             self.update_account()
             self.update_equity_value()
 
-    def eod_update(self):
+    def handle_eod(self, event: EODEvent):
         """
         Performs end-of-day updates including marking positions to market values and checking margin requirements.
 
         This method is crucial for maintaining accurate account evaluations and ensuring compliance with trading regulations
         regarding margin requirements. It updates account and equity values based on the day's final prices.
         """
-        self.broker.mark_to_market()
-        self.broker.check_margin_call()
         self.update_account()
-        self.update_equity_value()
-
-        self.eod_event_flag.set()
-        self.logger.info("EOD update complete.")
 
     def update_positions(self):
         """
@@ -165,7 +161,8 @@ class BrokerClient(BaseBrokerClient):
         """
         positions = self.broker.return_positions()
         for contract, position_data in positions.items():
-            self.portfolio_server.update_positions(contract, position_data)
+            id = self.symbols_map.get_id(contract.symbol)
+            self.notify(EventType.POSITION_UPDATE, id, position_data)
 
     def update_trades(self, contract: Contract = None):
         """
@@ -179,11 +176,13 @@ class BrokerClient(BaseBrokerClient):
         """
         if contract:
             trade = self.broker.return_executed_trades(contract)
-            self.performance_manager.update_trades(trade)
+            trade_id = f"{trade.trade_id}{trade.leg_id}{trade.action}"
+            self.notify(EventType.TRADE_UPDATE, trade_id, trade)
         else:
             last_trades = self.broker.return_executed_trades()
             for contract, trade in last_trades.items():
-                self.performance_manager.update_trades(trade)
+                trade_id = f"{trade.trade_id}{trade.leg_id}{trade.action}"
+                self.notify(EventType.TRADE_UPDATE, trade_id, trade)
 
     def update_account(self):
         """
@@ -193,7 +192,7 @@ class BrokerClient(BaseBrokerClient):
         current information regarding account balances and other financial metrics.
         """
         account = self.broker.return_account()
-        self.portfolio_server.update_account_details(account)
+        self.notify(EventType.ACCOUNT_UPDATE, account)
 
     def update_equity_value(self):
         """
@@ -204,7 +203,7 @@ class BrokerClient(BaseBrokerClient):
         """
         self.broker._update_account()
         equity = self.broker.return_equity_value()
-        self.performance_manager.update_equity(equity)
+        self.notify(EventType.EQUITY_VALUE_UPDATE, equity)
 
     def liquidate_positions(self):
         """

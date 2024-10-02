@@ -1,323 +1,49 @@
-import logging
-import numpy as np
+import math
 import pandas as pd
-from typing import List, Dict
-from midas.trade import Trade
-from midas.engine.events import SignalEvent
-from quantAnalytics.risk import RiskAnalysis
+from midas.utils.logger import SystemLogger
+from midas.engine.config import Parameters, Mode
+from midas.engine.components.observer.base import Observer, Subject, EventType
 from midas.engine.components.base_strategy import BaseStrategy
-
-# from midas.engine.command.parameters import Parameters
-from midas.utils.unix import resample_daily, unix_to_iso
-from quantAnalytics.performance import PerformanceStatistics
-from midas.account import EquityDetails, Account
+from midas.live_session import LiveTradingSession
+from midas.utils.unix import unix_to_iso
 from midasClient.client import DatabaseClient
+from midas.backtest import Backtest
+from midas.symbol import SymbolMap
+from midas.engine.components.performance.managers import (
+    AccountManager,
+    EquityManager,
+    TradeManager,
+    SignalManager,
+)
 
 
-class TradesManager:
-    def __init__(self):
-        self.trades: List[Trade] = []
-
-    def _aggregate_trades(self) -> pd.DataFrame:
-        """
-        Aggregates trade data into a structured DataFrame for analysis.
-
-        Returns:
-        - pd.DataFrame: Aggregated trade statistics including entry and exit values, fees, and pnl.
-        """
-        if not self.trades:
-            return pd.DataFrame()  # Return an empty DataFrame for consistency
-
-        df = pd.DataFrame(self.trades)
-
-        # Group by trade_id to calculate aggregated values
-        aggregated = df.groupby("trade_id").agg(
-            {
-                "timestamp": ["first", "last"],
-                "trade_value": [
-                    (
-                        "entry_value",
-                        lambda x: x[
-                            df["action"].isin(["LONG", "SHORT"])
-                        ].sum(),
-                    ),
-                    (
-                        "exit_value",
-                        lambda x: x[
-                            df["action"].isin(["SELL", "COVER"])
-                        ].sum(),
-                    ),
-                ],
-                "trade_cost": [
-                    (
-                        "entry_value",
-                        lambda x: x[
-                            df["action"].isin(["LONG", "SHORT"])
-                        ].sum(),
-                    ),
-                    (
-                        "exit_value",
-                        lambda x: x[
-                            df["action"].isin(["SELL", "COVER"])
-                        ].sum(),
-                    ),
-                ],
-                "fees": "sum",  # Sum of all fees for each trade group
-            }
-        )
-
-        # Simplify column names after aggregation
-        aggregated.columns = [
-            "start_date",
-            "end_date",
-            "entry_value",
-            "exit_value",
-            "entry_cost",
-            "exit_cost",
-            "fees",
-        ]
-
-        # Calculate percentage gain/loss based on the entry value
-        aggregated["gain/loss"] = (
-            aggregated["exit_value"] + aggregated["entry_value"]
-        ) * -1  #  aggregated['pnl'] / aggregated['entry_value'].abs()
-
-        # Calculate Profit and Loss (PnL)
-        aggregated["pnl"] = (
-            aggregated["exit_value"] + aggregated["entry_value"]
-        ) * -1 + aggregated["fees"]
-
-        aggregated["pnl_percentage"] = (
-            aggregated["pnl"] / aggregated["entry_cost"]
-        ) * 100
-
-        # Reset index to make 'trade_id' a column again
-        aggregated.reset_index(inplace=True)
-
-        return aggregated
-
-    def calculate_trade_statistics(self) -> Dict[str, float]:
-        """
-        Calculates statistics related to trades and returns them in a dictionary.
-        """
-        trades_df = self._aggregate_trades()
-        trades_pnl = trades_df["pnl"].to_numpy()
-        trades_pnl_percent = trades_df["pnl_percentage"].to_numpy()
-        # TODO: DELeTE
-        trades_pnl_percent = np.array([1, 2, 3, 4, 6, 7, 8])
-        print(trades_df)
-        print(trades_pnl_percent)
-
-        return {
-            "total_trades": self.total_trades(trades_pnl),
-            "total_winning_trades": int(self.total_winning_trades(trades_pnl)),
-            "total_losing_trades": int(self.total_losing_trades(trades_pnl)),
-            "avg_profit": float(self.avg_profit(trades_pnl)),
-            "avg_profit_percent": float(
-                self.avg_profit_percent(trades_pnl_percent)
-            ),
-            "avg_gain": float(self.avg_gain(trades_pnl)),
-            "avg_gain_percent": float(
-                self.avg_gain_percent(trades_pnl_percent)
-            ),
-            "avg_loss": float(self.avg_loss(trades_pnl)),
-            "avg_loss_percent": float(
-                self.avg_loss_percent(trades_pnl_percent)
-            ),
-            "profitability_ratio": float(self.profitability_ratio(trades_pnl)),
-            "profit_factor": float(self.profit_factor(trades_pnl)),
-            "profit_and_loss_ratio": float(
-                self.profit_and_loss_ratio(trades_pnl)
-            ),
-            "total_fees": round(float(trades_df["fees"].sum()), 4),
-        }
-
-    @staticmethod
-    def total_trades(trades_pnl: np.ndarray) -> int:
-        return len(trades_pnl)
-
-    @staticmethod
-    def total_winning_trades(trades_pnl: np.ndarray) -> int:
-        return np.sum(trades_pnl > 0)
-
-    @staticmethod
-    def total_losing_trades(trades_pnl: np.ndarray) -> int:
-        return np.sum(trades_pnl < 0)
-
-    @staticmethod
-    def avg_profit(trade_pnl: np.ndarray) -> float:
-        net_profit = trade_pnl.sum()
-        total_trades = len(trade_pnl)
-        return round(net_profit / total_trades, 4) if total_trades > 0 else 0.0
-
-    @staticmethod
-    def avg_profit_percent(trade_pnl_percent: np.ndarray) -> float:
-        total_trades = len(trade_pnl_percent)
-        print("TEstign ghri {}", trade_pnl_percent.mean())
-        return round(trade_pnl_percent.mean(), 4) if total_trades > 0 else 0.0
-
-    @staticmethod
-    def avg_gain(trades_pnl: np.ndarray) -> float:
-        winning_trades = trades_pnl[trades_pnl > 0]
-        return (
-            round(winning_trades.mean(), 4) if winning_trades.size > 0 else 0.0
-        )
-
-    @staticmethod
-    def avg_gain_percent(trade_pnl_percent: np.ndarray) -> float:
-        winning_trades = trade_pnl_percent[trade_pnl_percent > 0]
-        return (
-            round(winning_trades.mean(), 4) if winning_trades.size > 0 else 0.0
-        )
-
-    @staticmethod
-    def avg_loss(trades_pnl: np.ndarray) -> float:
-        losing_trades = trades_pnl[trades_pnl < 0]
-        return (
-            round(losing_trades.mean(), 4) if losing_trades.size > 0 else 0.0
-        )
-
-    @staticmethod
-    def avg_loss_percent(trade_pnl_percent: np.ndarray) -> float:
-        losing_trades = trade_pnl_percent[trade_pnl_percent < 0]
-        return (
-            round(losing_trades.mean(), 4) if losing_trades.size > 0 else 0.0
-        )
-
-    @staticmethod
-    def profitability_ratio(trade_pnl: np.ndarray) -> float:
-        total_winning_trades = TradesManager.total_winning_trades(trade_pnl)
-        total_trades = len(trade_pnl)
-        return (
-            round(total_winning_trades / total_trades, 4)
-            if total_trades > 0
-            else 0.0
-        )
-
-    @staticmethod
-    def profit_factor(trade_pnl: np.ndarray) -> float:
-        gross_profits = trade_pnl[trade_pnl > 0].sum()
-        gross_losses = abs(trade_pnl[trade_pnl < 0].sum())
-        return (
-            round(gross_profits / gross_losses, 4) if gross_losses > 0 else 0.0
-        )
-
-    @staticmethod
-    def profit_and_loss_ratio(trade_pnl: np.ndarray) -> float:
-        avg_win = trade_pnl[trade_pnl > 0].mean()
-        avg_loss = trade_pnl[trade_pnl < 0].mean()
-        if avg_loss != 0:
-            return round(abs(avg_win / avg_loss), 4)
-        return 0.0
+def replace_nan_inf_in_dict(d):
+    for key, value in d.items():
+        if isinstance(value, dict):
+            replace_nan_inf_in_dict(value)
+        elif isinstance(value, float) and (
+            math.isnan(value) or math.isinf(value)
+        ):
+            d[key] = 0.0
 
 
-class EquityManager:
-    def __init__(self):
-        self.equity_value: List[EquityDetails] = []
-        self.daily_timeseries_stats: pd.DataFrame = None
-        self.period_timeseries_stats: pd.DataFrame = None
-
-    def _calculate_return_and_drawdown(
-        self, data: pd.DataFrame
-    ) -> pd.DataFrame:
-        """
-        Calculates the period returns, cumulative returns, and drawdowns for a given equity curve.
-
-        Parameters:
-        - data (pd.DataFrame): DataFrame containing the equity values with a datetime index.
-
-        Returns:
-        - pd.DataFrame: The DataFrame enhanced with columns for period returns, cumulative returns, and drawdowns.
-        """
-        equity_curve = data["equity_value"].to_numpy()
-
-        # Adjust daily_return to add a placeholder at the beginning
-        period_returns = PerformanceStatistics.simple_returns(equity_curve)
-        period_returns_adjusted = np.insert(period_returns, 0, 0)
-
-        # Adjust rolling_cumulative_return to add a placeholder at the beginning
-        cumulative_returns = PerformanceStatistics.cumulative_returns(
-            equity_curve
-        )
-        cumulative_returns_adjusted = np.insert(cumulative_returns, 0, 0)
-
-        data["period_return"] = period_returns_adjusted
-        data["cumulative_return"] = cumulative_returns_adjusted
-        data["percent_drawdown"] = RiskAnalysis.drawdown(
-            period_returns_adjusted
-        )
-        data.fillna(
-            0, inplace=True
-        )  # Replace NaN with 0 for the first element
-        return data
-
-    def calculate_equity_statistics(
-        self, risk_free_rate: float = 0.04
-    ) -> Dict[str, float]:
-        """
-        Calculates statistics related to equity curve and returns them in a dictionary.
-        """
-        raw_equity_df = pd.DataFrame(self.equity_value)
-        raw_equity_df.set_index("timestamp", inplace=True)
-
-        daily_equity_curve = resample_daily(raw_equity_df.copy(), "EST")
-        print(daily_equity_curve)
-        self.period_timeseries_stats = self._calculate_return_and_drawdown(
-            raw_equity_df.copy()
-        )
-        self.period_timeseries_stats.reset_index(inplace=True)
-        self.daily_timeseries_stats = self._calculate_return_and_drawdown(
-            daily_equity_curve.copy()
-        )
-        self.daily_timeseries_stats.reset_index(inplace=True)
-
-        raw_equity_curve = raw_equity_df["equity_value"].to_numpy()
-        daily_returns = self.daily_timeseries_stats["period_return"].to_numpy()
-        # TODO: DELETE
-        daily_returns = np.array([1, 2, 3, -4, 5, 6, -7, 8, 1, 2, 3])
-        print(daily_returns)
-        period_returns = self.period_timeseries_stats[
-            "period_return"
-        ].to_numpy()
-
-        return {
-            "net_profit": float(
-                PerformanceStatistics.net_profit(raw_equity_curve)
-            ),
-            "beginning_equity": float(raw_equity_curve[0]),
-            "ending_equity": float(raw_equity_curve[-1]),
-            "total_return": float(
-                PerformanceStatistics.total_return(raw_equity_curve)
-            ),
-            "daily_standard_deviation_percentage": float(
-                RiskAnalysis.standard_deviation(daily_returns)
-            ),
-            "annual_standard_deviation_percentage": float(
-                RiskAnalysis.annual_standard_deviation(daily_returns)
-            ),
-            "max_drawdown_percentage_period": float(
-                RiskAnalysis.max_drawdown(period_returns)
-            ),
-            "max_drawdown_percentage_daily": float(
-                RiskAnalysis.max_drawdown(daily_returns)
-            ),
-            "sharpe_ratio": float(
-                RiskAnalysis.sharpe_ratio(daily_returns, risk_free_rate)
-            ),
-            "sortino_ratio": float(
-                RiskAnalysis.sortino_ratio(daily_returns, risk_free_rate)
-            ),
-        }
+def _convert_timestamp(df: pd.DataFrame, column: str = "ts_event") -> None:
+    df[column] = pd.to_datetime(df[column].map(lambda x: unix_to_iso(x)))
+    df[column] = df[column].dt.tz_convert("America/New_York")
+    df[column] = df[column].dt.tz_localize(None)
 
 
-class BasePerformanceManager(TradesManager, EquityManager):
+class PerformanceManager(Subject, Observer):
     """
     Base class for managing and tracking the performance of trading strategies.
     It collects and logs information about signals, trades, equity changes, and account updates.
     """
 
     def __init__(
-        self, database: DatabaseClient, logger: logging.Logger, params
+        self,
+        database: DatabaseClient,
+        params: Parameters,
+        symbols_map: SymbolMap,
     ) -> None:
         """
         Initializes the performance manager with necessary components for tracking and analysis.
@@ -327,94 +53,197 @@ class BasePerformanceManager(TradesManager, EquityManager):
         - logger (logging.Logger): Logger for recording activity and debugging.
         - params (Parameters): Configuration parameters for the performance manager.
         """
-        TradesManager.__init__(self)
-        EquityManager.__init__(self)
-
-        # Variables
-        self.logger = logger
+        Subject().__init__()
+        self.logger = SystemLogger.get_logger()
+        self.trade_manager = TradeManager(self.logger)
+        self.equity_manager = EquityManager(self.logger)
+        self.signal_manager = SignalManager(self.logger)
+        self.account_manager = AccountManager(self.logger)
+        self.strategy: BaseStrategy
         self.params = params
+        self.symbols_map = symbols_map
         self.database = database
-        self.signals: List[Dict] = []
-        self.account_log: List[Account] = []
 
     def set_strategy(self, strategy: BaseStrategy):
         self.strategy = strategy
 
-    def update_trades(self, trade: Trade):
-        """
-        Updates and logs the trade history.
+    def handle_event(
+        self, subject: Subject, event_type: EventType, *args, **kwargs
+    ) -> None:
+        if event_type == EventType.EQUITY_VALUE_UPDATE:
+            if len(args) == 1:
+                self.equity_manager.update_equity(args[0])
+            else:
+                raise ValueError("Missing required arguments for EQUITY_EVENT")
+        elif event_type == EventType.ACCOUNT_UPDATE:
+            if len(args) == 1:
+                self.account_manager.update_account_log(args[0])
+            else:
+                raise ValueError("Missing account details for ACCOUNT_UPDATE")
+        elif event_type == EventType.TRADE_UPDATE:
+            if len(args) == 2:
+                self.trade_manager.update_trades(args[0], args[1])
+            else:
+                raise ValueError("Missing order data for TRADE_UPDATE")
+        elif event_type == EventType.TRADE_COMMISSION_UPDATE:
+            if len(args) == 2:
+                self.trade_manager.update_trade_commission(args[0], args[1])
+            else:
+                raise ValueError(
+                    "Missing order data for TRADE_COMMMISSION_UPDATE"
+                )
+        elif event_type == EventType.SIGNAL:
+            if len(args) == 1:
+                self.signal_manager.update_signals(args[0])
+            else:
+                raise ValueError("Missing order data for SIGNAL_UPDATE")
 
-        Parameters:
-        - trade (Trade): The trade object to be logged.
-        """
-        # super().update_trades(trade)
-        if trade not in self.trades:
-            self.trades.append(trade)
-            self.logger.info(f"\nTRADES UPDATED:\n{self._output_trades()}")
+        else:
+            raise ValueError(f"Unhandled event type: {event_type}")
 
-    def _output_trades(self) -> str:
-        """
-        Creates a string representation of all trades for logging.
+    def export_results(self, output_path: str):
+        # Summary Stats
+        static_stats_df = pd.DataFrame([self.static_stats]).T
 
-        Returns:
-        - str: String representation of all trades.
-        """
-        string = ""
-        for trade in self.trades:
-            string += f"{trade.pretty_print("  ")}\n"
-        return string
+        # Parameters
+        params_df = pd.DataFrame(self.params.to_dict())
+        params_df["tickers"] = ", ".join(params_df["tickers"])
+        params_df = params_df.iloc[0:1]
 
-    def update_signals(self, signal: SignalEvent):
-        """
-        Updates and logs the signal events.
+        columns = ["train_start", "test_start", "train_end", "test_end"]
+        for column in columns:
+            _convert_timestamp(params_df, column)
+        params_df = params_df.T
 
-        Parameters:
-        - signal (SignalEvent): The signal event to be logged.
-        """
-        self.signals.append(signal.to_dict())
-        self.logger.info(f"\nSIGNALS UPDATED: \n{self._output_signals()}")
+        # Trades
+        trades_df = pd.DataFrame(self.trade_manager.trades.values())
+        _convert_timestamp(trades_df, "timestamp")
 
-    def _output_signals(self) -> str:
-        """
-        Creates a string representation of all signals for logging.
+        agg_trade_df = self.trade_manager._aggregate_trades()
+        _convert_timestamp(agg_trade_df, "start_date")
+        _convert_timestamp(agg_trade_df, "end_date")
 
-        Returns:
-        - str: String representation of all signals.
-        """
-        string = ""
-        for signals in self.signals:
-            string += f"  Timestamp: {signals['timestamp']} \n"
-            string += f"  Trade Instructions: \n"
-            for instruction in signals["trade_instructions"]:
-                string += f"    {instruction}\n"
-        return string
+        # Equity
+        period_df = self.equity_manager.period_stats.copy()
+        _convert_timestamp(period_df, "timestamp")
 
-    def update_account_log(self, account_details: Account):
-        """
-        Updates and logs the account details.
+        daily_df = self.equity_manager.daily_stats.copy()
+        _convert_timestamp(daily_df, "timestamp")
 
-        Parameters:
-        - account_details (AccountDetails): The account details to be logged.
-        """
-        self.account_log.append(account_details)
-        # self.logger.info(f"\nAccount Log Updated: {account_details}")
+        # Signals
+        signals_df = self.signal_manager._flatten_trade_instructions()
+        _convert_timestamp(signals_df, "timestamp")
 
-    def update_equity(self, equity_details: EquityDetails):
-        """
-        Updates and logs equity changes.
+        # Strategy
+        strategy_data = self.strategy.get_strategy_data()
+        if len(strategy_data) > 0:
+            _convert_timestamp(strategy_data, "timestamp")
 
-        Parameters:
-        - equity_details (EquityDetails): The equity details to be logged.
-        """
-        if equity_details not in self.equity_value:
-            self.equity_value.append(equity_details)
-            self.logger.info(
-                f"\nEQUITY UPDATED: \n  {self.equity_value[-1]}\n"
-            )
+        with pd.ExcelWriter(
+            output_path + "output.xlsx", engine="xlsxwriter"
+        ) as writer:
+            params_df.to_excel(writer, sheet_name="Parameters")
+            static_stats_df.to_excel(writer, sheet_name="Static Stats")
+            period_df.to_excel(writer, index=False, sheet_name="Period Equity")
+            daily_df.to_excel(writer, index=False, sheet_name="Daily Equity")
+            trades_df.to_excel(writer, index=False, sheet_name="Trades")
+            agg_trade_df.to_excel(writer, index=False, sheet_name="Agg Trades")
+            signals_df.to_excel(writer, index=False, sheet_name="Signals")
+            strategy_data.to_excel(writer, index=False, sheet_name="Strategy")
 
-    def save(self):
+    def save(self, mode: Mode, output_path: str = "") -> None:
         """
-        Saves the collected performance data to a database.
-        Implemented in the child classes for live and backtest.
+        Saves the performance data based on the mode (live or backtest).
         """
-        pass
+        if mode == Mode.BACKTEST:
+            self._save_backtest(output_path)
+        elif mode == Mode.LIVE:
+            self._save_live(output_path)
+
+    def _save_backtest(self, output_path: str = "") -> None:
+        """
+        Saves the collected performance data including the backtest configuration, trades, and signals
+        to a database or other storage mechanism.
+        """
+        # Aggregate trades and equity statistics
+        trade_stats = self.trade_manager.calculate_trade_statistics()
+        equity_stats = self.equity_manager.calculate_equity_statistics(
+            self.params.risk_free_rate
+        )
+
+        # Summary stats
+        all_stats = {**trade_stats, **equity_stats}
+        self.static_stats = all_stats
+
+        # Export to Excel
+        self.export_results(output_path)
+
+        # Trades
+        trades = self.trade_manager.trades_dict
+        for trade in trades:
+            trade["ticker"] = self.symbols_map.map[
+                trade["ticker"]
+            ].midas_ticker
+
+        # Signals
+        signals = self.signal_manager.signals
+        for signal in signals:
+            for trade in signal["trade_instructions"]:
+                trade["ticker"] = self.symbols_map.map[
+                    trade["ticker"]
+                ].midas_ticker
+
+        # Create Backtest Object
+        self.backtest = Backtest(
+            name=self.params.backtest_name,
+            parameters=self.params.to_dict(),
+            static_stats=self.static_stats,
+            period_timeseries_stats=self.equity_manager.period_stats_dict,
+            daily_timeseries_stats=self.equity_manager.daily_stats_dict,
+            trade_data=trades,
+            signal_data=signals,
+        )
+
+        # Save Backtest Object
+        response = self.database.create_backtest(self.backtest.to_dict())
+        self.logger.info(f"Backtest saved with response : {response}")
+
+    def _save_live(self, output_path: str = ""):
+        """
+        Processes and saves the collected data from the live trading session into the database.
+        """
+        # Create a dictionary of start and end account values
+        combined_data = {
+            **self.account_manager.account_log[0].to_dict(prefix="start_"),
+            **self.account_manager.account_log[-1].to_dict(prefix="end_"),
+        }
+        self.logger.info(f"Account Data {combined_data}")
+
+        # Trades
+        trades = self.trade_manager.trades_dict
+        for trade in trades:
+            trade["ticker"] = self.symbols_map.map[
+                trade["ticker"]
+            ].midas_ticker
+
+        # Signals
+        signals = self.signal_manager.signals
+        for signal in signals:
+            for trade in signal["trade_instructions"]:
+                trade["ticker"] = self.symbols_map.map[
+                    trade["ticker"]
+                ].midas_ticker
+
+        # Create Live Summary Object
+        self.live_summary = LiveTradingSession(
+            parameters=self.params.to_dict(),
+            signal_data=signals,
+            trade_data=trades,
+            account_data=[combined_data],
+        )
+
+        # Save Live Summary Session
+        response = self.database.create_live_session(self.live_summary)
+        self.logger.info(
+            f"Live Session= saved to data base with response : {response}"
+        )

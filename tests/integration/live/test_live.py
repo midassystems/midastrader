@@ -1,13 +1,11 @@
 import unittest
-
-from live.main import main
+from midas.cli import run
 
 
 class MidasLiveIntegration(unittest.TestCase):
     def test_live(self):
-        main()  # run full live
+        run("tests/integration/strategy/config.toml")
 
 
 if __name__ == "__main__":
     unittest.main()
-
