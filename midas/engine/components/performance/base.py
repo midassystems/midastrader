@@ -205,7 +205,9 @@ class PerformanceManager(Subject, Observer):
         )
 
         # Save Backtest Object
-        response = self.database.create_backtest(self.backtest.to_dict())
+        response = self.database.trading.create_backtest(
+            self.backtest.to_dict()
+        )
         self.logger.info(f"Backtest saved with response : {response}")
 
     def _save_live(self, output_path: str = ""):
