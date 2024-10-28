@@ -1,6 +1,7 @@
 from typing import List, Optional
 from mbn import Schema, BufferStore, RecordMsg
-from midasClient.client import DatabaseClient, RetrieveParams
+from midasClient.client import DatabaseClient
+from midasClient.historical import RetrieveParams
 from midas.utils.unix import unix_to_iso
 from midas.engine.events import EODEvent
 from midas.engine.components.gateways.base import BaseDataClient
@@ -91,7 +92,7 @@ class DataClient(Subject, BaseDataClient):
             data = BufferStore.from_file(data_file_path)
         else:
             params = RetrieveParams(tickers, start_date, end_date, schema)
-            data = self.database_client.get_records(params)
+            data = self.database_client.historical.get_records(params)
 
         return data
 

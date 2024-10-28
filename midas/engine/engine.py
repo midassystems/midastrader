@@ -65,7 +65,7 @@ class EngineBuilder:
 
     def create_database_client(self):
         """Step 2: Create database client"""
-        self.database_client = DatabaseClient(self.config.database_url)
+        self.database_client = DatabaseClient()
         return self
 
     def create_symbols_map(self):
