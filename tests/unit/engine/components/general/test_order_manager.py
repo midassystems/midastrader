@@ -3,7 +3,7 @@ from datetime import time
 from unittest.mock import Mock, MagicMock
 from ibapi.contract import Contract
 from midas.account import Account
-from midas.signal import TradeInstruction
+from midas.signal import SignalInstruction
 from midas.engine.components.order_manager import OrderExecutionManager
 from midas.utils.logger import SystemLogger
 from midas.engine.events import SignalEvent, OrderEvent
@@ -115,7 +115,7 @@ class TestOrderManager(unittest.TestCase):
         # Test Data
         self.timestamp = 1651500000
         self.trade_capital = 10000
-        self.trade_equity = TradeInstruction(
+        self.trade_equity = SignalInstruction(
             instrument=2,
             order_type=OrderType.MARKET,
             action=Action.LONG,
@@ -124,7 +124,7 @@ class TestOrderManager(unittest.TestCase):
             weight=0.5,
             quantity=2,
         )
-        self.trade_fut = TradeInstruction(
+        self.trade_fut = SignalInstruction(
             instrument=1,
             order_type=OrderType.MARKET,
             action=Action.SHORT,
@@ -155,7 +155,7 @@ class TestOrderManager(unittest.TestCase):
         )
 
     def test_create_limitorder_valid(self):
-        trade_instructions = TradeInstruction(
+        trade_instructions = SignalInstruction(
             instrument=1,
             order_type=OrderType.LIMIT,
             action=Action.SHORT,
@@ -180,7 +180,7 @@ class TestOrderManager(unittest.TestCase):
         self.assertEqual(order.order.lmtPrice, trade_instructions.limit_price)
 
     def test_create_stoplossorder_valid(self):
-        trade_instructions = TradeInstruction(
+        trade_instructions = SignalInstruction(
             instrument=1,
             order_type=OrderType.STOPLOSS,
             action=Action.SHORT,

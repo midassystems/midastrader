@@ -133,7 +133,7 @@ class TestDataClient(unittest.TestCase):
         schema = Schema.OHLCV1_S
 
         # Test
-        self.db_client.get_records = Mock()
+        self.db_client.historical.get_records = Mock()
         _ = self.data_client.get_data(
             tickers,
             start_date,
@@ -142,7 +142,7 @@ class TestDataClient(unittest.TestCase):
         )
 
         # Validate
-        self.assertTrue(self.db_client.get_records.called)
+        self.assertTrue(self.db_client.historical.get_records.called)
 
     def test_check_eod(self):
         bar = OhlcvMsg(

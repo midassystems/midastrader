@@ -8,10 +8,12 @@ from midas.orders import (
     StopLoss,
     LimitOrder,
 )
+import mbn
+from midas.constants import PRICE_FACTOR
 
 
 @dataclass
-class TradeInstruction:
+class SignalInstruction:
     instrument: int
     order_type: OrderType
     action: Action
@@ -77,6 +79,19 @@ class TradeInstruction:
             "limit_price": (self.limit_price if self.limit_price else ""),
             "aux_price": self.aux_price if self.aux_price else "",
         }
+
+    def to_mbn(self, ticker: str) -> mbn.SignalInstructions:
+        return mbn.SignalInstructions(
+            ticker=ticker,
+            order_type=self.order_type.value,
+            action=self.action.value,
+            trade_id=self.trade_id,
+            leg_id=self.leg_id,
+            weight=int(self.weight * PRICE_FACTOR),
+            quantity=self.quantity,
+            limit_price=(self.limit_price if self.limit_price else ""),
+            aux_price=self.aux_price if self.aux_price else "",
+        )
 
     def to_order(self) -> BaseOrder:
         if self.order_type == OrderType.MARKET:

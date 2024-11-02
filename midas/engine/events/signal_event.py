@@ -1,6 +1,8 @@
 from typing import List
 from dataclasses import dataclass, field
-from midas.signal import TradeInstruction
+from midas.signal import SignalInstruction
+import mbn
+from midas.symbol import SymbolMap
 
 
 @dataclass
@@ -14,46 +16,56 @@ class SignalEvent:
 
     Attributes:
     - timestamp (np.uint64): The UNIX timestamp in nanoseconds when the signal was generated.
-    - trade_instructions (List[TradeInstruction]): A list of detailed trade instructions.
+    - instructions (List[SignalInstruction]): A list of detailed trade instructions.
     - type (str): A string identifier for the event type, set to 'SIGNAL'.
     """
 
     timestamp: int
-    trade_instructions: List[TradeInstruction]
+    instructions: List[SignalInstruction]
     type: str = field(init=False, default="SIGNAL")
 
     def __post_init__(self):
         # Type Check
         if not isinstance(self.timestamp, int):
             raise TypeError("'timestamp' field must be of type int.")
-        if not isinstance(self.trade_instructions, list):
-            raise TypeError("'trade_instructions' field must be of type list.")
+        if not isinstance(self.instructions, list):
+            raise TypeError("'instructions' field must be of type list.")
         if not all(
-            isinstance(instruction, TradeInstruction)
-            for instruction in self.trade_instructions
+            isinstance(instruction, SignalInstruction)
+            for instruction in self.instructions
         ):
             raise TypeError(
-                "All trade instructions must be instances of TradeInstruction."
+                "All instructions must be instances of SignalInstruction."
             )
 
         # Constraint Check
-        if len(self.trade_instructions) == 0:
-            raise ValueError("'trade_instructions' list cannot be empty.")
+        if len(self.instructions) == 0:
+            raise ValueError("'instructions' list cannot be empty.")
 
     def __str__(self) -> str:
         instructions_str = "\n    ".join(
-            str(instruction) for instruction in self.trade_instructions
+            str(instruction) for instruction in self.instructions
         )
         return (
             f"\n{self.type} EVENT:\n"
             f"  Timestamp: {self.timestamp}\n"
-            f"  Trade Instructions:\n    {instructions_str}\n"
+            f"  Instructions:\n    {instructions_str}\n"
+        )
+
+    def to_mbn(self, symbols_map: SymbolMap) -> mbn.Signals:
+        mbn_instructions = []
+
+        for i in self.instructions:
+            ticker = symbols_map.map[i.instrument].midas_ticker
+            mbn_instructions.append(i.to_mbn(ticker))
+
+        return mbn.Signals(
+            timestamp=int(self.timestamp),
+            trade_instructions=mbn_instructions,
         )
 
     def to_dict(self):
         return {
             "timestamp": int(self.timestamp),
-            "trade_instructions": [
-                trade.to_dict() for trade in self.trade_instructions
-            ],
+            "instructions": [trade.to_dict() for trade in self.instructions],
         }

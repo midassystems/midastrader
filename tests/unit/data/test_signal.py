@@ -1,6 +1,6 @@
 import unittest
 from midas.orders import OrderType, Action
-from midas.signal import TradeInstruction
+from midas.signal import SignalInstruction
 
 
 class TestTradeInsructions(unittest.TestCase):
@@ -19,7 +19,7 @@ class TestTradeInsructions(unittest.TestCase):
     # Basic Validation
     def test_construction_market_order(self):
         # Test
-        instructions = TradeInstruction(
+        instructions = SignalInstruction(
             instrument=self.instrument,
             order_type=self.order_type,
             action=self.action,
@@ -39,7 +39,7 @@ class TestTradeInsructions(unittest.TestCase):
 
     def test_construction_limit_order(self):
         # Test
-        instructions = TradeInstruction(
+        instructions = SignalInstruction(
             instrument=self.instrument,
             order_type=OrderType.LIMIT,
             action=self.action,
@@ -61,7 +61,7 @@ class TestTradeInsructions(unittest.TestCase):
 
     def test_construction_stop_loss(self):
         # Test
-        instructions = TradeInstruction(
+        instructions = SignalInstruction(
             instrument=self.instrument,
             order_type=OrderType.STOPLOSS,
             action=self.action,
@@ -82,7 +82,7 @@ class TestTradeInsructions(unittest.TestCase):
         self.assertEqual(instructions.aux_price, self.aux_price)
 
     def test_market_to_dict(self):
-        instructions = TradeInstruction(
+        instructions = SignalInstruction(
             instrument=self.instrument,
             order_type=OrderType.MARKET,
             action=self.action,
@@ -109,7 +109,7 @@ class TestTradeInsructions(unittest.TestCase):
         self.assertEqual(instructions_dict["aux_price"], "")
 
     def test_limit_to_dict(self):
-        instructions = TradeInstruction(
+        instructions = SignalInstruction(
             instrument=self.instrument,
             order_type=OrderType.LIMIT,
             action=self.action,
@@ -137,7 +137,7 @@ class TestTradeInsructions(unittest.TestCase):
         self.assertEqual(instructions_dict["aux_price"], "")
 
     def test_stop_loss_to_dict(self):
-        instructions = TradeInstruction(
+        instructions = SignalInstruction(
             instrument=self.instrument,
             order_type=OrderType.STOPLOSS,
             action=self.action,
@@ -169,7 +169,7 @@ class TestTradeInsructions(unittest.TestCase):
         with self.assertRaisesRegex(
             TypeError, "'instrument' field must be of type int."
         ):
-            TradeInstruction(
+            SignalInstruction(
                 instrument="1234",
                 order_type=self.order_type,
                 action=self.action,
@@ -182,7 +182,7 @@ class TestTradeInsructions(unittest.TestCase):
         with self.assertRaisesRegex(
             TypeError, "'order_type' field must be of type OrderType enum."
         ):
-            TradeInstruction(
+            SignalInstruction(
                 instrument=self.instrument,
                 order_type="MKT",
                 action=self.action,
@@ -195,7 +195,7 @@ class TestTradeInsructions(unittest.TestCase):
         with self.assertRaisesRegex(
             TypeError, "'action' field must be of type Action enum."
         ):
-            TradeInstruction(
+            SignalInstruction(
                 instrument=self.instrument,
                 order_type=self.order_type,
                 action="LONG",
@@ -208,7 +208,7 @@ class TestTradeInsructions(unittest.TestCase):
         with self.assertRaisesRegex(
             TypeError, "'trade_id' field must of type int."
         ):
-            TradeInstruction(
+            SignalInstruction(
                 instrument=self.instrument,
                 order_type=self.order_type,
                 action=self.action,
@@ -221,7 +221,7 @@ class TestTradeInsructions(unittest.TestCase):
         with self.assertRaisesRegex(
             TypeError, "'leg_id' field must be of type int."
         ):
-            TradeInstruction(
+            SignalInstruction(
                 instrument=self.instrument,
                 order_type=self.order_type,
                 action=self.action,
@@ -234,7 +234,7 @@ class TestTradeInsructions(unittest.TestCase):
         with self.assertRaisesRegex(
             TypeError, "'quantity' field must be of type int or float."
         ):
-            TradeInstruction(
+            SignalInstruction(
                 instrument=self.instrument,
                 order_type=self.order_type,
                 action=self.action,
@@ -248,7 +248,7 @@ class TestTradeInsructions(unittest.TestCase):
             TypeError,
             "'limit_price' field must be int or float for OrderType.LIMIT.",
         ):
-            TradeInstruction(
+            SignalInstruction(
                 instrument=self.instrument,
                 order_type=OrderType.LIMIT,
                 action=self.action,
@@ -262,7 +262,7 @@ class TestTradeInsructions(unittest.TestCase):
             TypeError,
             "'aux_price' field must be int or float for OrderType.STOPLOSS.",
         ):
-            TradeInstruction(
+            SignalInstruction(
                 instrument=self.instrument,
                 order_type=OrderType.STOPLOSS,
                 action=self.action,
@@ -277,7 +277,7 @@ class TestTradeInsructions(unittest.TestCase):
         with self.assertRaisesRegex(
             ValueError, "'trade_id' field must be greater than zero."
         ):
-            TradeInstruction(
+            SignalInstruction(
                 instrument=self.instrument,
                 order_type=self.order_type,
                 action=self.action,
@@ -290,7 +290,7 @@ class TestTradeInsructions(unittest.TestCase):
         with self.assertRaisesRegex(
             ValueError, "'leg_id' field must must be greater than zero."
         ):
-            TradeInstruction(
+            SignalInstruction(
                 instrument=self.instrument,
                 order_type=self.order_type,
                 action=self.action,
@@ -303,7 +303,7 @@ class TestTradeInsructions(unittest.TestCase):
         with self.assertRaisesRegex(
             ValueError, "'limit_price' field must must be greater than zero."
         ):
-            TradeInstruction(
+            SignalInstruction(
                 instrument=self.instrument,
                 order_type=OrderType.LIMIT,
                 action=self.action,
@@ -317,7 +317,7 @@ class TestTradeInsructions(unittest.TestCase):
         with self.assertRaisesRegex(
             ValueError, "'aux_price' field must must be greater than zero."
         ):
-            TradeInstruction(
+            SignalInstruction(
                 instrument=self.instrument,
                 order_type=OrderType.STOPLOSS,
                 action=self.action,

@@ -4,7 +4,7 @@ from typing import Type
 from typing import List
 from abc import ABC, abstractmethod
 from midas.engine.components.order_book import OrderBook
-from midas.signal import TradeInstruction
+from midas.signal import SignalInstruction
 from midas.engine.components.portfolio_server import PortfolioServer
 from midas.engine.events import SignalEvent, MarketEvent
 from midas.symbol import SymbolMap
@@ -72,14 +72,14 @@ class BaseStrategy(Subject, Observer, ABC):
 
     def set_signal(
         self,
-        trade_instructions: List[TradeInstruction],
+        trade_instructions: List[SignalInstruction],
         timestamp: int,
     ):
         """
         Creates and queues a signal event based on the strategy's trade instructions.
 
         Parameters:
-        - trade_instructions (List[TradeInstruction]): Specific trade instructions to execute.
+        - trade_instructions (List[SignalInstruction]): Specific trade instructions to execute.
         - timestamp (int): The time at which the signal is generated.
         """
         try:

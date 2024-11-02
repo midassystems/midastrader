@@ -4,10 +4,11 @@ from midas.utils.logger import SystemLogger
 from midas.engine.config import Parameters, Mode
 from midas.engine.components.observer.base import Observer, Subject, EventType
 from midas.engine.components.base_strategy import BaseStrategy
-from midas.live_session import LiveTradingSession
 from midas.utils.unix import unix_to_iso
 from midasClient.client import DatabaseClient
-from midas.backtest import Backtest
+from midas.constants import PRICE_FACTOR
+import mbn
+from mbn import BacktestData
 from midas.symbol import SymbolMap
 from midas.engine.components.performance.managers import (
     AccountManager,
@@ -101,9 +102,9 @@ class PerformanceManager(Subject, Observer):
         else:
             raise ValueError(f"Unhandled event type: {event_type}")
 
-    def export_results(self, output_path: str):
+    def export_results(self, static_stats: dict, output_path: str):
         # Summary Stats
-        static_stats_df = pd.DataFrame([self.static_stats]).T
+        static_stats_df = pd.DataFrame([static_stats]).T
 
         # Parameters
         params_df = pd.DataFrame(self.params.to_dict())
@@ -160,6 +161,55 @@ class PerformanceManager(Subject, Observer):
         elif mode == Mode.LIVE:
             self._save_live(output_path)
 
+    def mbn_static_stats(self, static_stats: dict) -> mbn.StaticStats:
+        return mbn.StaticStats(
+            total_trades=static_stats["total_trades"],
+            total_winning_trades=static_stats["total_winning_trades"],
+            total_losing_trades=static_stats["total_losing_trades"],
+            avg_profit=int(static_stats["avg_profit"] * PRICE_FACTOR),
+            avg_profit_percent=int(
+                static_stats["avg_profit_percent"] * PRICE_FACTOR
+            ),
+            avg_gain=int(static_stats["avg_gain"] * PRICE_FACTOR),
+            avg_gain_percent=int(
+                static_stats["avg_gain_percent"] * PRICE_FACTOR
+            ),
+            avg_loss=int(static_stats["avg_loss"] * PRICE_FACTOR),
+            avg_loss_percent=int(
+                static_stats["avg_loss_percent"] * PRICE_FACTOR
+            ),
+            profitability_ratio=int(
+                static_stats["profitability_ratio"] * PRICE_FACTOR
+            ),
+            profit_factor=int(static_stats["profit_factor"] * PRICE_FACTOR),
+            profit_and_loss_ratio=int(
+                static_stats["profit_and_loss_ratio"] * PRICE_FACTOR
+            ),
+            total_fees=int(static_stats["total_fees"] * PRICE_FACTOR),
+            net_profit=int(static_stats["net_profit"] * PRICE_FACTOR),
+            beginning_equity=int(
+                static_stats["beginning_equity"] * PRICE_FACTOR
+            ),
+            ending_equity=int(static_stats["ending_equity"] * PRICE_FACTOR),
+            total_return=int(static_stats["total_return"] * PRICE_FACTOR),
+            daily_standard_deviation_percentage=int(
+                static_stats["daily_standard_deviation_percentage"]
+                * PRICE_FACTOR
+            ),
+            annual_standard_deviation_percentage=int(
+                static_stats["annual_standard_deviation_percentage"]
+                * PRICE_FACTOR
+            ),
+            max_drawdown_percentage_period=int(
+                static_stats["max_drawdown_percentage_period"] * PRICE_FACTOR
+            ),
+            max_drawdown_percentage_daily=int(
+                static_stats["max_drawdown_percentage_daily"] * PRICE_FACTOR
+            ),
+            sharpe_ratio=int(static_stats["sharpe_ratio"] * PRICE_FACTOR),
+            sortino_ratio=int(static_stats["sortino_ratio"] * PRICE_FACTOR),
+        )
+
     def _save_backtest(self, output_path: str = "") -> None:
         """
         Saves the collected performance data including the backtest configuration, trades, and signals
@@ -173,42 +223,80 @@ class PerformanceManager(Subject, Observer):
 
         # Summary stats
         all_stats = {**trade_stats, **equity_stats}
-        self.static_stats = all_stats
+        static_stats = all_stats
 
         # Export to Excel
-        self.export_results(output_path)
-
-        # Trades
-        trades = self.trade_manager.trades_dict
-        for trade in trades:
-            trade["ticker"] = self.symbols_map.map[
-                trade["ticker"]
-            ].midas_ticker
-
-        # Signals
-        signals = self.signal_manager.signals
-        for signal in signals:
-            for trade in signal["trade_instructions"]:
-                trade["ticker"] = self.symbols_map.map[
-                    trade["ticker"]
-                ].midas_ticker
+        self.export_results(static_stats, output_path)
 
         # Create Backtest Object
-        self.backtest = Backtest(
-            name=self.params.backtest_name,
-            parameters=self.params.to_dict(),
-            static_stats=self.static_stats,
-            period_timeseries_stats=self.equity_manager.period_stats_dict,
-            daily_timeseries_stats=self.equity_manager.daily_stats_dict,
-            trade_data=trades,
-            signal_data=signals,
+        self.backtest = BacktestData(
+            backtest_id=None,
+            backtest_name=self.params.backtest_name,
+            parameters=self.params.to_mbn(),
+            static_stats=self.mbn_static_stats(static_stats),
+            period_timeseries_stats=self.equity_manager.period_stats_mbn,
+            daily_timeseries_stats=self.equity_manager.daily_stats_mbn,
+            trades=self.trade_manager.to_mbn(self.symbols_map),
+            signals=self.signal_manager.to_mbn(self.symbols_map),
         )
-
         # Save Backtest Object
-        response = self.database.trading.create_backtest(
-            self.backtest.to_dict()
-        )
+        response = self.database.trading.create_backtest(self.backtest)
         self.logger.info(f"Backtest saved with response : {response}")
+
+    def mbn_account_summary(self, account: dict) -> mbn.AccountSummary:
+        return mbn.AccountSummary(
+            currency=account["currency"],
+            start_timestamp=int(account["start_timestamp"]),
+            start_buying_power=int(
+                account["start_buying_power"] * PRICE_FACTOR
+            ),
+            start_excess_liquidity=int(
+                account["start_excess_liquidity"] * PRICE_FACTOR
+            ),
+            start_full_available_funds=int(
+                account["start_full_available_funds"] * PRICE_FACTOR
+            ),
+            start_full_init_margin_req=int(
+                account["start_full_init_margin_req"] * PRICE_FACTOR
+            ),
+            start_full_maint_margin_req=int(
+                account["start_full_maint_margin_req"] * PRICE_FACTOR
+            ),
+            start_futures_pnl=int(account["start_futures_pnl"] * PRICE_FACTOR),
+            start_net_liquidation=int(
+                account["start_net_liquidation"] * PRICE_FACTOR
+            ),
+            start_total_cash_balance=int(
+                account["start_total_cash_balance"] * PRICE_FACTOR
+            ),
+            start_unrealized_pnl=int(
+                account["start_unrealized_pnl"] * PRICE_FACTOR
+            ),
+            end_timestamp=int(account["end_timestamp"]),
+            end_buying_power=int(account["end_buying_power"] * PRICE_FACTOR),
+            end_excess_liquidity=int(
+                account["end_excess_liquidity"] * PRICE_FACTOR
+            ),
+            end_full_available_funds=int(
+                account["end_full_available_funds"] * PRICE_FACTOR
+            ),
+            end_full_init_margin_req=int(
+                account["end_full_init_margin_req"] * PRICE_FACTOR
+            ),
+            end_full_maint_margin_req=int(
+                account["end_full_maint_margin_req"] * PRICE_FACTOR
+            ),
+            end_futures_pnl=int(account["end_futures_pnl"] * PRICE_FACTOR),
+            end_net_liquidation=int(
+                account["end_net_liquidation"] * PRICE_FACTOR
+            ),
+            end_total_cash_balance=int(
+                account["end_total_cash_balance"] * PRICE_FACTOR
+            ),
+            end_unrealized_pnl=int(
+                account["end_unrealized_pnl"] * PRICE_FACTOR
+            ),
+        )
 
     def _save_live(self, output_path: str = ""):
         """
@@ -221,27 +309,12 @@ class PerformanceManager(Subject, Observer):
         }
         self.logger.info(f"Account Data {combined_data}")
 
-        # Trades
-        trades = self.trade_manager.trades_dict
-        for trade in trades:
-            trade["ticker"] = self.symbols_map.map[
-                trade["ticker"]
-            ].midas_ticker
-
-        # Signals
-        signals = self.signal_manager.signals
-        for signal in signals:
-            for trade in signal["trade_instructions"]:
-                trade["ticker"] = self.symbols_map.map[
-                    trade["ticker"]
-                ].midas_ticker
-
         # Create Live Summary Object
-        self.live_summary = LiveTradingSession(
-            parameters=self.params.to_dict(),
-            signal_data=signals,
-            trade_data=trades,
-            account_data=[combined_data],
+        self.live_summary = mbn.LiveData(
+            parameters=self.params.to_mbn(),
+            trades=self.trade_manager.to_mbn(self.symbols_map),
+            signals=self.signal_manager.to_mbn(self.symbols_map),
+            account=self.mbn_account_summary(combined_data),
         )
 
         # Save Live Summary Session

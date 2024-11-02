@@ -227,11 +227,11 @@ class DataApp(EWrapper, EClient, Subject):
         attrib: TickAttrib,
     ):
         """Market data tick price callback. Handles all price related ticks."""
-        print(tickType)
+        # print(tickType)
         if tickType == 1:  # BID
-            print("dbid")
+            # print("dbid")
             self.tick_data[reqId].levels[0].bid_px = int(price * 1e9)
-            print(self.tick_data)
+            # print(self.tick_data)
             self.logger.info(f"BID : {reqId} : {price}")
         elif tickType == 2:  # ASK
             self.tick_data[reqId].levels[0].ask_px = int(price * 1e9)
