@@ -7,7 +7,7 @@ from mbn import BufferStore, OhlcvMsg
 from midas.engine.components.order_book import OrderBook
 from midas.engine.components.base_strategy import BaseStrategy
 from midas.engine.components.portfolio_server import PortfolioServer
-from midas.signal import TradeInstruction, OrderType, Action
+from midas.signal import SignalInstruction, OrderType, Action
 from midas.symbol import SymbolMap
 from midas.engine.events.market_event import MarketEvent
 from quantAnalytics.dataprocessor import DataProcessor
@@ -264,7 +264,7 @@ class Cointegrationzscore(BaseStrategy):
 
     def generate_trade_instructions(
         self, signal: Signal
-    ) -> List[TradeInstruction]:
+    ) -> List[SignalInstruction]:
         """
         Generate trade instructions based on the current signal.
         """
@@ -280,7 +280,7 @@ class Cointegrationzscore(BaseStrategy):
                 quantities[instrument],
             )
             trade_instructions.append(
-                TradeInstruction(
+                SignalInstruction(
                     instrument=instrument,
                     order_type=OrderType.MARKET,
                     action=action,

@@ -1,5 +1,7 @@
-from dataclasses import dataclass
+import mbn
 from typing import Union
+from dataclasses import dataclass
+from midas.constants import PRICE_FACTOR
 
 
 @dataclass
@@ -61,6 +63,19 @@ class Trade:
             "action": self.action,
             "fees": self.fees,
         }
+
+    def to_mbn(self, ticker: str) -> mbn.Trades:
+        return mbn.Trades(
+            trade_id=self.trade_id,
+            leg_id=self.leg_id,
+            timestamp=self.timestamp,
+            ticker=ticker,
+            quantity=self.quantity,
+            avg_price=int(self.avg_price * PRICE_FACTOR),
+            trade_value=int(self.trade_value * PRICE_FACTOR),
+            action=self.action,
+            fees=int(self.fees * PRICE_FACTOR),
+        )
 
     def pretty_print(self, indent: str = "") -> str:
         return (

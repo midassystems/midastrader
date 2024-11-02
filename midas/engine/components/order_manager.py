@@ -2,7 +2,7 @@ from ibapi.contract import Contract
 from typing import List
 from midas.symbol import SymbolMap
 from midas.engine.components.order_book import OrderBook
-from midas.signal import TradeInstruction
+from midas.signal import SignalInstruction
 from midas.orders import Action, BaseOrder
 from midas.engine.components.portfolio_server import PortfolioServer
 from midas.engine.events import SignalEvent, OrderEvent
@@ -56,7 +56,7 @@ class OrderExecutionManager(Subject, Observer):
                     "'event' must be of type SignalEvent instance."
                 )
 
-            trade_instructions = event.trade_instructions
+            trade_instructions = event.instructions
             timestamp = event.timestamp
 
             # Get a list of tickers in active orders
@@ -78,7 +78,7 @@ class OrderExecutionManager(Subject, Observer):
                 self._handle_signal(timestamp, trade_instructions)
 
     def _handle_signal(
-        self, timestamp: int, trade_instructions: List[TradeInstruction]
+        self, timestamp: int, trade_instructions: List[SignalInstruction]
     ) -> None:
         """
         Process trade instructions to generate orders, checking if sufficient capital is available.
@@ -86,7 +86,7 @@ class OrderExecutionManager(Subject, Observer):
         Parameters:
         - timestamp (int): The time at which the signal was generated.
         - trade_capital (Union[int, float]): The amount of capital allocated for trading.
-        - trade_instructions (List[TradeInstruction]): List of trading instructions to be processed.
+        - trade_instructions (List[SignalInstruction]): List of trading instructions to be processed.
         """
         # Create and Validate Orders
         orders = []
@@ -127,7 +127,7 @@ class OrderExecutionManager(Subject, Observer):
             else:
                 self.logger.info("Not enough capital to execute all orders")
 
-    def _create_order(self, trade_instruction: TradeInstruction) -> BaseOrder:
+    def _create_order(self, trade_instruction: SignalInstruction) -> BaseOrder:
         """
         Create an order object based on specified parameters.
 

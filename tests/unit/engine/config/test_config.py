@@ -285,7 +285,7 @@ class TestParameters(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'capital' field must be of type int or float."
+            TypeError, "'capital' field must be of type int."
         ):
             Parameters(
                 backtest_name=self.backtest_name,

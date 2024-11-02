@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from unittest.mock import Mock
 from midas.orders import Action, OrderType
-from midas.signal import TradeInstruction
+from midas.signal import SignalInstruction
 from midas.trade import Trade
 from midas.account import Account
 from midas.engine.events import SignalEvent
@@ -502,7 +502,7 @@ class TestSignalManager(unittest.TestCase):
 
         # Signal data
         self.timestamp = 1651500000
-        self.trade1 = TradeInstruction(
+        self.trade1 = SignalInstruction(
             instrument=1,
             order_type=OrderType.MARKET,
             action=Action.LONG,
@@ -511,7 +511,7 @@ class TestSignalManager(unittest.TestCase):
             weight=0.5,
             quantity=10,
         )
-        self.trade2 = TradeInstruction(
+        self.trade2 = SignalInstruction(
             instrument=2,
             order_type=OrderType.MARKET,
             action=Action.LONG,

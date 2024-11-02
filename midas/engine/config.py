@@ -6,6 +6,7 @@ from midas.utils.unix import iso_to_unix
 from midas.symbol import Symbol, SymbolFactory
 from mbn import Schema
 from datetime import datetime
+from mbn import Parameters as MbnParameters
 
 
 class Mode(Enum):
@@ -112,8 +113,8 @@ class Parameters:
         # Type checks
         if not isinstance(self.strategy_name, str):
             raise TypeError("'strategy_name' field must be of type str.")
-        if not isinstance(self.capital, (int, float)):
-            raise TypeError("'capital' field must be of type int or float.")
+        if not isinstance(self.capital, int):
+            raise TypeError("'capital' field must be of type int.")
         if not isinstance(self.data_type, LiveDataType):
             raise TypeError(
                 "'data_type' field must be an instance of MarketDataType."
@@ -155,8 +156,35 @@ class Parameters:
             "test_start": int(iso_to_unix(self.test_start)),
             "test_end": int(iso_to_unix(self.test_end)),
             "tickers": self.tickers,
-            "risk_free_rate": self.risk_free_rate,
+            # "risk_free_rate": / self.risk_free_rate,
         }
+
+    def to_mbn(self):
+        return MbnParameters(
+            strategy_name=self.strategy_name,
+            capital=self.capital,
+            data_type=self.data_type.value,
+            schema=self.schema,
+            train_start=(int(iso_to_unix(self.train_start))),
+            train_end=(int(iso_to_unix(self.train_end))),
+            test_start=int(iso_to_unix(self.test_start)),
+            test_end=int(iso_to_unix(self.test_end)),
+            tickers=self.tickers,
+        )
+
+    # def to_mbn_parameters(self):
+    #     return Parameters(
+    #         strategy_name=self.strategy_name,
+    #         capital=self.capital,
+    #         schema=self.schema,
+    #         data_type=self.data_type,
+    #         train_start=self.train_start,
+    #         train_end=self.train_end,
+    #         test_start: int,
+    #         test_end: int,
+    #
+    #
+    #     )
 
     @classmethod
     def from_dict(cls, data: dict) -> "Parameters":

@@ -12,7 +12,7 @@ from midas.engine.config import Parameters, Mode, LiveDataType
 from midas.trade import Trade
 from midas.engine.events import SignalEvent
 from midas.orders import OrderType, Action
-from midas.signal import TradeInstruction
+from midas.signal import SignalInstruction
 from midas.engine.components.base_strategy import BaseStrategy
 from midas.symbol import (
     Equity,
@@ -25,6 +25,8 @@ from midas.symbol import (
     FuturesMonth,
     TradingSession,
 )
+import mbn
+from midas.constants import PRICE_FACTOR
 
 
 class TestStrategy(BaseStrategy):
@@ -237,7 +239,7 @@ class TestPerformanceManager(unittest.TestCase):
         # Signal data
         self.timestamp = 1651500000
         self.trade_capital = 1000090
-        self.trade1 = TradeInstruction(
+        self.trade1 = SignalInstruction(
             instrument=1,
             order_type=OrderType.MARKET,
             action=Action.LONG,
@@ -246,7 +248,7 @@ class TestPerformanceManager(unittest.TestCase):
             weight=0.5,
             quantity=10,
         )
-        self.trade2 = TradeInstruction(
+        self.trade2 = SignalInstruction(
             instrument=2,
             order_type=OrderType.MARKET,
             action=Action.LONG,
@@ -267,7 +269,7 @@ class TestPerformanceManager(unittest.TestCase):
 
         # Validate
         data = self.manager.signal_manager.signals[-1]
-        self.assertEqual(data, signal.to_dict())
+        self.assertEqual(data, signal)
 
     def test_save_backtest(self):
         # Trades
@@ -335,7 +337,7 @@ class TestPerformanceManager(unittest.TestCase):
         ]
 
         # Signals
-        self.trade1 = TradeInstruction(
+        self.trade1 = SignalInstruction(
             instrument=1,
             order_type=OrderType.MARKET,
             action=Action.LONG,
@@ -344,7 +346,7 @@ class TestPerformanceManager(unittest.TestCase):
             weight=0.5,
             quantity=2,
         )
-        self.trade2 = TradeInstruction(
+        self.trade2 = SignalInstruction(
             instrument=2,
             order_type=OrderType.MARKET,
             action=Action.LONG,
@@ -365,16 +367,10 @@ class TestPerformanceManager(unittest.TestCase):
         self.manager.save(Mode.BACKTEST)
         backtest = self.manager.backtest
 
-        # Validate
-        self.assertEqual(backtest.parameters, self.params.to_dict())
-        # # self.assertEqual(backtest.signal_data, [signal_event.to_dict()])
-        # self.assertEqual(
-        #     backtest.trade_data,
-        #     [
-        #         trade.to_dict()
-        #         for _, trade in self.manager.trade_manager.trades.items()
-        #     ],
-        # )
+        # Validate parameters
+        self.assertEqual(
+            backtest.parameters.__dict__(), self.params.to_mbn().__dict__()
+        )
 
         # Validate static stats
         expected_static_keys = [
@@ -403,11 +399,11 @@ class TestPerformanceManager(unittest.TestCase):
             "sortino_ratio",
         ]
 
-        static_stats = list(backtest.static_stats.keys())
+        static_stats = list(backtest.static_stats.__dict__().keys())
 
         for key in static_stats:
             self.assertIn(key, expected_static_keys)
-            self.assertIsNotNone(backtest.static_stats[key])
+            self.assertIsNotNone(backtest.static_stats.__dict__()[key])
 
         # Validate timeseries stats
         expected_timeseries_keys = {
@@ -418,10 +414,10 @@ class TestPerformanceManager(unittest.TestCase):
             "percent_drawdown",
         }
         actual_daily_timeseries_keys = set(
-            backtest.daily_timeseries_stats[0].keys()
+            backtest.daily_timeseries_stats[0].__dict__().keys()
         )
         actual_period_timeseries_keys = set(
-            backtest.period_timeseries_stats[0].keys()
+            backtest.period_timeseries_stats[0].__dict__().keys()
         )
 
         self.assertEqual(
@@ -437,7 +433,7 @@ class TestPerformanceManager(unittest.TestCase):
 
     def test_save_live(self):
         # Signals
-        self.trade1 = TradeInstruction(
+        self.trade1 = SignalInstruction(
             instrument=1,
             order_type=OrderType.MARKET,
             action=Action.LONG,
@@ -446,7 +442,7 @@ class TestPerformanceManager(unittest.TestCase):
             weight=0.5,
             quantity=2,
         )
-        self.trade2 = TradeInstruction(
+        self.trade2 = SignalInstruction(
             instrument=2,
             order_type=OrderType.MARKET,
             action=Action.LONG,
@@ -551,40 +547,34 @@ class TestPerformanceManager(unittest.TestCase):
         self.manager.save(Mode.LIVE)
         live_summary = self.manager.live_summary
 
-        # Validate
-        # self.assertEqual(
-        #     live_summary.parameters, self.mock_parameters.to_dict()
-        # )
-        # self.assertEqual(live_summary.signal_data, [signal_event.to_dict()])
-        # self.assertEqual(live_summary.trade_data, list(trades.values()))
-
         # Validate account
-        expected_account = [
-            {
-                "start_timestamp": 165000000000,
-                "start_full_available_funds": 768953.53,
-                "start_full_init_margin_req": 263.95,
-                "start_net_liquidation": 769217.48,
-                "start_buying_power": 2563178.43,
-                "start_unrealized_pnl": 0.00,
-                "start_full_maint_margin_req": 263.95,
-                "start_excess_liquidity": 768953.53,
-                "start_futures_pnl": -367.50,
-                "start_total_cash_balance": -10557.9223,
-                "end_timestamp": 166000000000,
-                "end_full_available_funds": 762459.99,
-                "end_full_init_margin_req": 6802.69,
-                "end_net_liquidation": 769262.67,
-                "end_unrealized_pnl": -11.73,
-                "end_full_maint_margin_req": 5495.00,
-                "end_excess_liquidity": 763767.68,
-                "end_buying_power": 2541533.29,
-                "end_futures_pnl": -373.30,
-                "end_total_cash_balance": 768538.5532,
-                "currency": "USD",
-            }
-        ]
-        self.assertEqual(live_summary.account_data, expected_account)
+        expected_account = mbn.AccountSummary(
+            start_timestamp=165000000000,
+            start_full_available_funds=int(768953.53 * PRICE_FACTOR),
+            start_full_init_margin_req=int(263.95 * PRICE_FACTOR),
+            start_net_liquidation=int(769217.48 * PRICE_FACTOR),
+            start_buying_power=int(2563178.43 * PRICE_FACTOR),
+            start_unrealized_pnl=int(0.00 * PRICE_FACTOR),
+            start_full_maint_margin_req=int(263.95 * PRICE_FACTOR),
+            start_excess_liquidity=int(768953.53 * PRICE_FACTOR),
+            start_futures_pnl=int(-367.50 * PRICE_FACTOR),
+            start_total_cash_balance=int(-10557.9223 * PRICE_FACTOR),
+            end_timestamp=166000000000,
+            end_full_available_funds=int(762459.99 * PRICE_FACTOR),
+            end_full_init_margin_req=int(6802.69 * PRICE_FACTOR),
+            end_net_liquidation=int(769262.67 * PRICE_FACTOR),
+            end_unrealized_pnl=int(-11.73 * PRICE_FACTOR),
+            end_full_maint_margin_req=int(5495.00 * PRICE_FACTOR),
+            end_excess_liquidity=int(763767.68 * PRICE_FACTOR),
+            end_buying_power=int(2541533.29 * PRICE_FACTOR),
+            end_futures_pnl=int(-373.30 * PRICE_FACTOR),
+            end_total_cash_balance=int(768538.5532 * PRICE_FACTOR),
+            currency="USD",
+        )
+
+        self.assertEqual(
+            live_summary.account.__dict__(), expected_account.__dict__()
+        )
 
 
 if __name__ == "__main__":

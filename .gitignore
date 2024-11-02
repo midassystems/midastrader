@@ -10,6 +10,7 @@ __pycache__/
 *.pdf
 *.xlsx
 *.bin
+/output
 
 # Django
 /db.sqlite3

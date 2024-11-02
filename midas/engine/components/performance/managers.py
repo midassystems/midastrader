@@ -7,6 +7,9 @@ from quantAnalytics.risk import RiskAnalysis
 from midas.utils.unix import resample_timestamp, unix_to_iso
 from quantAnalytics.performance import PerformanceStatistics
 from midas.account import EquityDetails, Account
+import mbn
+from midas.symbol import SymbolMap
+from midas.constants import PRICE_FACTOR
 
 
 def _convert_timestamp(df: pd.DataFrame, column: str = "timestamp") -> None:
@@ -179,6 +182,15 @@ class TradeManager:
             "total_fees": round(float(trades_df["fees"].sum()), 4),
         }
 
+    def to_mbn(self, symbols_map: SymbolMap) -> List[mbn.Trades]:
+        mbn_trades = []
+
+        for i in self.trades.values():
+            ticker = symbols_map.map[i.instrument].midas_ticker
+            mbn_trades.append(i.to_mbn(ticker))
+
+        return mbn_trades
+
     @property
     def trades_dict(self) -> List[dict]:
         return [trade.to_dict() for trade in self.trades.values()]
@@ -254,11 +266,32 @@ class TradeManager:
 
     @staticmethod
     def profit_and_loss_ratio(trade_pnl: np.ndarray) -> float:
-        avg_win = trade_pnl[trade_pnl > 0].mean()
-        avg_loss = trade_pnl[trade_pnl < 0].mean()
+        # Check for any winning trades and calculate avg_win accordingly
+        if len(trade_pnl[trade_pnl > 0]) > 0:
+            avg_win = trade_pnl[trade_pnl > 0].mean()
+        else:
+            avg_win = 0.0
+
+        # Check for any losing trades and calculate avg_loss accordingly
+        if len(trade_pnl[trade_pnl < 0]) > 0:
+            avg_loss = trade_pnl[trade_pnl < 0].mean()
+        else:
+            avg_loss = 0.0
+
+        # Only perform division if avg_loss is non-zero
         if avg_loss != 0:
             return round(abs(avg_win / avg_loss), 4)
+
         return 0.0
+
+    # @staticmethod
+    # def profit_and_loss_ratio(trade_pnl: np.ndarray) -> float:
+    #     print(trade_pnl)
+    #     avg_win = trade_pnl[trade_pnl > 0].mean()
+    #     avg_loss = trade_pnl[trade_pnl < 0].mean()
+    #     if avg_loss != 0:
+    #         return round(abs(avg_win / avg_loss), 4)
+    #     return 0.0
 
 
 class EquityManager:
@@ -284,6 +317,38 @@ class EquityManager:
             self.logger.info(
                 f"Equity update already included ignoring: {equity_details}"
             )
+
+    @property
+    def period_stats_mbn(self) -> mbn.TimeseriesStats:
+
+        return [
+            mbn.TimeseriesStats(
+                timestamp=stat["timestamp"],
+                equity_value=int(stat["equity_value"] * PRICE_FACTOR),
+                percent_drawdown=int(stat["percent_drawdown"] * PRICE_FACTOR),
+                cumulative_return=int(
+                    stat["cumulative_return"] * PRICE_FACTOR
+                ),
+                period_return=int(stat["period_return"] * PRICE_FACTOR),
+            )
+            for stat in self.period_stats_dict
+        ]
+
+    @property
+    def daily_stats_mbn(self) -> mbn.TimeseriesStats:
+
+        return [
+            mbn.TimeseriesStats(
+                timestamp=stat["timestamp"],
+                equity_value=int(stat["equity_value"] * PRICE_FACTOR),
+                percent_drawdown=int(stat["percent_drawdown"] * PRICE_FACTOR),
+                cumulative_return=int(
+                    stat["cumulative_return"] * PRICE_FACTOR
+                ),
+                period_return=int(stat["period_return"] * PRICE_FACTOR),
+            )
+            for stat in self.daily_stats_dict
+        ]
 
     @property
     def period_stats_dict(self) -> dict:
@@ -418,7 +483,7 @@ class AccountManager:
 
 class SignalManager:
     def __init__(self, logger):
-        self.signals: List[dict] = []
+        self.signals: List[SignalEvent] = []
         self.logger = logger
 
     def update_signals(self, signal: SignalEvent):
@@ -428,7 +493,7 @@ class SignalManager:
         Parameters:
         - signal (SignalEvent): The signal event to be logged.
         """
-        self.signals.append(signal.to_dict())
+        self.signals.append(signal)
         self.logger.info(f"\nSIGNALS UPDATED: \n{signal}")
 
     def _output_signals(self) -> str:
@@ -442,13 +507,15 @@ class SignalManager:
         for signals in self.signals:
             string += f"  Timestamp: {signals['timestamp']} \n"
             string += "  Trade Instructions: \n"
-            for instruction in signals["trade_instructions"]:
+            for instruction in signals["instructions"]:
                 string += f"    {instruction}\n"
         return string
 
     def _flatten_trade_instructions(self) -> pd.DataFrame:
-        df = pd.DataFrame(self.signals)
-        column = "trade_instructions"
+        signals_dict = [signal.to_dict() for signal in self.signals]
+
+        df = pd.DataFrame(signals_dict)
+        column = "instructions"
 
         # Expand the 'trade_instructions' column into separate rows
         expanded_rows = []
@@ -463,3 +530,12 @@ class SignalManager:
         if column in expanded_df.columns:
             expanded_df = expanded_df.drop(columns=[column])
         return expanded_df
+
+    def to_mbn(self, symbols_map: SymbolMap) -> List[mbn.Signals]:
+        # signals = self.signals
+
+        return [signal.to_mbn(symbols_map) for signal in self.signals]
+        #     for i in signal.instructions:
+        #         i["ticker"] = self.symbols_map.map[i["ticker"]].midas_ticker
+        #
+        # return signals

@@ -1,6 +1,6 @@
 import unittest
 import pandas as pd
-from midas.signal import TradeInstruction
+from midas.signal import SignalInstruction
 from unittest.mock import Mock, patch, MagicMock
 from midas.orders import Action, OrderType
 from midas.engine.events import SignalEvent, MarketEvent
@@ -61,7 +61,7 @@ class TestTestStrategy(unittest.TestCase):
 
         self.market_event = MarketEvent(self.timestamp, self.bar)
 
-        self.trade1 = TradeInstruction(
+        self.trade1 = SignalInstruction(
             instrument=1,
             order_type=OrderType.MARKET,
             action=Action.LONG,
@@ -70,7 +70,7 @@ class TestTestStrategy(unittest.TestCase):
             weight=0.5,
             quantity=2,
         )
-        self.trade2 = TradeInstruction(
+        self.trade2 = SignalInstruction(
             instrument=2,
             order_type=OrderType.MARKET,
             action=Action.LONG,

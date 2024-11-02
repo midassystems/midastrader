@@ -6,7 +6,7 @@ from midas.symbol import SymbolMap
 from midas.engine.components.base_strategy import BaseStrategy
 from midas.engine.components.portfolio.portfolio_server import PortfolioServer
 from midas.engine.components.order_book import OrderBook
-from midas.signal import TradeInstruction, OrderType, Action
+from midas.signal import SignalInstruction, OrderType, Action
 from midas.engine.components.observer.base import Subject, EventType
 
 
@@ -99,7 +99,7 @@ class RandomSignalStrategy(BaseStrategy):
         self,
         signal: Signal,
         trade_capital: float,
-    ) -> List[TradeInstruction]:
+    ) -> List[SignalInstruction]:
         """
         Generate trade instructions list.
         """
@@ -122,7 +122,7 @@ class RandomSignalStrategy(BaseStrategy):
                 action = Action.COVER
 
             trade_instructions.append(
-                TradeInstruction(
+                SignalInstruction(
                     ticker=ticker,
                     order_type=OrderType.MARKET,
                     action=action,
