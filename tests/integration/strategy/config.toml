@@ -29,7 +29,7 @@ module = "tests/integration/strategy/logic.py"
 class = "Cointegrationzscore"
 
 [strategy.parameters]
-backtest_name = "NEW"
+backtest_name = "testing"
 strategy_name = "Cointegrationzscore"
 capital = 1000000
 data_type = "BAR"

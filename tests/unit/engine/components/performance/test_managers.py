@@ -210,7 +210,7 @@ class TestTradeManager(unittest.TestCase):
             "fees": [-300.9, -300.9, -302.6],
             "gain/loss": [5400.0, 2685.0, -36495.0],
             "pnl": [5099.1, 2384.1, -36797.6],
-            "pnl_percentage": [0.862642, 0.403331, -6.203466],
+            "pnl_percentage": [0.00862642, 0.00403331, -0.06203465599902194],
         }
         expected_df = pd.DataFrame(data)
 

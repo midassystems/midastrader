@@ -70,7 +70,7 @@ class Trade:
             leg_id=self.leg_id,
             timestamp=self.timestamp,
             ticker=ticker,
-            quantity=self.quantity,
+            quantity=int(self.quantity * PRICE_FACTOR),
             avg_price=int(self.avg_price * PRICE_FACTOR),
             trade_value=int(self.trade_value * PRICE_FACTOR),
             action=self.action,

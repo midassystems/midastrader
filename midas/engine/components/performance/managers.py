@@ -142,7 +142,7 @@ class TradeManager:
 
         aggregated["pnl_percentage"] = (
             aggregated["pnl"] / aggregated["entry_cost"]
-        ) * 100
+        )  # * 100
 
         # Reset index to make 'trade_id' a column again
         aggregated.reset_index(inplace=True)
