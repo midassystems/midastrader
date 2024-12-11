@@ -3,9 +3,8 @@ import pandas as pd
 from typing import List, Dict
 from midas.trade import Trade
 from midas.engine.events import SignalEvent
-from quantAnalytics.risk import RiskAnalysis
+from quantAnalytics.backtest.metrics import Metrics
 from midas.utils.unix import resample_timestamp, unix_to_iso
-from quantAnalytics.performance import PerformanceStatistics
 from midas.account import EquityDetails, Account
 import mbn
 from midas.symbol import SymbolMap
@@ -373,20 +372,16 @@ class EquityManager:
         equity_curve = data["equity_value"].to_numpy()
 
         # Adjust daily_return to add a placeholder at the beginning
-        period_returns = PerformanceStatistics.simple_returns(equity_curve)
+        period_returns = Metrics.simple_returns(equity_curve)
         period_returns_adjusted = np.insert(period_returns, 0, 0)
 
         # Adjust rolling_cumulative_return to add a placeholder at the beginning
-        cumulative_returns = PerformanceStatistics.cumulative_returns(
-            equity_curve
-        )
+        cumulative_returns = Metrics.cumulative_returns(equity_curve)
         cumulative_returns_adjusted = np.insert(cumulative_returns, 0, 0)
 
         data["period_return"] = period_returns_adjusted
         data["cumulative_return"] = cumulative_returns_adjusted
-        data["percent_drawdown"] = RiskAnalysis.drawdown(
-            period_returns_adjusted
-        )
+        data["percent_drawdown"] = Metrics.drawdown(period_returns_adjusted)
 
         # Replace NaN with 0 for the first element
         data.fillna(0, inplace=True)
@@ -437,31 +432,27 @@ class EquityManager:
         period_returns = self.period_stats["period_return"].to_numpy()
 
         return {
-            "net_profit": float(
-                PerformanceStatistics.net_profit(raw_equity_curve)
-            ),
+            "net_profit": float(Metrics.net_profit(raw_equity_curve)),
             "beginning_equity": float(raw_equity_curve[0]),
             "ending_equity": float(raw_equity_curve[-1]),
-            "total_return": float(
-                PerformanceStatistics.total_return(raw_equity_curve)
-            ),
+            "total_return": float(Metrics.total_return(raw_equity_curve)),
             "daily_standard_deviation_percentage": float(
-                RiskAnalysis.standard_deviation(daily_returns)
+                Metrics.standard_deviation(daily_returns)
             ),
             "annual_standard_deviation_percentage": float(
-                RiskAnalysis.annual_standard_deviation(daily_returns)
+                Metrics.annual_standard_deviation(daily_returns)
             ),
             "max_drawdown_percentage_period": float(
-                RiskAnalysis.max_drawdown(period_returns)
+                Metrics.max_drawdown(period_returns)
             ),
             "max_drawdown_percentage_daily": float(
-                RiskAnalysis.max_drawdown(daily_returns)
+                Metrics.max_drawdown(daily_returns)
             ),
             "sharpe_ratio": float(
-                RiskAnalysis.sharpe_ratio(daily_returns, risk_free_rate)
+                Metrics.sharpe_ratio(daily_returns, risk_free_rate)
             ),
             "sortino_ratio": float(
-                RiskAnalysis.sortino_ratio(daily_returns, risk_free_rate)
+                Metrics.sortino_ratio(daily_returns, risk_free_rate)
             ),
         }
 
