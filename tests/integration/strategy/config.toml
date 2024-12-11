@@ -1,10 +1,10 @@
 # config.toml
 [general]
-mode = "LIVE"
+mode = "BACKTEST"
 session_id = 1001
 log_level = "INFO"
 log_output = "file"
-output_path = "tests/integration/live/output/"
+output_path = "tests/integration/backtest/output/"
 # train_data_file = "/Users/anthony/projects/midas/engine/python/tests/integration/hogs_corn_ohlcv1h.bin"
 # test_data_file =  "/Users/anthony/projects/midas/engine/python/tests/integration/hogs_corn_ohlcv1h.bin"
 

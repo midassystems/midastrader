@@ -12,8 +12,8 @@ activate_env() {
 }
 
 unit() {
-	echo "Run backtest integration test..."
-	python -m unittest discover
+	echo "Run unit tests..."
+	python -m unittest discover tests.unit
 }
 
 backtest() {

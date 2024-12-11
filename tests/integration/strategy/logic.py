@@ -10,7 +10,7 @@ from midas.engine.components.portfolio_server import PortfolioServer
 from midas.signal import SignalInstruction, OrderType, Action
 from midas.symbol import SymbolMap
 from midas.engine.events.market_event import MarketEvent
-from quantAnalytics.dataprocessor import DataProcessor
+from quantAnalytics.data.handler import DataHandler
 from midas.engine.components.observer.base import Subject, EventType
 
 
@@ -67,7 +67,7 @@ class Cointegrationzscore(BaseStrategy):
             self.symbols_map.midas_map
         )
 
-        self.data = DataProcessor.align_timestamps(self.data, "drop")
+        self.data = DataHandler.align_timestamps(self.data, "drop")
         self.data = self.data.pivot(
             index="ts_event",
             columns="symbol",
