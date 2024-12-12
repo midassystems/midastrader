@@ -10,6 +10,8 @@ from midas.engine.events import SignalEvent, MarketEvent
 from midas.symbol import SymbolMap
 from midas.engine.components.observer.base import Subject, Observer, EventType
 from midas.utils.logger import SystemLogger
+from mbn import BufferStore
+from midas.engine.components.gateways.backtest import DataClient
 
 
 class BaseStrategy(Subject, Observer, ABC):
@@ -23,6 +25,7 @@ class BaseStrategy(Subject, Observer, ABC):
         symbols_map: SymbolMap,
         portfolio_server: PortfolioServer,
         order_book: OrderBook,
+        hist_data_client: DataClient,
     ):
         """
         Initialize the strategy with necessary components for data handling and event management.
@@ -38,10 +41,18 @@ class BaseStrategy(Subject, Observer, ABC):
         self.symbols_map = symbols_map
         self.order_book = order_book
         self.portfolio_server = portfolio_server
+        self.hist_data_client = hist_data_client
         self.historical_data = None
 
     @abstractmethod
-    def prepare(self, hist_data: pd.DataFrame):
+    def primer(self):
+        """
+        Perform any initial setup required before the strategy can start processing events.
+        """
+        pass
+
+    @abstractmethod
+    def prepare(self, hist_data: BufferStore):
         """
         Perform any initial setup required before the strategy can start processing events.
         """

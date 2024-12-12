@@ -1,6 +1,8 @@
 # config.toml
+name = "testing123"
+
 [general]
-mode = "BACKTEST"
+# mode = "BACKTEST"
 session_id = 1001
 log_level = "INFO"
 log_output = "file"
@@ -29,16 +31,15 @@ module = "random_logic.py"
 class = "RandomSignalStrategy"
 
 [strategy.parameters]
-backtest_name = "Random"
 strategy_name = "RandomSignalStrategy"
 capital = 1000000
 data_type = "BAR"
 tick_interval = 5 # only matters for tick data
 schema = "ohlcv-1h"
-train_start = "2024-01-01"
-train_end = "2024-01-10"
-test_start = ""
-test_end = "2024-01-31" 
+start = "2024-01-01"
+end = "2024-01-31"
+# test_start = ""
+# test_end = "2024-01-31" 
 missing_values_strategy = "drop"
 risk_free_rate = 0.04
 

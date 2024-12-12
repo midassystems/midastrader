@@ -36,15 +36,12 @@ class TestParameters(unittest.TestCase):
     def setUp(self) -> None:
         # Test parameter data
         self.schema = "Ohlcv-1s"
-        self.backtest_name = "Bt_name"
         self.strategy_name = "Testing"
         self.capital = 1000000
         self.data_type = random.choice([LiveDataType.BAR, LiveDataType.TICK])
         self.strategy_allocation = 1.0
-        self.train_start = "2020-05-18"
-        self.train_end = "2023-12-31"
-        self.test_start = "2024-01-01"
-        self.test_end = "2024-01-19"
+        self.start = "2020-05-18"
+        self.end = "2023-12-31"
         self.symbols = [
             Future(
                 instrument_id=1,
@@ -110,15 +107,12 @@ class TestParameters(unittest.TestCase):
     def test_construction(self):
         # Test
         params = Parameters(
-            backtest_name=self.backtest_name,
             strategy_name=self.strategy_name,
             capital=self.capital,
             schema=self.schema,
             data_type=self.data_type,
-            train_start=self.train_start,
-            train_end=self.train_end,
-            test_start=self.test_start,
-            test_end=self.test_end,
+            start=self.start,
+            end=self.end,
             risk_free_rate=0.9,
             symbols=self.symbols,
         )
@@ -126,24 +120,19 @@ class TestParameters(unittest.TestCase):
         self.assertEqual(params.strategy_name, self.strategy_name)
         self.assertEqual(params.capital, self.capital)
         self.assertEqual(params.data_type, self.data_type)
-        self.assertEqual(params.train_start, self.train_start)
-        self.assertEqual(params.train_end, self.train_end)
-        self.assertEqual(params.test_start, self.test_start)
-        self.assertEqual(params.test_end, self.test_end)
+        self.assertEqual(params.start, self.start)
+        self.assertEqual(params.end, self.end)
         self.assertEqual(params.symbols, self.symbols)
         self.assertEqual(params.tickers, ["HE.n.0", "ZC.n.0"])
 
     def test_to_dict(self):
         params = Parameters(
-            backtest_name=self.backtest_name,
             strategy_name=self.strategy_name,
             capital=self.capital,
             schema=self.schema,
             data_type=self.data_type,
-            train_start=self.train_start,
-            train_end=self.train_end,
-            test_start=self.test_start,
-            test_end=self.test_end,
+            start=self.start,
+            end=self.end,
             risk_free_rate=0.9,
             symbols=self.symbols,
         )
@@ -156,25 +145,16 @@ class TestParameters(unittest.TestCase):
         self.assertEqual(params_dict["schema"], self.schema)
 
         self.assertEqual(params_dict["data_type"], self.data_type.value)
-        self.assertEqual(
-            params_dict["train_start"], iso_to_unix(self.train_start)
-        )
-        self.assertEqual(params_dict["train_end"], iso_to_unix(self.train_end))
-        self.assertEqual(
-            params_dict["test_start"], iso_to_unix(self.test_start)
-        )
-        self.assertEqual(params_dict["test_end"], iso_to_unix(self.test_end))
+        self.assertEqual(params_dict["start"], iso_to_unix(self.start))
+        self.assertEqual(params_dict["end"], iso_to_unix(self.end))
         self.assertEqual(params_dict["tickers"], ["HE.n.0", "ZC.n.0"])
 
     def test_from_dict(self):
         mock_dict = {
-            "backtest_name": "TestName",
             "strategy_name": "TestStrategy",
             "schema": "Ohlcv-1s",
-            "train_start": "2020-01-01",
-            "train_end": "2023-01-01",
-            "test_start": "2023-02-01",
-            "test_end": "2023-12-31",
+            "start": "2020-01-01",
+            "end": "2023-01-01",
             "capital": 1000000,
             "data_type": "BAR",
             "risk_free_rate": 0.5,
@@ -254,10 +234,8 @@ class TestParameters(unittest.TestCase):
         self.assertEqual(params.capital, 1000000)
         self.assertEqual(params.risk_free_rate, 0.5)
         self.assertEqual(params.data_type, LiveDataType.BAR)
-        self.assertEqual(params.train_start, "2020-01-01")
-        self.assertEqual(params.train_end, "2023-01-01")
-        self.assertEqual(params.test_start, "2023-02-01")
-        self.assertEqual(params.test_end, "2023-12-31")
+        self.assertEqual(params.start, "2020-01-01")
+        self.assertEqual(params.end, "2023-01-01")
 
         # Validate symbols
         self.assertEqual(len(params.symbols), 2)
@@ -272,15 +250,12 @@ class TestParameters(unittest.TestCase):
             TypeError, "'strategy_name' field must be of type str."
         ):
             Parameters(
-                backtest_name=self.backtest_name,
                 schema=self.schema,
                 strategy_name=123,
                 capital=self.capital,
                 data_type=self.data_type,
-                train_start=self.train_start,
-                train_end=self.train_end,
-                test_start=self.test_start,
-                test_end=self.test_end,
+                start=self.start,
+                end=self.end,
                 symbols=self.symbols,
             )
 
@@ -288,15 +263,12 @@ class TestParameters(unittest.TestCase):
             TypeError, "'capital' field must be of type int."
         ):
             Parameters(
-                backtest_name=self.backtest_name,
                 schema=self.schema,
                 strategy_name=self.strategy_name,
                 capital="1000",
                 data_type=self.data_type,
-                train_start=self.train_start,
-                train_end=self.train_end,
-                test_start=self.test_start,
-                test_end=self.test_end,
+                start=self.start,
+                end=self.end,
                 symbols=self.symbols,
             )
 
@@ -305,79 +277,38 @@ class TestParameters(unittest.TestCase):
             "'data_type' field must be an instance of MarketDataType.",
         ):
             Parameters(
-                backtest_name=self.backtest_name,
                 schema=self.schema,
                 strategy_name=self.strategy_name,
                 capital=self.capital,
                 data_type="BAR",
-                train_start=self.train_start,
-                train_end=self.train_end,
-                test_start=self.test_start,
-                test_end=self.test_end,
+                start=self.start,
+                end=self.end,
                 symbols=self.symbols,
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'train_start' field must be of type str."
+            TypeError, "'start' field must be of type str."
         ):
             Parameters(
-                backtest_name=self.backtest_name,
                 schema=self.schema,
                 strategy_name=self.strategy_name,
                 capital=self.capital,
                 data_type=self.data_type,
-                train_start=datetime(2020, 10, 10),
-                train_end=self.train_end,
-                test_start=self.test_start,
-                test_end=self.test_end,
+                start=datetime(2020, 10, 10),
+                end=self.end,
                 symbols=self.symbols,
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'train_end' field must be of type str."
+            TypeError, "'end' field must be of type str."
         ):
             Parameters(
-                backtest_name=self.backtest_name,
                 schema=self.schema,
                 strategy_name=self.strategy_name,
                 capital=self.capital,
                 data_type=self.data_type,
-                train_start=self.test_start,
-                train_end=datetime(2020, 10, 10),
-                test_start=self.test_start,
-                test_end=self.test_end,
-                symbols=self.symbols,
-            )
-
-        with self.assertRaisesRegex(
-            TypeError, "'test_start' field must be of type str."
-        ):
-            Parameters(
-                backtest_name=self.backtest_name,
-                schema=self.schema,
-                strategy_name=self.strategy_name,
-                capital=self.capital,
-                data_type=self.data_type,
-                train_start=self.train_start,
-                train_end=self.train_end,
-                test_start=datetime(2020, 10, 10),
-                test_end=self.test_end,
-                symbols=self.symbols,
-            )
-
-        with self.assertRaisesRegex(
-            TypeError, "'test_end' field must be of type str."
-        ):
-            Parameters(
-                backtest_name=self.backtest_name,
-                schema=self.schema,
-                strategy_name=self.strategy_name,
-                capital=self.capital,
-                data_type=self.data_type,
-                train_start=self.train_start,
-                train_end=self.train_end,
-                test_start=self.test_start,
-                test_end=datetime(2020, 10, 10),
+                start=self.start,
+                end=datetime(2020, 10, 10),
                 symbols=self.symbols,
             )
 
@@ -385,15 +316,12 @@ class TestParameters(unittest.TestCase):
             TypeError, "'symbols' field must be of type list."
         ):
             Parameters(
-                backtest_name=self.backtest_name,
                 schema=self.schema,
                 strategy_name=self.strategy_name,
                 capital=self.capital,
                 data_type=self.data_type,
-                train_start=self.train_start,
-                train_end=self.train_end,
-                test_start=self.test_start,
-                test_end=self.test_end,
+                start=self.start,
+                end=self.end,
                 symbols="tests",
             )
 
@@ -402,15 +330,12 @@ class TestParameters(unittest.TestCase):
             "All items in 'symbols' field must be instances of Symbol",
         ):
             Parameters(
-                backtest_name=self.backtest_name,
                 schema=self.schema,
                 strategy_name=self.strategy_name,
                 capital=self.capital,
                 data_type=self.data_type,
-                train_start=self.train_start,
-                train_end=self.train_end,
-                test_start=self.test_start,
-                test_end=self.test_end,
+                start=self.start,
+                end=self.end,
                 symbols=["appl", "tsla"],
             )
 
@@ -420,15 +345,12 @@ class TestParameters(unittest.TestCase):
             ValueError, "'capital' field must be greater than zero."
         ):
             Parameters(
-                backtest_name=self.backtest_name,
                 schema=self.schema,
                 strategy_name=self.strategy_name,
                 capital=-1,
                 data_type=self.data_type,
-                train_start=self.train_start,
-                train_end=self.train_end,
-                test_start=self.test_start,
-                test_end=self.test_end,
+                start=self.start,
+                end=self.end,
                 symbols=self.symbols,
             )
 

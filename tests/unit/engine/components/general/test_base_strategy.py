@@ -14,6 +14,9 @@ from midas.engine.components.base_strategy import (
 
 
 class TestStrategy(BaseStrategy):
+    def primer(self):
+        pass
+
     def prepare(self):
         pass
 
@@ -42,6 +45,7 @@ class TestTestStrategy(unittest.TestCase):
             symbols_map=self.symbols_map,
             portfolio_server=self.mock_portfolio_server,
             order_book=self.mock_order_book,
+            hist_data_client=Mock(),
         )
 
         # Test Data

@@ -8,6 +8,7 @@ from midas.utils.unix import unix_to_iso
 from midasClient.client import DatabaseClient
 from midas.constants import PRICE_FACTOR
 import mbn
+from datetime import datetime
 from mbn import BacktestData
 from midas.symbol import SymbolMap
 from midas.engine.components.performance.managers import (
@@ -111,7 +112,7 @@ class PerformanceManager(Subject, Observer):
         params_df["tickers"] = ", ".join(params_df["tickers"])
         params_df = params_df.iloc[0:1]
 
-        columns = ["train_start", "test_start", "train_end", "test_end"]
+        columns = ["start", "end"]
         for column in columns:
             _convert_timestamp(params_df, column)
         params_df = params_df.T
@@ -210,6 +211,13 @@ class PerformanceManager(Subject, Observer):
             sortino_ratio=int(static_stats["sortino_ratio"] * PRICE_FACTOR),
         )
 
+    def generate_backtest_name(self) -> str:
+        """
+        Generates a unique backtest name based on strategy name and dateime ran.
+        """
+        c = datetime.today()
+        return f"{self.params.strategy_name}-{c.year}{c.month}{c.day}{c.hour}{c.minute}{c.second}"
+
     def _save_backtest(self, output_path: str = "") -> None:
         """
         Saves the collected performance data including the backtest configuration, trades, and signals
@@ -231,7 +239,7 @@ class PerformanceManager(Subject, Observer):
         # Create Backtest Object
         self.backtest = BacktestData(
             backtest_id=None,
-            backtest_name=self.params.backtest_name,
+            backtest_name=self.generate_backtest_name(),
             parameters=self.params.to_mbn(),
             static_stats=self.mbn_static_stats(static_stats),
             period_timeseries_stats=self.equity_manager.period_stats_mbn,

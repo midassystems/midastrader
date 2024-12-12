@@ -4,7 +4,7 @@ from midas.cli import run
 
 class MidasLiveIntegration(unittest.TestCase):
     def test_live(self):
-        run("tests/integration/strategy/config.toml")
+        run("tests/integration/strategy/config.toml", "live")
 
 
 if __name__ == "__main__":

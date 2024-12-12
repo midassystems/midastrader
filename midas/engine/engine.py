@@ -28,7 +28,8 @@ from midas.engine.components.gateways.live import (
 
 
 class EngineBuilder:
-    def __init__(self, config_path: str):
+    def __init__(self, config_path: str, mode: Mode):
+        self.mode = mode
         self.config = self._load_config(config_path)
         self.event_queue = queue.Queue()
         self.params = None
@@ -71,9 +72,9 @@ class EngineBuilder:
     def create_symbols_map(self):
         """Step 3: Create symbols map from strategy parameters"""
         self.symbols_map = SymbolMap()
-        symbols = self.params.symbols
+        # symbols = self.params.symbols
 
-        for symbol in symbols:
+        for symbol in self.params.symbols:
             self.symbols_map.add_symbol(symbol=symbol)
         return self
 
@@ -95,7 +96,7 @@ class EngineBuilder:
 
     def create_gateways(self):
         """Step 5: Create data and broker clients (for live and backtest)"""
-        if self.config.mode == Mode.LIVE:
+        if self.mode == Mode.LIVE:
             self.hist_data_client = BacktestDataClient(
                 self.database_client,
                 self.symbols_map,
@@ -127,7 +128,7 @@ class EngineBuilder:
 
     def create_observers(self):
         """Step 5: Create observer (for live mode only)"""
-        if self.config.mode == Mode.BACKTEST:
+        if self.mode == Mode.BACKTEST:
             self.hist_data_client.attach(
                 self.dummy_broker, EventType.EOD_EVENT
             )
@@ -155,7 +156,7 @@ class EngineBuilder:
                 self.broker_client, EventType.ORDER_CREATED
             )
 
-        if self.config.mode == Mode.LIVE:
+        if self.mode == Mode.LIVE:
             self.live_data_client.app.attach(
                 self.order_book, EventType.MARKET_DATA
             )
@@ -183,6 +184,7 @@ class EngineBuilder:
     def build(self):
         """Finalize and return the built trading system"""
         return Engine(
+            mode=self.mode,
             config=self.config,
             event_queue=self.event_queue,
             symbols_map=self.symbols_map,
@@ -192,10 +194,8 @@ class EngineBuilder:
             performance_manager=self.performance_manager,
             order_manager=self.order_manager,
             observer=self.observer,
-            data_client=(
-                self.live_data_client
-                if self.live_data_client
-                else self.hist_data_client
+            live_data_client=(
+                self.live_data_client if self.live_data_client else None
             ),
             hist_data_client=self.hist_data_client,
             broker_client=self.broker_client,
@@ -205,6 +205,7 @@ class EngineBuilder:
 class Engine:
     def __init__(
         self,
+        mode: Mode,
         config: Config,
         event_queue: queue.Queue,
         symbols_map: SymbolMap,
@@ -214,10 +215,11 @@ class Engine:
         performance_manager: PerformanceManager,
         order_manager: OrderExecutionManager,
         observer: Optional[DatabaseUpdater],
-        data_client: Union[LiveDataClient, BacktestDataClient],
-        hist_data_client: Optional[BacktestDataClient],
+        live_data_client: Optional[LiveDataClient],
+        hist_data_client: BacktestDataClient,
         broker_client: Union[LiveBrokerClient, BacktestBrokerClient],
     ):
+        self.mode = mode
         self.config = config
         self.event_queue = event_queue
         self.symbols_map = symbols_map
@@ -228,7 +230,7 @@ class Engine:
         self.performance_manager = performance_manager
         self.order_manager = order_manager
         self.observer = observer
-        self.data_client = data_client  # live data client
+        self.live_data_client = live_data_client  # live data client
         self.hist_data_client = hist_data_client  # historical data client
         self.broker_client = broker_client
         self.strategy = None
@@ -242,11 +244,11 @@ class Engine:
         This is where you could trigger any final setup or pre-run checks.
         """
         self.logger.info(
-            f"Initializing trading system with mode: {self.config.mode.value}"
+            f"Initializing trading system with mode: {self.mode.value}"
         )
 
         # Initialize components based on the mode (live or backtest)
-        if self.config.mode == Mode.LIVE:
+        if self.mode == Mode.LIVE:
             self.logger.info("Setting up live environment...")
             self.setup_live_environment()
         else:
@@ -275,21 +277,21 @@ class Engine:
                 raise RuntimeError(f"{symbol.broker_ticker} invalid contract.")
 
         # Laod Hist Data
-        self._load_train_data()
+        self._load_historical_data()
 
         # Load Live Data
-        self.data_client.connect()
+        self.live_data_client.connect()
         self._load_live_data()
 
     def setup_backtest_environment(self):
         """
         Set up the backtest environment, including loading historical data.
         """
+        self._load_historical_data()
         # Load Train Data
-        self._load_train_data()
 
         # Load Backtest Data
-        self._load_backtest_data()
+        # self._load_backtest_data()
 
     def _load_live_data(self):
         """
@@ -297,7 +299,7 @@ class Engine:
         """
         try:
             for symbol in self.symbols_map.symbols:
-                self.data_client.get_data(
+                self.live_data_client.get_data(
                     data_type=self.parameters.data_type,
                     contract=symbol.contract,
                 )
@@ -306,36 +308,54 @@ class Engine:
                 f"Error loading live data for symbol {symbol.ticker}."
             )
 
-    def _load_train_data(self):
-        """
-        Loads histroical training data for the period specified in the parameters.
-        """
-        self.train_data = self.hist_data_client.get_data(
-            self.symbols_map.midas_tickers,
-            self.parameters.train_start,
-            self.parameters.train_end,
-            self.parameters.schema,
-            self.config.train_data_file,
-        )
-        self.logger.info("Training data loaded.")
-
-    def _load_backtest_data(self):
+    def _load_historical_data(self):
         """
         Loads backtest data for the period specified in the parameters.
         """
 
         response = self.hist_data_client.load_backtest_data(
             self.symbols_map.midas_tickers,
-            self.parameters.test_start,
-            self.parameters.test_end,
+            self.parameters.start,
+            self.parameters.end,
             self.parameters.schema,
-            self.config.test_data_file,
+            self.config.data_file,
         )
 
         if response:
             self.logger.info("Backtest data loaded.")
         else:
             raise RuntimeError("Backtest data did not load.")
+
+    # def _load_train_data(self):
+    #     """
+    #     Loads histroical training data for the period specified in the parameters.
+    #     """
+    #     self.train_data = self.hist_data_client.get_data(
+    #         self.symbols_map.midas_tickers,
+    #         self.parameters.train_start,
+    #         self.parameters.train_end,
+    #         self.parameters.schema,
+    #         self.config.train_data_file,
+    #     )
+    #     self.logger.info("Training data loaded.")
+    #
+    # def _load_backtest_data(self):
+    #     """
+    #     Loads backtest data for the period specified in the parameters.
+    #     """
+    #
+    #     response = self.hist_data_client.load_backtest_data(
+    #         self.symbols_map.midas_tickers,
+    #         self.parameters.test_start,
+    #         self.parameters.test_end,
+    #         self.parameters.schema,
+    #         self.config.test_data_file,
+    #     )
+    #
+    #     if response:
+    #         self.logger.info("Backtest data loaded.")
+    #     else:
+    #         raise RuntimeError("Backtest data did not load.")
 
     def set_risk_model(self):
         """
@@ -362,22 +382,24 @@ class Engine:
             symbols_map=self.symbols_map,
             portfolio_server=self.portfolio_server,
             order_book=self.order_book,
+            hist_data_client=self.hist_data_client,
         )
         self.performance_manager.set_strategy(self.strategy)
         self.order_book.attach(self.strategy, EventType.ORDER_BOOK)
         self.strategy.attach(self.order_manager, EventType.SIGNAL)
         self.strategy.attach(self.performance_manager, EventType.SIGNAL)
 
-        self.strategy.prepare(self.train_data)
+        # self.strategy.prepare(self.train_data)
+        self.strategy.primer()
         self.logger.info("Strategy set successfully.")
 
     def start(self):
         """Run the engine's event loop for live trading or backtesting."""
         self.logger.info(
-            f"*** Starting event loop in {self.config.mode.value} mode. ***"
+            f"*** Starting event loop in {self.mode.value} mode. ***"
         )
 
-        if self.config.mode == Mode.LIVE:
+        if self.mode == Mode.LIVE:
             self._run_live_event_loop()
         else:
             self._run_backtest_event_loop()
@@ -412,16 +434,13 @@ class Engine:
         self.broker_client.liquidate_positions()
 
         # Finalize and save to database
-        self.performance_manager.save(
-            self.config.mode,
-            self.config.output_path,
-        )
+        self.performance_manager.save(self.mode, self.config.output_path)
 
     def stop(self):
         """Gracefully shut down the engine."""
         self.logger.info("Shutting down the engine.")
-        if self.config.mode == Mode.LIVE:
-            self.data_client.disconnect()
+        if self.mode == Mode.LIVE:
+            self.live_data_client.disconnect()
         self.logger.info("Engine shutdown complete.")
 
     def _signal_handler(self, signum, frame):

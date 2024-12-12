@@ -1,10 +1,11 @@
 # config.toml
 [general]
-mode = "BACKTEST"
+# mode = "BACKTEST"
 session_id = 1001
 log_level = "INFO"
 log_output = "file"
 output_path = "tests/integration/backtest/output/"
+data_file= "tests/integration/he_zc_2024-09-01_2024-12-10_ohlcv-1h.bin" 
 # train_data_file = "/Users/anthony/projects/midas/engine/python/tests/integration/hogs_corn_ohlcv1h.bin"
 # test_data_file =  "/Users/anthony/projects/midas/engine/python/tests/integration/hogs_corn_ohlcv1h.bin"
 
@@ -29,16 +30,15 @@ module = "tests/integration/strategy/logic.py"
 class = "Cointegrationzscore"
 
 [strategy.parameters]
-backtest_name = "testing"
 strategy_name = "Cointegrationzscore"
 capital = 1000000
 data_type = "BAR"
 tick_interval = 5 # only matters for tick data
 schema = "ohlcv-1h"
-train_start = "2024-01-01"
-train_end = "2024-01-10"
+start = "2024-09-01"
+end = "2024-12-10"
 test_start = ""
-test_end = "2024-01-31" #2024-05-04 00:00:00"
+test_end = "2024-12-11" #2024-05-04 00:00:00"
 missing_values_strategy = "drop"
 risk_free_rate = 0.04
 

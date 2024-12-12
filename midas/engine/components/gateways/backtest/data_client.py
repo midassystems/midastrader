@@ -96,20 +96,36 @@ class DataClient(Subject, BaseDataClient):
 
         return data
 
-    def data_stream(self) -> bool:
-        """
-        Simulate data stream.
-        """
+    def next_record(self) -> RecordMsg:
         record = self.data.replay()
 
         if record is None:
-            return False
+            return None
 
         # Adjust instrument id
         id = record.hd.instrument_id
         ticker = self.data.metadata.mappings.get_ticker(id)
         new_id = self.symbols_map.get_symbol(ticker).instrument_id
         record.instrument_id = new_id
+
+        return record
+
+    def data_stream(self) -> bool:
+        """
+        Simulate data stream.
+        """
+        # record = self.data.replay()
+        #
+        # # Adjust instrument id
+        # id = record.hd.instrument_id
+        # ticker = self.data.metadata.mappings.get_ticker(id)
+        # new_id = self.symbols_map.get_symbol(ticker).instrument_id
+        # record.instrument_id = new_id
+
+        record = self.next_record()
+
+        if record is None:
+            return False
 
         # Check for end of trading da
         self._check_eod(record)

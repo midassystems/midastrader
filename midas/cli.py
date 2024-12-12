@@ -1,8 +1,9 @@
 import argparse
 from midas.engine.engine import EngineBuilder
+from midas.engine.config import Mode
 
 
-def run(config_path: str):
+def run(config_path: str, mode: str):
     """
     This function initializes the trading engine using the given config file.
     It creates all necessary components (logger, database, strategy, etc.)
@@ -10,9 +11,11 @@ def run(config_path: str):
 
     :param config_path: Path to the configuration file (e.g., config.toml).
     """
+    mode = Mode[mode.upper()]
+
     # Build the engine using the EngineBuilder
     engine = (
-        EngineBuilder(config_path)
+        EngineBuilder(config_path, mode)
         .create_logger()  # Initialize logging
         .create_parameters()  # Load and parse the parameters
         .create_database_client()  # Set up the database client
@@ -38,7 +41,12 @@ def main():
         description="Run the Midas trading engine"
     )
     parser.add_argument(
-        "config", help="Path to the configuration file (e.g., config.toml)"
+        "config",
+        help="Path to the configuration file (e.g., config.toml)",
+    )
+    parser.add_argument(
+        "mode",
+        help="Engine mode (Backtest or Live)",
     )
 
     args = parser.parse_args()
