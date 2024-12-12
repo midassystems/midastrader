@@ -30,6 +30,9 @@ from midas.constants import PRICE_FACTOR
 
 
 class TestStrategy(BaseStrategy):
+    def primer(self):
+        pass
+
     def prepare(self):
         pass
 
@@ -100,26 +103,24 @@ class TestPerformanceManager(unittest.TestCase):
 
         # Parameters
         self.schema = "Ohlcv-1s"
-        self.backtest_name = "Bt_name"
         self.strategy_name = "Testing"
         self.capital = 1000000
         self.data_type = random.choice([LiveDataType.BAR, LiveDataType.TICK])
         self.strategy_allocation = 1.0
-        self.train_start = "2020-05-18"
-        self.train_end = "2023-12-31"
-        self.test_start = "2024-01-01"
-        self.test_end = "2024-01-19"
+        self.start = "2020-05-18"
+        self.end = "2023-12-31"
+        # self.test_start = "2024-01-01"
+        # self.test_end = "2024-01-19"
 
         self.params = Parameters(
-            backtest_name=self.backtest_name,
             strategy_name=self.strategy_name,
             capital=self.capital,
             schema=self.schema,
             data_type=self.data_type,
-            train_start=self.train_start,
-            train_end=self.train_end,
-            test_start=self.test_start,
-            test_end=self.test_end,
+            start=self.start,
+            end=self.end,
+            # test_start=self.test_start,
+            # test_end=self.test_end,
             risk_free_rate=0.9,
             symbols=[hogs, aapl],
         )
@@ -134,7 +135,7 @@ class TestPerformanceManager(unittest.TestCase):
             params=self.params,
             symbols_map=self.symbols_map,
         )
-        self.manager.set_strategy(TestStrategy(Mock(), Mock(), Mock()))
+        self.manager.set_strategy(TestStrategy(Mock(), Mock(), Mock(), Mock()))
 
     # Basic Validation
     def test_handle_event_equity(self):

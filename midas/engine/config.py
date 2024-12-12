@@ -5,7 +5,6 @@ from dataclasses import dataclass, field
 from midas.utils.unix import iso_to_unix
 from midas.symbol import Symbol, SymbolFactory
 from mbn import Schema
-from datetime import datetime
 from mbn import Parameters as MbnParameters
 
 
@@ -36,12 +35,12 @@ class Config:
 
         # General settings
         self.session_id = self.general.get("session_id")
-        self.mode = Mode[self.general.get("mode").upper()]
         self.log_level = self.general.get("log_level", "INFO")
         self.log_output = self.general.get("log_output", "file")
         self.output_path = self.general.get("output_path", "")
         self.train_data_file = self.general.get("train_data_file", "")
         self.test_data_file = self.general.get("test_data_file", "")
+        self.data_file = self.general.get("data_file", "")
 
         # Database settings
         self.database_url = self.database.get("url")
@@ -94,15 +93,12 @@ class Parameters:
         Converts date strings to UNIX timestamps where applicable.
     """
 
-    backtest_name: str
     strategy_name: str
     capital: int
     schema: Schema
     data_type: LiveDataType
-    train_start: str
-    train_end: str
-    test_start: str
-    test_end: str
+    start: str
+    end: str
     risk_free_rate: float = 0.4
     symbols: List[Symbol] = field(default_factory=list)
 
@@ -119,14 +115,10 @@ class Parameters:
             raise TypeError(
                 "'data_type' field must be an instance of MarketDataType."
             )
-        if not isinstance(self.train_start, str):
-            raise TypeError("'train_start' field must be of type str.")
-        if not isinstance(self.train_end, str):
-            raise TypeError("'train_end' field must be of type str.")
-        if not isinstance(self.test_start, str):
-            raise TypeError("'test_start' field must be of type str.")
-        if not isinstance(self.test_end, str):
-            raise TypeError("'test_end' field must be of type str.")
+        if not isinstance(self.start, str):
+            raise TypeError("'start' field must be of type str.")
+        if not isinstance(self.end, str):
+            raise TypeError("'end' field must be of type str.")
         if not isinstance(self.risk_free_rate, (int, float)):
             raise TypeError(
                 "'risk_free_rate' field must be of type int or float."
@@ -151,12 +143,9 @@ class Parameters:
             "capital": self.capital,
             "data_type": self.data_type.value,
             "schema": self.schema,
-            "train_start": (int(iso_to_unix(self.train_start))),
-            "train_end": (int(iso_to_unix(self.train_end))),
-            "test_start": int(iso_to_unix(self.test_start)),
-            "test_end": int(iso_to_unix(self.test_end)),
+            "start": (int(iso_to_unix(self.start))),
+            "end": (int(iso_to_unix(self.end))),
             "tickers": self.tickers,
-            # "risk_free_rate": / self.risk_free_rate,
         }
 
     def to_mbn(self):
@@ -165,26 +154,10 @@ class Parameters:
             capital=self.capital,
             data_type=self.data_type.value,
             schema=self.schema,
-            train_start=(int(iso_to_unix(self.train_start))),
-            train_end=(int(iso_to_unix(self.train_end))),
-            test_start=int(iso_to_unix(self.test_start)),
-            test_end=int(iso_to_unix(self.test_end)),
+            start=(int(iso_to_unix(self.start))),
+            end=(int(iso_to_unix(self.end))),
             tickers=self.tickers,
         )
-
-    # def to_mbn_parameters(self):
-    #     return Parameters(
-    #         strategy_name=self.strategy_name,
-    #         capital=self.capital,
-    #         schema=self.schema,
-    #         data_type=self.data_type,
-    #         train_start=self.train_start,
-    #         train_end=self.train_end,
-    #         test_start: int,
-    #         test_end: int,
-    #
-    #
-    #     )
 
     @classmethod
     def from_dict(cls, data: dict) -> "Parameters":
@@ -198,15 +171,12 @@ class Parameters:
 
         # Create and return Parameters instance
         return cls(
-            backtest_name=data["backtest_name"],
             strategy_name=data["strategy_name"],
             capital=data["capital"],
             data_type=data_type,
-            train_start=data["train_start"],
-            train_end=data["train_end"],
-            test_start=data["test_start"] or data["train_end"],
+            start=data["start"],
+            end=data["end"],
             symbols=symbols,
             schema=data["schema"],
-            test_end=data["test_end"] or datetime.now().strftime("%Y-%m-%d"),
             risk_free_rate=data["risk_free_rate"],
         )

@@ -12,6 +12,7 @@ from midas.symbol import SymbolMap
 from midas.engine.events.market_event import MarketEvent
 from quantAnalytics.data.handler import DataHandler
 from midas.engine.components.observer.base import Subject, EventType
+from midas.engine.components.gateways.backtest import DataClient
 
 
 class Signal(Enum):
@@ -30,10 +31,13 @@ class Cointegrationzscore(BaseStrategy):
         symbols_map: SymbolMap,
         portfolio_server: PortfolioServer,
         order_book: OrderBook,
+        hist_data_client: DataClient,
     ):
 
         # Initialize base
-        super().__init__(symbols_map, portfolio_server, order_book)
+        super().__init__(
+            symbols_map, portfolio_server, order_book, hist_data_client
+        )
 
         # Parameters
         self.trade_id = 1
@@ -52,6 +56,47 @@ class Cointegrationzscore(BaseStrategy):
         self.last_update_time = {
             symbol: None for symbol in self.weights.keys()
         }
+
+    def primer(self) -> None:
+        self.data = pd.DataFrame()
+        self.initialize_current_price()
+
+        while True:
+            record = self.hist_data_client.next_record()
+
+            if not record:
+                raise RuntimeError("Not enough records to prime strategy.")
+
+            # if record:
+            key = record.instrument_id
+            self.current_price[f"{key}"] = record.close / 1e9
+            self.current_price[f"{key}_log"] = np.log(record.close / 1e9)
+            self.last_update_time[key] = record.ts_event
+
+            # Check if all tickers have the same timestamp
+            if self.check_timestamps_aligned():
+                # Create new row
+                new_row = self.current_price.copy()
+                new_row["timestamp"] = record.ts_event
+                new_row.set_index("timestamp", inplace=True)
+                self.data = pd.concat([self.data, new_row], ignore_index=False)
+
+            if len(self.data) == self.zscore_lookback:
+                break
+
+        # Spread
+        self.update_spread(self.data)
+
+        # Z-score
+        self.update_zscore(True)
+
+    def initialize_current_price(self) -> None:
+        """
+        Initialize `self.current_price` with a single row and placeholder values.
+        """
+        initial_data = {f"{key}": 0 for key in self.weights.keys()}
+        initial_data.update({f"{key}_log": 0 for key in self.weights.keys()})
+        self.current_price = pd.DataFrame([initial_data])  # Single row
 
     def prepare(self, data_buffer: BufferStore) -> None:
         # Process data
@@ -162,7 +207,7 @@ class Cointegrationzscore(BaseStrategy):
         Check if the last update time for all tickers is the same.
         Returns True if they are aligned, otherwise False.
         """
-        self.logger.info(f"Checking timestamps :{self.last_update_time}")
+        # self.logger.info(f"Checking timestamps :{self.last_update_time}")
 
         timestamps = set(self.last_update_time.values())
         return len(timestamps) == 1 and None not in timestamps
