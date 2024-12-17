@@ -28,7 +28,36 @@ from midas.engine.components.gateways.live import (
 
 
 class EngineBuilder:
+    """
+    A builder class to initialize and assemble the components of a trading system.
+
+    This class builds various components needed for live or backtest trading environments,
+    such as the logger, database client, symbol map, order book, gateways, observers,
+    and other core trading components.
+
+    Args:
+        config_path (str): Path to the configuration file (TOML format).
+        mode (Mode): The mode for the trading system, either `LIVE` or `BACKTEST`.
+
+    Methods:
+        create_logger(): Initializes the logging system.
+        create_parameters(): Loads trading strategy parameters from the configuration file.
+        create_database_client(): Sets up the database client for data access.
+        create_symbols_map(): Builds a symbol map for all trading instruments.
+        create_core_components(): Creates the order book, portfolio server, and performance manager.
+        create_gateways(): Initializes data and broker clients based on the selected mode.
+        create_observers(): Connects components through observers for live or backtest events.
+        build(): Finalizes and returns the fully constructed trading system.
+    """
+
     def __init__(self, config_path: str, mode: Mode):
+        """
+        Initialize the EngineBuilder with the configuration path and mode.
+
+        Args:
+            config_path (str): Path to the configuration file.
+            mode (Mode): Mode of operation, either `Mode.LIVE` or `Mode.BACKTEST`.
+        """
         self.mode = mode
         self.config = self._load_config(config_path)
         self.event_queue = queue.Queue()
@@ -47,11 +76,27 @@ class EngineBuilder:
         self.eod_event_flag = None
 
     def _load_config(self, config_path: str) -> Config:
-        """Load the configuration from the TOML file."""
+        """
+        Load the trading system configuration from a TOML file.
+
+        Args:
+            config_path (str): Path to the configuration file.
+
+        Returns:
+            Config: An instance of the Config class with all loaded parameters.
+        """
         return Config.from_toml(config_path)
 
     def create_logger(self):
-        """Step 1: Create logger"""
+        """
+        Create the system logger for logging output.
+
+        The logger outputs messages to the configured file or terminal
+        depending on the settings in the configuration.
+
+        Returns:
+            EngineBuilder: Returns the current instance for method chaining.
+        """
         SystemLogger(
             self.config.strategy_parameters["strategy_name"],
             self.config.log_output,
@@ -61,16 +106,32 @@ class EngineBuilder:
         return self
 
     def create_parameters(self):
+        """
+        Create and load trading parameters from the configuration.
+
+        Returns:
+            EngineBuilder: Returns the current instance for method chaining.
+        """
         self.params = Parameters.from_dict(self.config.strategy_parameters)
         return self
 
     def create_database_client(self):
-        """Step 2: Create database client"""
+        """
+        Initialize the database client for data access.
+
+        Returns:
+            EngineBuilder: Returns the current instance for method chaining.
+        """
         self.database_client = DatabaseClient()
         return self
 
     def create_symbols_map(self):
-        """Step 3: Create symbols map from strategy parameters"""
+        """
+        Create the symbol map for all trading instruments.
+
+        Returns:
+            EngineBuilder: Returns the current instance for method chaining.
+        """
         self.symbols_map = SymbolMap()
         # symbols = self.params.symbols
 
@@ -79,7 +140,16 @@ class EngineBuilder:
         return self
 
     def create_core_components(self):
-        """Step 4: Create order book, portfolio server, and order manager"""
+        """
+        Create the core components of the trading system:
+        - OrderBook: Manages market data and order book updates.
+        - PortfolioServer: Tracks positions and account updates.
+        - OrderExecutionManager: Handles order execution.
+        - PerformanceManager: Tracks system performance.
+
+        Returns:
+            EngineBuilder: Returns the current instance for method chaining.
+        """
         self.order_book = OrderBook(self.symbols_map)
         self.portfolio_server = PortfolioServer(self.symbols_map)
         self.order_manager = OrderExecutionManager(
@@ -95,7 +165,15 @@ class EngineBuilder:
         return self
 
     def create_gateways(self):
-        """Step 5: Create data and broker clients (for live and backtest)"""
+        """
+        Create data and broker clients depending on the mode (LIVE or BACKTEST).
+
+        For live mode, the system uses live data and broker clients.
+        For backtesting, it initializes historical data clients and dummy brokers.
+
+        Returns:
+            EngineBuilder: Returns the current instance for method chaining.
+        """
         if self.mode == Mode.LIVE:
             self.hist_data_client = BacktestDataClient(
                 self.database_client,
@@ -127,7 +205,15 @@ class EngineBuilder:
         return self
 
     def create_observers(self):
-        """Step 5: Create observer (for live mode only)"""
+        """
+        Attach observers to system components to handle event updates.
+
+        - For backtesting, observers include dummy brokers, order books, and clients.
+        - For live mode, observers include real-time data and broker clients.
+
+        Returns:
+            EngineBuilder: Returns the current instance for method chaining.
+        """
         if self.mode == Mode.BACKTEST:
             self.hist_data_client.attach(
                 self.dummy_broker, EventType.EOD_EVENT
@@ -182,7 +268,12 @@ class EngineBuilder:
         return self
 
     def build(self):
-        """Finalize and return the built trading system"""
+        """
+        Finalize and return the fully constructed trading system engine.
+
+        Returns:
+            Engine: The assembled trading engine instance ready for execution.
+        """
         return Engine(
             mode=self.mode,
             config=self.config,
@@ -203,6 +294,41 @@ class EngineBuilder:
 
 
 class Engine:
+    """
+    A class representing the core trading engine for both live and backtest modes.
+
+    This class manages the initialization, setup, and execution of the trading system. It handles
+    data feeds, order management, risk models, and strategies while maintaining an event-driven
+    architecture.
+
+    Args:
+        mode (Mode): Mode of the trading system, either `LIVE` or `BACKTEST`.
+        config (Config): Configuration object containing all system parameters.
+        event_queue (queue.Queue): Queue for managing events.
+        symbols_map (SymbolMap): Map of trading symbols.
+        params (Parameters): Strategy and trading parameters.
+        order_book (OrderBook): Order book for managing market data.
+        portfolio_server (PortfolioServer): Server managing portfolio positions and accounts.
+        performance_manager (PerformanceManager): Manager tracking trading system performance.
+        order_manager (OrderExecutionManager): Manager for order execution.
+        observer (Optional[DatabaseUpdater]): Observer for database updates.
+        live_data_client (Optional[LiveDataClient]): Client for live market data feeds.
+        hist_data_client (BacktestDataClient): Client for historical backtest data.
+        broker_client (Union[LiveBrokerClient, BacktestBrokerClient]): Client for broker operations.
+
+    Methods:
+        initialize(): Initialize the system components.
+        setup_live_environment(): Configure the trading environment for live mode.
+        setup_backtest_environment(): Configure the trading environment for backtesting.
+        _load_live_data(): Load and subscribe to live market data feeds.
+        _load_historical_data(): Load historical data for backtesting.
+        set_risk_model(): Initialize and attach the risk model.
+        set_strategy(): Load and initialize the trading strategy.
+        start(): Start the main event loop based on the mode.
+        stop(): Gracefully shut down the trading engine.
+        _signal_handler(signum, frame): Handle system signals for shutdown.
+    """
+
     def __init__(
         self,
         mode: Mode,
@@ -219,6 +345,24 @@ class Engine:
         hist_data_client: BacktestDataClient,
         broker_client: Union[LiveBrokerClient, BacktestBrokerClient],
     ):
+        """
+        Initialize the trading engine with all required components.
+
+        Args:
+            mode (Mode): The trading system mode (`LIVE` or `BACKTEST`).
+            config (Config): Configuration object for the system.
+            event_queue (queue.Queue): Event queue for event-driven operations.
+            symbols_map (SymbolMap): Map of trading symbols.
+            params (Parameters): Strategy and trading parameters.
+            order_book (OrderBook): Order book for managing market data.
+            portfolio_server (PortfolioServer): Portfolio manager for positions and accounts.
+            performance_manager (PerformanceManager): Manager to monitor performance.
+            order_manager (OrderExecutionManager): Handles order execution.
+            observer (Optional[DatabaseUpdater]): Observer for database updates.
+            live_data_client (Optional[LiveDataClient]): Client for live data feeds.
+            hist_data_client (BacktestDataClient): Client for backtest historical data.
+            broker_client (Union[LiveBrokerClient, BacktestBrokerClient]): Broker client for order routing.
+        """
         self.mode = mode
         self.config = config
         self.event_queue = event_queue
@@ -230,8 +374,8 @@ class Engine:
         self.performance_manager = performance_manager
         self.order_manager = order_manager
         self.observer = observer
-        self.live_data_client = live_data_client  # live data client
-        self.hist_data_client = hist_data_client  # historical data client
+        self.live_data_client = live_data_client
+        self.hist_data_client = hist_data_client
         self.broker_client = broker_client
         self.strategy = None
         self.contract_manager = None
@@ -240,14 +384,16 @@ class Engine:
 
     def initialize(self):
         """
-        Initialize the trading system by setting up all the components.
-        This is where you could trigger any final setup or pre-run checks.
-        """
-        self.logger.info(
-            f"Initializing trading system with mode: {self.mode.value}"
-        )
+        Initialize the trading system by setting up all required components.
 
-        # Initialize components based on the mode (live or backtest)
+        Depending on the mode (live or backtest), this method configures the system's data feeds,
+        risk models, and trading strategies.
+
+        Raises:
+            RuntimeError: If the system fails to load required components.
+        """
+        self.logger.info(f"Initializing system with mode: {self.mode.value}")
+
         if self.mode == Mode.LIVE:
             self.logger.info("Setting up live environment...")
             self.setup_live_environment()
@@ -265,7 +411,12 @@ class Engine:
 
     def setup_live_environment(self):
         """
-        Set up the live trading environment, including data feeds and broker client.
+        Configure the live trading environment.
+
+        Establishes connections to live data feeds, brokers, and validates trading contracts.
+
+        Raises:
+            RuntimeError: If contract validation fails or live data cannot be loaded.
         """
         # Set up connections
         self.broker_client.connect()
@@ -285,17 +436,20 @@ class Engine:
 
     def setup_backtest_environment(self):
         """
-        Set up the backtest environment, including loading historical data.
+        Configure the backtest environment.
+
+        Loads historical data needed for simulation and backtesting.
+        Raises:
+            RuntimeError: If backtest data cannot be loaded.
         """
         self._load_historical_data()
-        # Load Train Data
-
-        # Load Backtest Data
-        # self._load_backtest_data()
 
     def _load_live_data(self):
         """
-        Loads and subscribes to live data feeds for the symbols in the strategy.
+        Subscribe to live data feeds for the trading symbols.
+
+        Raises:
+            ValueError: If live data fails to load for any symbol.
         """
         try:
             for symbol in self.symbols_map.symbols:
@@ -304,15 +458,15 @@ class Engine:
                     contract=symbol.contract,
                 )
         except ValueError:
-            raise ValueError(
-                f"Error loading live data for symbol {symbol.ticker}."
-            )
+            raise ValueError(f"Error loading live data for {symbol.ticker}.")
 
     def _load_historical_data(self):
         """
-        Loads backtest data for the period specified in the parameters.
-        """
+        Load historical data for backtesting.
 
+        Raises:
+            RuntimeError: If the backtest data fails to load.
+        """
         response = self.hist_data_client.load_backtest_data(
             self.symbols_map.midas_tickers,
             self.parameters.start,
@@ -326,40 +480,11 @@ class Engine:
         else:
             raise RuntimeError("Backtest data did not load.")
 
-    # def _load_train_data(self):
-    #     """
-    #     Loads histroical training data for the period specified in the parameters.
-    #     """
-    #     self.train_data = self.hist_data_client.get_data(
-    #         self.symbols_map.midas_tickers,
-    #         self.parameters.train_start,
-    #         self.parameters.train_end,
-    #         self.parameters.schema,
-    #         self.config.train_data_file,
-    #     )
-    #     self.logger.info("Training data loaded.")
-    #
-    # def _load_backtest_data(self):
-    #     """
-    #     Loads backtest data for the period specified in the parameters.
-    #     """
-    #
-    #     response = self.hist_data_client.load_backtest_data(
-    #         self.symbols_map.midas_tickers,
-    #         self.parameters.test_start,
-    #         self.parameters.test_end,
-    #         self.parameters.schema,
-    #         self.config.test_data_file,
-    #     )
-    #
-    #     if response:
-    #         self.logger.info("Backtest data loaded.")
-    #     else:
-    #         raise RuntimeError("Backtest data did not load.")
-
     def set_risk_model(self):
         """
-        Set a risk model for the trading system.
+        Initialize and set the risk model for the trading system.
+
+        Attaches the risk model to the database observer to track risk updates.
         """
         if self.config.risk_class:
             self.risk_model = RiskHandler(self.config.risk_class)
@@ -372,7 +497,11 @@ class Engine:
             self.logger.info("Risk model set successfully.")
 
     def set_strategy(self):
-        """Step 7: Set up strategy (both live and backtest)"""
+        """
+        Load and initialize the trading strategy.
+
+        Attaches the strategy to key components such as the order book, order manager, and performance manager.
+        """
         strategy_class = load_strategy_class(
             self.config.strategy_module,
             self.config.strategy_class,
@@ -388,16 +517,16 @@ class Engine:
         self.order_book.attach(self.strategy, EventType.ORDER_BOOK)
         self.strategy.attach(self.order_manager, EventType.SIGNAL)
         self.strategy.attach(self.performance_manager, EventType.SIGNAL)
-
-        # self.strategy.prepare(self.train_data)
         self.strategy.primer()
         self.logger.info("Strategy set successfully.")
 
     def start(self):
-        """Run the engine's event loop for live trading or backtesting."""
-        self.logger.info(
-            f"*** Starting event loop in {self.mode.value} mode. ***"
-        )
+        """
+        Start the main event loop of the trading system.
+
+        Depending on the mode, it either runs live trading or backtesting.
+        """
+        self.logger.info(f"* Starting event loop in {self.mode.value} mode. *")
 
         if self.mode == Mode.LIVE:
             self._run_live_event_loop()
@@ -437,13 +566,23 @@ class Engine:
         self.performance_manager.save(self.mode, self.config.output_path)
 
     def stop(self):
-        """Gracefully shut down the engine."""
+        """
+        Gracefully shut down the trading engine.
+
+        Disconnects live data feeds and performs cleanup operations.
+        """
         self.logger.info("Shutting down the engine.")
         if self.mode == Mode.LIVE:
             self.live_data_client.disconnect()
         self.logger.info("Engine shutdown complete.")
 
     def _signal_handler(self, signum, frame):
-        """Handles signals like SIGINT to gracefully shut down the event loop."""
+        """
+        Handle system signals (e.g., SIGINT) to stop the event loop.
+
+        Args:
+            signum (int): Signal number.
+            frame: Current stack frame.
+        """
         self.logger.info("Signal received, preparing to shut down.")
         self.running = False  # Stop the event loop

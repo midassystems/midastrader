@@ -1,46 +1,57 @@
 from midasClient.client import DatabaseClient
-from midas.engine.components.observer import Observer, EventType
+from midas.engine.components.observer import Observer, Subject, EventType
 
 
 class DatabaseUpdater(Observer):
     """
     Observes trading events and updates the database based on these events.
 
-    As an observer, this class listens to various events within the trading system such as updates to positions,
-    orders, and account details. It is responsible for ensuring that all relevant changes in the trading system
-    are reflected in the database, thereby maintaining data integrity and consistency.
+    This class listens to various events within the trading system, such as updates to positions,
+    orders, and account details. It ensures that all relevant changes in the trading system are
+    reflected in the database, maintaining data integrity and consistency.
 
     Attributes:
-    - database_client (DatabaseClient): The client responsible for database operations.
-    - session_id (int): The unique identifier for the current trading session.
+        database_client (DatabaseClient): The client responsible for database operations.
+        session_id (int): The unique identifier for the current trading session.
     """
 
     def __init__(self, database_client: DatabaseClient, session_id: int):
         """
         Initializes the DatabaseUpdater with a specific database client and session ID.
 
-        Upon initialization, it also creates a new session in the database to store data relevant to the current trading activities.
+        Upon initialization, it also creates a new session in the database to store data
+        relevant to the current trading activities.
 
-        Parameters:
-        - database_client (DatabaseClient): The client to perform database operations.
-        - session_id (int): The ID used to identify the session in the database.
+        Behavior:
+            - A new session is created in the database using the provided `session_id`.
+
+        Args:
+            database_client (DatabaseClient): The client to perform database operations.
+            session_id (int): The ID used to identify the session in the database.
+
         """
         self.database_client = database_client
         self.session_id = session_id
-
-        # Create trading session
         self.database_client.create_session(self.session_id)
 
-    def handle_event(self, subject, event_type: EventType):
+    def handle_event(self, subject: Subject, event_type: EventType) -> None:
         """
         Responds to events by updating the database based on the event type.
 
         Depending on the event type, it extracts data from the subject (usually the trading system component
         firing the event) and calls the appropriate method to update or create records in the database.
 
-        Parameters:
-        - subject (varies): The object that triggered the event.
-        - event_type (EventType): The type of event that was triggered.
+        Behavior:
+            - For `POSITION_UPDATE`, updates position records in the database.
+            - For `ORDER_UPDATE`, updates active order records in the database.
+            - For `ACCOUNT_UPDATE`, updates account details in the database.
+
+        Args:
+            subject (Subject): The object that triggered the event.
+            event_type (EventType): The type of event that was triggered.
+
+        Raises:
+            TypeError: If `event_type` is not an instance of `EventType`.
         """
         if not isinstance(event_type, EventType):
             raise TypeError(
@@ -72,12 +83,15 @@ class DatabaseUpdater(Observer):
         # elif event_type == EventType.RISK_MODEL_UPDATE:
         #     data = subject.get_latest_market_data()
 
-    def _update_positions(self, data: dict):
+    def _update_positions(self, data: dict) -> None:
         """
-        Attempts to update position records in the database; creates them if they don't exist.
+        Updates or creates position records in the database.
 
-        Parameters:
-        - data (dict): The data to be updated or created in the database.
+        Args:
+            data (dict): The data to be updated or created in the database.
+
+        Raises:
+            ValueError: If the database operation fails for any reason.
         """
         try:
             self.database_client.update_positions(self.session_id, data)
@@ -92,12 +106,15 @@ class DatabaseUpdater(Observer):
             else:
                 raise e
 
-    def _update_orders(self, data: dict):
+    def _update_orders(self, data: dict) -> None:
         """
-        Attempts to update order records in the database; creates them if they don't exist.
+        Updates or creates order records in the database.
 
-        Parameters:
-        - data (dict): The data to be updated or created in the database.
+        Args:
+            data (dict): The data to be updated or created in the database.
+
+        Raises:
+            ValueError: If the database operation fails for any reason.
         """
         try:
             self.database_client.update_orders(self.session_id, data)
@@ -110,12 +127,15 @@ class DatabaseUpdater(Observer):
             else:
                 raise e
 
-    def _update_account(self, data: dict):
+    def _update_account(self, data: dict) -> None:
         """
-        Attempts to update account details in the database; creates them if they don't exist.
+        Updates or creates account details in the database.
 
-        Parameters:
+        Args:
             data (dict): The data to be updated or created in the database.
+
+        Raises:
+            ValueError: If the database operation fails for any reason.
         """
         try:
             self.database_client.update_account(self.session_id, data)
@@ -128,10 +148,13 @@ class DatabaseUpdater(Observer):
             else:
                 raise e
 
-    def delete_session(self):
+    def delete_session(self) -> None:
         """
         Deletes all records related to the current session from the database.
 
         This method is typically called at the end of a trading session to clean up any session-specific data.
+
+        Behavior:
+            - Invokes the `delete_session` method of the database client to remove session-specific records.
         """
         self.database_client.delete_session(self.session_id)

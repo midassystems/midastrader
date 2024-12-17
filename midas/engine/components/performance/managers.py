@@ -9,9 +9,23 @@ from midas.account import EquityDetails, Account
 import mbn
 from midas.symbol import SymbolMap
 from midas.constants import PRICE_FACTOR
+from midas.utils.logger import SystemLogger
 
 
 def _convert_timestamp(df: pd.DataFrame, column: str = "timestamp") -> None:
+    """
+    Converts a Unix timestamp column in a DataFrame to a localized and human-readable timestamp.
+
+    The function converts Unix timestamps in the specified column to ISO 8601 format, adjusts the timezone
+    to 'America/New_York', and removes the timezone information for consistency.
+
+    Args:
+        df (pd.DataFrame): The DataFrame containing the timestamp column to convert.
+        column (str, optional): The name of the column with Unix timestamps. Defaults to "timestamp".
+
+    Returns:
+        None: The function modifies the DataFrame in place.
+    """
     df[column] = pd.to_datetime(
         df[column].map(lambda x: unix_to_iso(x, "EST"))
     )
@@ -20,7 +34,22 @@ def _convert_timestamp(df: pd.DataFrame, column: str = "timestamp") -> None:
 
 
 class TradeManager:
-    def __init__(self, logger):
+    """
+    Manages and tracks trade-related operations, including updates, commissions,
+    aggregations, and performance statistics.
+    """
+
+    def __init__(self, logger: SystemLogger):
+        """
+        Initializes the TradeManager.
+
+        Args:
+            logger (SystemLogger): Logger for recording trade updates and calculations.
+
+        Attributes:
+            trades (Dict[str, Trade]): A dictionary storing trades with their IDs as keys.
+            logger (SystemLogger): Logger for recording trade operations.
+        """
         self.trades: Dict[str, Trade] = {}
         self.logger = logger
 
@@ -28,9 +57,9 @@ class TradeManager:
         """
         Updates or adds a trade record by its ID.
 
-        Parameters:
-        - trade_id (str): The unique identifier for the trade.
-        - trade_data (dict): Detailed information about the trade.
+        Args:
+            trade_id (str): The unique identifier for the trade.
+            trade_data (Trade): Trade object containing trade details.
         """
         self.trades[trade_id] = trade_data
         self.logger.info(
@@ -38,14 +67,19 @@ class TradeManager:
         )
 
     def update_trade_commission(
-        self, trade_id: str, commission: float
+        self,
+        trade_id: str,
+        commission: float,
     ) -> None:
         """
         Updates the commission for a specific trade by its ID.
 
-        Parameters:
-        - trade_id (str): The unique identifier for the trade.
-        - commission (float): The commission amount for the trade.
+        Args:
+            trade_id (str): The unique identifier for the trade.
+            commission (float): The commission amount for the trade.
+
+        Raises:
+            KeyError: If the trade ID does not exist in the trades dictionary.
         """
         if trade_id in self.trades:
             self.trades[trade_id].fees = commission
@@ -60,10 +94,10 @@ class TradeManager:
 
     def _output_trades(self) -> str:
         """
-        Creates a string representation of all trades for logging.
+        Generates a string representation of all trades for logging.
 
         Returns:
-        - str: String representation of all trades.
+            str: String representation of all trades.
         """
         string = ""
         for trade in self.trades:
@@ -75,7 +109,7 @@ class TradeManager:
         Aggregates trade data into a structured DataFrame for analysis.
 
         Returns:
-        - pd.DataFrame: Aggregated trade statistics including entry and exit values, fees, and pnl.
+            pd.DataFrame: Aggregated trade statistics including entry and exit values, fees, and PnL.
         """
         if not self.trades:
             return pd.DataFrame()  # Return an empty DataFrame for consistency
@@ -150,9 +184,11 @@ class TradeManager:
 
     def calculate_trade_statistics(self) -> Dict[str, float]:
         """
-        Calculates statistics related to trades and returns them in a dictionary.
-        """
+        Calculates trade statistics, such as total trades, average profit, and profitability ratios.
 
+        Returns:
+            Dict[str, float]: A dictionary of calculated trade statistics.
+        """
         trades_df = self._aggregate_trades()
         trades_pnl = trades_df["pnl"].to_numpy()
         trades_pnl_percent = trades_df["pnl_percentage"].to_numpy()
@@ -182,6 +218,15 @@ class TradeManager:
         }
 
     def to_mbn(self, symbols_map: SymbolMap) -> List[mbn.Trades]:
+        """
+        Converts trade data into MBN-compatible format.
+
+        Args:
+            symbols_map (SymbolMap): Mapping of instrument symbols to their MBN-compatible tickers.
+
+        Returns:
+            List[mbn.Trades]: A list of trades in MBN format.
+        """
         mbn_trades = []
 
         for i in self.trades.values():
@@ -192,33 +237,93 @@ class TradeManager:
 
     @property
     def trades_dict(self) -> List[dict]:
+        """
+        Provides trade data as a list of dictionaries.
+
+        Returns:
+            List[dict]: List of trade details in dictionary format.
+        """
         return [trade.to_dict() for trade in self.trades.values()]
 
     @staticmethod
     def total_trades(trades_pnl: np.ndarray) -> int:
+        """
+        Calculate the total number of trades.
+
+        Args:
+            trades_pnl (np.ndarray): Array of profit and loss values for all trades.
+
+        Returns:
+            int: The total number of trades.
+        """
         return len(trades_pnl)
 
     @staticmethod
     def total_winning_trades(trades_pnl: np.ndarray) -> int:
+        """
+        Calculate the total number of winning trades.
+
+        Args:
+            trades_pnl (np.ndarray): Array of profit and loss values for all trades.
+
+        Returns:
+            int: The total number of winning trades.
+        """
         return np.sum(trades_pnl > 0)
 
     @staticmethod
     def total_losing_trades(trades_pnl: np.ndarray) -> int:
+        """
+        Calculate the total number of losing trades.
+
+        Args:
+            trades_pnl (np.ndarray): Array of profit and loss values for all trades.
+
+        Returns:
+            int: The total number of losing trades.
+        """
         return np.sum(trades_pnl < 0)
 
     @staticmethod
     def avg_profit(trade_pnl: np.ndarray) -> float:
+        """
+        Calculate the average profit across all trades.
+
+        Args:
+            trade_pnl (np.ndarray): Array of profit and loss values for all trades.
+
+        Returns:
+            float: The average profit per trade. Returns 0.0 if there are no trades.
+        """
         net_profit = trade_pnl.sum()
         total_trades = len(trade_pnl)
         return round(net_profit / total_trades, 4) if total_trades > 0 else 0.0
 
     @staticmethod
     def avg_profit_percent(trade_pnl_percent: np.ndarray) -> float:
+        """
+        Calculate the average profit percentage across all trades.
+
+        Args:
+            trade_pnl_percent (np.ndarray): Array of profit percentage values for all trades.
+
+        Returns:
+            float: The average profit percentage. Returns 0.0 if there are no trades.
+        """
         total_trades = len(trade_pnl_percent)
         return round(trade_pnl_percent.mean(), 4) if total_trades > 0 else 0.0
 
     @staticmethod
     def avg_gain(trades_pnl: np.ndarray) -> float:
+        """
+        Calculate the average gain of winning trades.
+
+        Args:
+            trades_pnl (np.ndarray): Array of profit and loss values for all trades.
+
+        Returns:
+            float: The average gain of winning trades. Returns 0.0 if there are no winning trades.
+        """
         winning_trades = trades_pnl[trades_pnl > 0]
         return (
             round(winning_trades.mean(), 4) if winning_trades.size > 0 else 0.0
@@ -226,6 +331,15 @@ class TradeManager:
 
     @staticmethod
     def avg_gain_percent(trade_pnl_percent: np.ndarray) -> float:
+        """
+        Calculate the average gain percentage of winning trades.
+
+        Args:
+            trade_pnl_percent (np.ndarray): Array of profit percentage values for all trades.
+
+        Returns:
+            float: The average gain percentage of winning trades. Returns 0.0 if there are no winning trades.
+        """
         winning_trades = trade_pnl_percent[trade_pnl_percent > 0]
         return (
             round(winning_trades.mean(), 4) if winning_trades.size > 0 else 0.0
@@ -233,6 +347,15 @@ class TradeManager:
 
     @staticmethod
     def avg_loss(trades_pnl: np.ndarray) -> float:
+        """
+        Calculate the average loss of losing trades.
+
+        Args:
+            trades_pnl (np.ndarray): Array of profit and loss values for all trades.
+
+        Returns:
+            float: The average loss of losing trades. Returns 0.0 if there are no losing trades.
+        """
         losing_trades = trades_pnl[trades_pnl < 0]
         return (
             round(losing_trades.mean(), 4) if losing_trades.size > 0 else 0.0
@@ -240,6 +363,15 @@ class TradeManager:
 
     @staticmethod
     def avg_loss_percent(trade_pnl_percent: np.ndarray) -> float:
+        """
+        Calculate the average loss of losing trades.
+
+        Args:
+            trades_pnl (np.ndarray): Array of profit and loss values for all trades.
+
+        Returns:
+            float: The average loss of losing trades. Returns 0.0 if there are no losing trades.
+        """
         losing_trades = trade_pnl_percent[trade_pnl_percent < 0]
         return (
             round(losing_trades.mean(), 4) if losing_trades.size > 0 else 0.0
@@ -247,6 +379,15 @@ class TradeManager:
 
     @staticmethod
     def profitability_ratio(trade_pnl: np.ndarray) -> float:
+        """
+        Calculate the profitability ratio of trades.
+
+        Args:
+            trade_pnl (np.ndarray): Array of profit and loss values for all trades.
+
+        Returns:
+            float: The ratio of winning trades to total trades. Returns 0.0 if there are no trades.
+        """
         total_winning_trades = TradeManager.total_winning_trades(trade_pnl)
         total_trades = len(trade_pnl)
         return (
@@ -257,6 +398,15 @@ class TradeManager:
 
     @staticmethod
     def profit_factor(trade_pnl: np.ndarray) -> float:
+        """
+        Calculate the profit factor (gross profits divided by gross losses).
+
+        Args:
+            trade_pnl (np.ndarray): Array of profit and loss values for all trades.
+
+        Returns:
+            float: The profit factor. Returns 0.0 if there are no losses.
+        """
         gross_profits = trade_pnl[trade_pnl > 0].sum()
         gross_losses = abs(trade_pnl[trade_pnl < 0].sum())
         return (
@@ -265,6 +415,15 @@ class TradeManager:
 
     @staticmethod
     def profit_and_loss_ratio(trade_pnl: np.ndarray) -> float:
+        """
+        Calculate the ratio of average gain to average loss.
+
+        Args:
+            trade_pnl (np.ndarray): Array of profit and loss values for all trades.
+
+        Returns:
+            float: The profit and loss ratio. Returns 0.0 if there are no losing trades.
+        """
         # Check for any winning trades and calculate avg_win accordingly
         if len(trade_pnl[trade_pnl > 0]) > 0:
             avg_win = trade_pnl[trade_pnl > 0].mean()
@@ -283,29 +442,37 @@ class TradeManager:
 
         return 0.0
 
-    # @staticmethod
-    # def profit_and_loss_ratio(trade_pnl: np.ndarray) -> float:
-    #     print(trade_pnl)
-    #     avg_win = trade_pnl[trade_pnl > 0].mean()
-    #     avg_loss = trade_pnl[trade_pnl < 0].mean()
-    #     if avg_loss != 0:
-    #         return round(abs(avg_win / avg_loss), 4)
-    #     return 0.0
-
 
 class EquityManager:
-    def __init__(self, logger):
+    """
+    Manages equity data for a trading strategy, including updates, calculations of returns,
+    drawdowns, and generation of performance statistics.
+
+    Attributes:
+        equity_value (List[EquityDetails]): List of equity details recorded during trading.
+        daily_stats (pd.DataFrame): DataFrame containing daily equity statistics.
+        period_stats (pd.DataFrame): DataFrame containing period-specific equity statistics.
+        logger (SystemLogger): Logger instance for logging equity updates and calculations.
+    """
+
+    def __init__(self, logger: SystemLogger):
+        """
+        Initializes the EquityManager with a logger instance.
+
+        Args:
+            logger (SystemLogger): Logger for recording equity updates and calculations.
+        """
         self.equity_value: List[EquityDetails] = []
         self.daily_stats: pd.DataFrame = None
         self.period_stats: pd.DataFrame = None
         self.logger = logger
 
-    def update_equity(self, equity_details: EquityDetails):
+    def update_equity(self, equity_details: EquityDetails) -> None:
         """
-        Updates and logs equity changes.
+        Updates the equity details and logs the update if not already recorded.
 
-        Parameters:
-        - equity_details (EquityDetails): The equity details to be logged.
+        Args:
+            equity_details (EquityDetails): The equity details to be logged.
         """
         if equity_details not in self.equity_value:
             self.equity_value.append(equity_details)
@@ -319,7 +486,12 @@ class EquityManager:
 
     @property
     def period_stats_mbn(self) -> mbn.TimeseriesStats:
+        """
+        Converts period statistics to the Midas Binary Notation (MBN) format.
 
+        Returns:
+            List[mbn.TimeseriesStats]: List of timeseries statistics in MBN format.
+        """
         return [
             mbn.TimeseriesStats(
                 timestamp=stat["timestamp"],
@@ -335,7 +507,12 @@ class EquityManager:
 
     @property
     def daily_stats_mbn(self) -> mbn.TimeseriesStats:
+        """
+        Converts daily statistics to the Midas Binary Notation (MBN) format.
 
+        Returns:
+            List[mbn.TimeseriesStats]: List of daily timeseries statistics in MBN format.
+        """
         return [
             mbn.TimeseriesStats(
                 timestamp=stat["timestamp"],
@@ -351,23 +528,36 @@ class EquityManager:
 
     @property
     def period_stats_dict(self) -> dict:
+        """
+        Converts period statistics DataFrame to a dictionary.
+
+        Returns:
+            dict: Period statistics as a dictionary.
+        """
         return self.period_stats.to_dict(orient="records")
 
     @property
     def daily_stats_dict(self) -> dict:
+        """
+        Converts daily statistics DataFrame to a dictionary.
+
+        Returns:
+            dict: Daily statistics as a dictionary.
+        """
         return self.daily_stats.to_dict(orient="records")
 
     def _calculate_return_and_drawdown(
-        self, data: pd.DataFrame
+        self,
+        data: pd.DataFrame,
     ) -> pd.DataFrame:
         """
-        Calculates the period returns, cumulative returns, and drawdowns for a given equity curve.
+        Calculates period returns, cumulative returns, and drawdowns for the given equity curve.
 
-        Parameters:
-        - data (pd.DataFrame): DataFrame containing the equity values with a datetime index.
+        Args:
+            data (pd.DataFrame): DataFrame containing equity values with a datetime index.
 
         Returns:
-        - pd.DataFrame: The DataFrame enhanced with columns for period returns, cumulative returns, and drawdowns.
+            pd.DataFrame: DataFrame enhanced with period returns, cumulative returns, and drawdowns.
         """
         equity_curve = data["equity_value"].to_numpy()
 
@@ -389,23 +579,32 @@ class EquityManager:
 
     def _remove_intermediate_updates(self, data: pd.DataFrame) -> pd.DataFrame:
         """
-        Removes intermediate updates and keeps the last equity value for each timestamp.
+        Removes intermediate updates, retaining only the last equity value for each timestamp.
 
-        Parameters:
-        - data (pd.DataFrame): The dataframe containing equity updates with timestamps.
+        Args:
+            data (pd.DataFrame): DataFrame containing equity updates with timestamps.
 
         Returns:
-        - pd.DataFrame: DataFrame with only the last entry per timestamp.
+            pd.DataFrame: DataFrame with only the last entry per timestamp.
         """
         # Group by the timestamp and keep the last entry for each group
         data = data.groupby("timestamp").last()
         return data
 
     def calculate_equity_statistics(
-        self, risk_free_rate: float = 0.04
+        self,
+        risk_free_rate: float = 0.04,
     ) -> Dict[str, float]:
         """
-        Calculates statistics related to equity curve and returns them in a dictionary.
+        Calculates key statistics related to the equity curve, including returns and risk metrics.
+
+        Args:
+            risk_free_rate (float, optional): Risk-free rate for calculating Sharpe and Sortino ratios.
+                Defaults to 0.04.
+
+        Returns:
+            Dict[str, float]: A dictionary containing equity statistics such as net profit, total return,
+                standard deviation, drawdowns, and ratios.
         """
         raw_equity_df = pd.DataFrame(self.equity_value)
         raw_equity_df.set_index("timestamp", inplace=True)
@@ -458,41 +657,79 @@ class EquityManager:
 
 
 class AccountManager:
-    def __init__(self, logger):
+    """
+    Manages account details and maintains a log of account updates during trading sessions.
+
+    Attributes:
+        account_log (List[Account]): A list of `Account` objects representing the account history.
+        logger (SystemLogger): Logger instance for recording updates and logs.
+    """
+
+    def __init__(self, logger: SystemLogger):
+        """
+        Initializes the AccountManager with a logger instance.
+
+        Args:
+            logger (SystemLogger): Logger for recording account updates.
+        """
         self.account_log: List[Account] = []
         self.logger = logger
 
-    def update_account_log(self, account_details: Account):
+    def update_account_log(self, account_details: Account) -> None:
         """
         Updates the account log with the latest account details.
+
+        Args:
+            account_details (Account): An `Account` object containing the latest account details.
         """
         self.account_log.append(account_details)
 
     def _output_account_log(self) -> str:
+        """
+        Generates a string representation of the account log.
+
+        Returns:
+            str: A newline-separated string representation of the account history.
+        """
         return "\n".join([str(account) for account in self.account_log])
 
 
 class SignalManager:
-    def __init__(self, logger):
+    """
+    Manages trading signals, maintaining a log of signal events and providing utilities for
+    processing and exporting signal-related data.
+
+    Attributes:
+        signals (List[SignalEvent]): A list of recorded signal events.
+        logger (SystemLogger): Logger instance for recording updates and logs.
+    """
+
+    def __init__(self, logger: SystemLogger):
+        """
+        Initializes the SignalManager with a logger instance.
+
+        Args:
+            logger (SystemLogger): Logger for recording signal updates.
+        """
         self.signals: List[SignalEvent] = []
         self.logger = logger
 
-    def update_signals(self, signal: SignalEvent):
+    def update_signals(self, signal: SignalEvent) -> None:
         """
-        Updates and logs the signal events.
+        Updates and logs a signal event.
 
-        Parameters:
-        - signal (SignalEvent): The signal event to be logged.
+        Args:
+            signal (SignalEvent): The signal event to be added to the log.
         """
         self.signals.append(signal)
         self.logger.info(f"\nSIGNALS UPDATED: \n{signal}")
 
     def _output_signals(self) -> str:
         """
-        Creates a string representation of all signals for logging.
+        Creates a string representation of all recorded signals for logging purposes.
 
         Returns:
-        - str: String representation of all signals.
+            str: A formatted string containing all signal events.
         """
         string = ""
         for signals in self.signals:
@@ -503,6 +740,13 @@ class SignalManager:
         return string
 
     def _flatten_trade_instructions(self) -> pd.DataFrame:
+        """
+        Flattens the nested trade instructions from signal events into a tabular DataFrame format.
+
+        Returns:
+            pd.DataFrame: A DataFrame containing individual trade instructions,
+                          expanded from the nested signal events.
+        """
         signals_dict = [signal.to_dict() for signal in self.signals]
 
         df = pd.DataFrame(signals_dict)
@@ -523,10 +767,13 @@ class SignalManager:
         return expanded_df
 
     def to_mbn(self, symbols_map: SymbolMap) -> List[mbn.Signals]:
-        # signals = self.signals
+        """
+        Converts the recorded signals into the `mbn.Signals` format for further processing.
 
+        Args:
+            symbols_map (SymbolMap): A mapping of instrument identifiers to their respective symbols.
+
+        Returns:
+            List[mbn.Signals]: A list of signals converted into the `mbn.Signals` format.
+        """
         return [signal.to_mbn(symbols_map) for signal in self.signals]
-        #     for i in signal.instructions:
-        #         i["ticker"] = self.symbols_map.map[i["ticker"]].midas_ticker
-        #
-        # return signals

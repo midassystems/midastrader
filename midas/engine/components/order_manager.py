@@ -12,7 +12,11 @@ from midas.engine.components.observer.base import Subject, Observer, EventType
 
 class OrderExecutionManager(Subject, Observer):
     """
-    Manages order execution based on trading signals, interfacing with a portfolio server and order book.
+    Manages order execution based on trading signals.
+
+    The `OrderExecutionManager` processes trading signals and initiates trade actions
+    by interacting with the order book and portfolio server. It ensures that signals
+    are validated against existing active orders and positions before executing any trades.
     """
 
     def __init__(
@@ -22,14 +26,12 @@ class OrderExecutionManager(Subject, Observer):
         portfolio_server: PortfolioServer,
     ):
         """
-        Initialize the OrderManager with necessary components for managing orders.
+        Initializes the OrderExecutionManager with required components.
 
-        Parameters:
-        - symbols_map (Dict[str, Symbol]): Mapping of symbol strings to Symbol objects.
-        - event_queue (Queue): Event queue for sending events to other parts of the system.
-        - order_book (OrderBook): Reference to the order book for price lookups.
-        - portfolio_server (PortfolioServer): Reference to the portfolio server for managing account and positions.
-        - logger (logging.Logger): Logger for logging messages.
+        Args:
+            symbols_map (SymbolMap): Mapping of symbol strings to `Symbol` objects.
+            order_book (OrderBook): The order book reference for price lookups.
+            portfolio_server (PortfolioServer): The portfolio server managing positions and account details.
         """
         super().__init__()
         self.logger = SystemLogger.get_logger()
@@ -44,17 +46,26 @@ class OrderExecutionManager(Subject, Observer):
         event: SignalEvent,
     ) -> None:
         """
-        Handle received signal events by initiating trade actions if applicable.
+        Handles incoming signal events and initiates trade actions if applicable.
 
-        Parameters:
-        - event (SignalEvent): The signal event containing trade instructions.
+        Behavior:
+            - Logs the received signal event.
+            - Validates that no active orders exist for the tickers in the signal instructions.
+            - Initiates trade execution by processing valid signal instructions.
+
+        Args:
+            subject (Subject): The subject sending the event.
+            event_type (EventType): The type of event being handled. Expected: `EventType.SIGNAL`.
+            event (SignalEvent): The signal event containing trade instructions.
+
+        Raises:
+            TypeError: If `event` is not an instance of `SignalEvent`.
+
         """
         if event_type == EventType.SIGNAL:
             self.logger.info(event)
             if not isinstance(event, SignalEvent):
-                raise TypeError(
-                    "'event' must be of type SignalEvent instance."
-                )
+                raise TypeError("'event' must be SignalEvent.")
 
             trade_instructions = event.instructions
             timestamp = event.timestamp
@@ -71,22 +82,33 @@ class OrderExecutionManager(Subject, Observer):
                 for trade in trade_instructions
             ):
                 self.logger.info(
-                    "One or more tickers in the trade instructions have active orders; ignoring signal."
+                    "One or more tickers in trade instructions have active orders; ignoring signal."
                 )
                 return
             else:
                 self._handle_signal(timestamp, trade_instructions)
 
     def _handle_signal(
-        self, timestamp: int, trade_instructions: List[SignalInstruction]
+        self,
+        timestamp: int,
+        trade_instructions: List[SignalInstruction],
     ) -> None:
         """
-        Process trade instructions to generate orders, checking if sufficient capital is available.
+        Processes trade instructions and generates orders, ensuring sufficient capital is available.
 
-        Parameters:
-        - timestamp (int): The time at which the signal was generated.
-        - trade_capital (Union[int, float]): The amount of capital allocated for trading.
-        - trade_instructions (List[SignalInstruction]): List of trading instructions to be processed.
+        This method validates trading instructions, calculates capital requirements, and generates
+        orders if capital constraints are satisfied.
+
+        Behavior:
+            - Calculates the total capital required for the orders.
+            - Validates that sufficient capital is available for execution.
+            - Queues orders for execution if constraints are met.
+            - Logs a message if capital is insufficient.
+
+        Args:
+            timestamp (int): The time at which the signal was generated (UNIX nanoseconds).
+            trade_instructions (List[SignalInstruction]): A list of trade instructions to process.
+
         """
         # Create and Validate Orders
         orders = []
@@ -129,17 +151,16 @@ class OrderExecutionManager(Subject, Observer):
 
     def _create_order(self, trade_instruction: SignalInstruction) -> BaseOrder:
         """
-        Create an order object based on specified parameters.
+        Creates an order object based on the specified trade instruction.
 
-        Parameters:
-        - order_type (OrderType): The type of order to create (MARKET, LIMIT, STOPLOSS).
-        - action (Action): The action to be taken (BUY, SELL, etc.).
-        - quantity (float): The quantity of the order.
-        - limit_price (float, optional): The limit price for limit orders.
-        - aux_price (float, optional): The auxiliary price for stop-loss orders.
+        Args:
+            trade_instruction (SignalInstruction): The trade instruction containing order details.
 
         Returns:
-        - BaseOrder: The created order object, ready for execution.
+            BaseOrder: The created order object, ready for execution.
+
+        Raises:
+            RuntimeError: If the order creation fails due to invalid input parameters.
         """
         try:
             return trade_instruction.to_order()
@@ -156,15 +177,18 @@ class OrderExecutionManager(Subject, Observer):
         order: BaseOrder,
     ) -> None:
         """
-        Queue an OrderEvent based on the order details.
+        Queues an OrderEvent for execution based on the provided order details.
 
-        Parameters:
-        - timestamp (int): The timestamp when the order was initiated.
-        - trade_id (int): The trade identifier.
-        - leg_id (int): The leg identifier of the trade.
-        - action (Action): The action of the trade (BUY, SELL, etc.).
-        - contract (Contract): The contract involved in the order.
-        - order (BaseOrder): The order to be executed.
+        Args:
+            timestamp (int): The time at which the order was initiated (UNIX nanoseconds).
+            trade_id (int): The unique trade identifier.
+            leg_id (int): The identifier for the leg of a multi-leg trade.
+            action (Action): The action for the trade (e.g., BUY, SELL, COVER).
+            contract (Contract): The financial contract involved in the order.
+            order (BaseOrder): The order object containing order specifications.
+
+        Raises:
+            RuntimeError: If creating the `OrderEvent` fails due to invalid input or unexpected errors.
         """
         try:
             order_event = OrderEvent(

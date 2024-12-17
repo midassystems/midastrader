@@ -1,5 +1,9 @@
+import mbn
 import math
 import pandas as pd
+from datetime import datetime
+from mbn import BacktestData
+from midas.symbol import SymbolMap
 from midas.utils.logger import SystemLogger
 from midas.engine.config import Parameters, Mode
 from midas.engine.components.observer.base import Observer, Subject, EventType
@@ -7,10 +11,6 @@ from midas.engine.components.base_strategy import BaseStrategy
 from midas.utils.unix import unix_to_iso
 from midasClient.client import DatabaseClient
 from midas.constants import PRICE_FACTOR
-import mbn
-from datetime import datetime
-from mbn import BacktestData
-from midas.symbol import SymbolMap
 from midas.engine.components.performance.managers import (
     AccountManager,
     EquityManager,
@@ -19,7 +19,13 @@ from midas.engine.components.performance.managers import (
 )
 
 
-def replace_nan_inf_in_dict(d):
+def replace_nan_inf_in_dict(d: dict) -> None:
+    """
+    Replaces NaN and infinity values in a dictionary (nested structures are supported) with 0.0.
+
+    Args:
+        d (dict): A dictionary possibly containing NaN or infinite values.
+    """
     for key, value in d.items():
         if isinstance(value, dict):
             replace_nan_inf_in_dict(value)
@@ -30,6 +36,13 @@ def replace_nan_inf_in_dict(d):
 
 
 def _convert_timestamp(df: pd.DataFrame, column: str = "ts_event") -> None:
+    """
+    Converts a timestamp column to localized datetime in New York timezone.
+
+    Args:
+        df (pd.DataFrame): The DataFrame containing the timestamp column.
+        column (str): The name of the timestamp column to convert. Defaults to "ts_event".
+    """
     df[column] = pd.to_datetime(df[column].map(lambda x: unix_to_iso(x)))
     df[column] = df[column].dt.tz_convert("America/New_York")
     df[column] = df[column].dt.tz_localize(None)
@@ -37,8 +50,11 @@ def _convert_timestamp(df: pd.DataFrame, column: str = "ts_event") -> None:
 
 class PerformanceManager(Subject, Observer):
     """
-    Base class for managing and tracking the performance of trading strategies.
-    It collects and logs information about signals, trades, equity changes, and account updates.
+    Manages and tracks the performance of trading strategies.
+
+    The `PerformanceManager` collects and logs performance data, including signals, trades,
+    equity changes, and account updates. It interacts with various managers to store and
+    process performance-related information.
     """
 
     def __init__(
@@ -48,13 +64,14 @@ class PerformanceManager(Subject, Observer):
         symbols_map: SymbolMap,
     ) -> None:
         """
-        Initializes the performance manager with necessary components for tracking and analysis.
+        Initializes the PerformanceManager with necessary components.
 
-        Parameters:
-        - database (DatabaseClient): Client for database operations related to performance data.
-        - logger (logging.Logger): Logger for recording activity and debugging.
-        - params (Parameters): Configuration parameters for the performance manager.
+        Args:
+            database (DatabaseClient): Client for database operations related to performance data.
+            params (Parameters): Configuration parameters for performance tracking.
+            symbols_map (SymbolMap): Mapping of instrument symbols to `Symbol` objects.
         """
+
         Subject().__init__()
         self.logger = SystemLogger.get_logger()
         self.trade_manager = TradeManager(self.logger)
@@ -66,44 +83,120 @@ class PerformanceManager(Subject, Observer):
         self.symbols_map = symbols_map
         self.database = database
 
-    def set_strategy(self, strategy: BaseStrategy):
+    def set_strategy(self, strategy: BaseStrategy) -> None:
+        """
+        Sets the strategy for performance tracking.
+
+        Args:
+            strategy (BaseStrategy): The trading strategy to track performance for.
+        """
         self.strategy = strategy
 
     def handle_event(
-        self, subject: Subject, event_type: EventType, *args, **kwargs
+        self,
+        subject: Subject,
+        event_type: EventType,
+        *args,
+        **kwargs,
     ) -> None:
-        if event_type == EventType.EQUITY_VALUE_UPDATE:
-            if len(args) == 1:
-                self.equity_manager.update_equity(args[0])
-            else:
-                raise ValueError("Missing required arguments for EQUITY_EVENT")
-        elif event_type == EventType.ACCOUNT_UPDATE:
-            if len(args) == 1:
-                self.account_manager.update_account_log(args[0])
-            else:
-                raise ValueError("Missing account details for ACCOUNT_UPDATE")
-        elif event_type == EventType.TRADE_UPDATE:
-            if len(args) == 2:
-                self.trade_manager.update_trades(args[0], args[1])
-            else:
-                raise ValueError("Missing order data for TRADE_UPDATE")
-        elif event_type == EventType.TRADE_COMMISSION_UPDATE:
-            if len(args) == 2:
-                self.trade_manager.update_trade_commission(args[0], args[1])
-            else:
-                raise ValueError(
-                    "Missing order data for TRADE_COMMMISSION_UPDATE"
-                )
-        elif event_type == EventType.SIGNAL:
-            if len(args) == 1:
-                self.signal_manager.update_signals(args[0])
-            else:
-                raise ValueError("Missing order data for SIGNAL_UPDATE")
+        """
+        Handles incoming events and delegates them to appropriate managers.
 
-        else:
-            raise ValueError(f"Unhandled event type: {event_type}")
+        Args:
+            subject (Subject): The subject that triggered the event.
+            event_type (EventType): The type of event to handle.
+            *args: Positional arguments relevant to the event.
+            **kwargs: Additional keyword arguments.
 
-    def export_results(self, static_stats: dict, output_path: str):
+        Raises:
+            ValueError: If required arguments for the event are missing or the event type is unhandled.
+        """
+        match event_type:
+            case EventType.EQUITY_VALUE_UPDATE:
+                if len(args) == 1:
+                    self.equity_manager.update_equity(args[0])
+                else:
+                    raise ValueError(
+                        "Missing required args for EQUITY_VALUE_UPDATE"
+                    )
+            case EventType.ACCOUNT_UPDATE:
+                if len(args) == 1:
+                    self.account_manager.update_account_log(args[0])
+                else:
+                    raise ValueError(
+                        "Missing account details for ACCOUNT_UPDATE"
+                    )
+            case EventType.TRADE_UPDATE:
+                if len(args) == 2:
+                    self.trade_manager.update_trades(args[0], args[1])
+                else:
+                    raise ValueError("Missing order data for TRADE_UPDATE")
+            case EventType.TRADE_COMMISSION_UPDATE:
+                if len(args) == 2:
+                    self.trade_manager.update_trade_commission(
+                        args[0], args[1]
+                    )
+                else:
+                    raise ValueError(
+                        "Missing order data for TRADE_COMMISSION_UPDATE"
+                    )
+            case EventType.SIGNAL:
+                if len(args) == 1:
+                    self.signal_manager.update_signals(args[0])
+                else:
+                    raise ValueError("Missing signal data for SIGNAL_UPDATE")
+            case _:
+                raise ValueError(f"Unhandled event type: {event_type}")
+        # if event_type == EventType.EQUITY_VALUE_UPDATE:
+        #     if len(args) == 1:
+        #         self.equity_manager.update_equity(args[0])
+        #     else:
+        #         raise ValueError("Missing required arguments for EQUITY_EVENT")
+        # elif event_type == EventType.ACCOUNT_UPDATE:
+        #     if len(args) == 1:
+        #         self.account_manager.update_account_log(args[0])
+        #     else:
+        #         raise ValueError("Missing account details for ACCOUNT_UPDATE")
+        # elif event_type == EventType.TRADE_UPDATE:
+        #     if len(args) == 2:
+        #         self.trade_manager.update_trades(args[0], args[1])
+        #     else:
+        #         raise ValueError("Missing order data for TRADE_UPDATE")
+        # elif event_type == EventType.TRADE_COMMISSION_UPDATE:
+        #     if len(args) == 2:
+        #         self.trade_manager.update_trade_commission(args[0], args[1])
+        #     else:
+        #         raise ValueError(
+        #             "Missing order data for TRADE_COMMMISSION_UPDATE"
+        #         )
+        # elif event_type == EventType.SIGNAL:
+        #     if len(args) == 1:
+        #         self.signal_manager.update_signals(args[0])
+        #     else:
+        #         raise ValueError("Missing order data for SIGNAL_UPDATE")
+        #
+        # else:
+        #     raise ValueError(f"Unhandled event type: {event_type}")
+
+    def export_results(self, static_stats: dict, output_path: str) -> None:
+        """
+        Exports performance results, including static statistics, trades, equity, and signals,
+        into an Excel workbook.
+
+        This method consolidates various performance metrics, including static statistics,
+        aggregated trade data, equity statistics, signals, and strategy-specific data,
+        and writes them to separate sheets in an Excel file.
+
+        Args:
+            static_stats (dict): A dictionary containing static performance statistics.
+            output_path (str): The file path where the Excel workbook will be saved.
+
+        Behavior:
+            - Static statistics are written to the "Static Stats" sheet.
+            - Strategy parameters, trades, equity data (daily and period), and signals are exported.
+            - Each dataset is converted into a structured DataFrame and timestamps are localized.
+            - The resulting Excel file contains multiple sheets with organized performance data.
+        """
         # Summary Stats
         static_stats_df = pd.DataFrame([static_stats]).T
 
@@ -155,7 +248,17 @@ class PerformanceManager(Subject, Observer):
 
     def save(self, mode: Mode, output_path: str = "") -> None:
         """
-        Saves the performance data based on the mode (live or backtest).
+        Saves the performance data based on the specified mode.
+
+        This method delegates saving performance data to the appropriate sub-method based on
+        whether the mode is `LIVE` or `BACKTEST`.
+
+        Args:
+            mode (Mode): The mode of the strategy (`Mode.LIVE` or `Mode.BACKTEST`).
+            output_path (str, optional): The directory where the results will be saved. Defaults to an empty string.
+
+        Raises:
+            ValueError: If the mode is neither `LIVE` nor `BACKTEST`.
         """
         if mode == Mode.BACKTEST:
             self._save_backtest(output_path)
@@ -163,6 +266,20 @@ class PerformanceManager(Subject, Observer):
             self._save_live(output_path)
 
     def mbn_static_stats(self, static_stats: dict) -> mbn.StaticStats:
+        """
+        Converts static performance statistics into an `mbn.StaticStats` object.
+
+        Behavior:
+            - Scales all percentage and ratio metrics using a `PRICE_FACTOR`.
+            - Creates an `mbn.StaticStats` object with all relevant performance statistics.
+
+        Args:
+            static_stats (dict): A dictionary containing static performance metrics.
+
+        Returns:
+            mbn.StaticStats: An instance of `mbn.StaticStats` with converted and scaled values.
+
+        """
         return mbn.StaticStats(
             total_trades=static_stats["total_trades"],
             total_winning_trades=static_stats["total_winning_trades"],
@@ -213,15 +330,35 @@ class PerformanceManager(Subject, Observer):
 
     def generate_backtest_name(self) -> str:
         """
-        Generates a unique backtest name based on strategy name and dateime ran.
+        Generates a unique backtest name based on the strategy name and current timestamp.
+
+        Returns:
+            str: A unique backtest name in the format `strategy_name-YYYYMMDDHHMMSS`.
+
+        Example:
+            If the strategy name is "MyStrategy" and the current datetime is 2024-12-18 10:30:45,
+            the generated name will be `MyStrategy-20241218103045`.
         """
         c = datetime.today()
         return f"{self.params.strategy_name}-{c.year}{c.month}{c.day}{c.hour}{c.minute}{c.second}"
 
     def _save_backtest(self, output_path: str = "") -> None:
         """
-        Saves the collected performance data including the backtest configuration, trades, and signals
-        to a database or other storage mechanism.
+        Saves the backtest performance data, including configuration, trades, signals, and equity statistics.
+
+        Behavior:
+            - Aggregates trade and equity statistics.
+            - Exports performance data to an Excel file using `export_results`.
+            - Creates a `BacktestData` object containing all backtest-related metrics and data.
+            - Saves the backtest to the database using the `create_backtest` method of the database client.
+            - Logs the result of the save operation.
+
+        Args:
+            output_path (str, optional): The directory path where the backtest results will be saved.
+                Defaults to an empty string (current directory).
+
+        Raises:
+            RuntimeError: If the database save operation fails.
         """
         # Aggregate trades and equity statistics
         trade_stats = self.trade_manager.calculate_trade_statistics()
@@ -252,6 +389,20 @@ class PerformanceManager(Subject, Observer):
         self.logger.info(f"Backtest saved with response : {response}")
 
     def mbn_account_summary(self, account: dict) -> mbn.AccountSummary:
+        """
+        Converts account summary data into an `mbn.AccountSummary` object.
+
+        Behavior:
+            - Scales monetary and percentage metrics using a `PRICE_FACTOR`.
+            - Populates `mbn.AccountSummary` with fields for both start and end timestamps, buying power,
+              liquidity, margin requirements, PnL, cash balance, and net liquidation values.
+
+        Args:
+            account (dict): A dictionary containing account-related metrics for both start and end states.
+
+        Returns:
+            mbn.AccountSummary: An instance of `mbn.AccountSummary` with scaled and converted account values.
+        """
         return mbn.AccountSummary(
             currency=account["currency"],
             start_timestamp=int(account["start_timestamp"]),
@@ -308,7 +459,21 @@ class PerformanceManager(Subject, Observer):
 
     def _save_live(self, output_path: str = ""):
         """
-        Processes and saves the collected data from the live trading session into the database.
+        Processes and saves data from a live trading session into the database.
+
+        Behavior:
+            - Combines account log entries for start and end states into a single dictionary.
+            - Converts account data into an `mbn.AccountSummary` object using `mbn_account_summary`.
+            - Creates an `mbn.LiveData` object containing session parameters, trades, signals, and account summary.
+            - Saves the live session data to the database via the `create_live_session` method.
+            - Logs the results of the save operation.
+
+        Args:
+            output_path (str, optional): The directory path where logs or additional outputs can be saved.
+                Defaults to an empty string.
+
+        Raises:
+            RuntimeError: If the database save operation fails.
         """
         # Create a dictionary of start and end account values
         combined_data = {
@@ -328,5 +493,5 @@ class PerformanceManager(Subject, Observer):
         # Save Live Summary Session
         response = self.database.create_live_session(self.live_summary)
         self.logger.info(
-            f"Live Session= saved to data base with response : {response}"
+            f"Live Session saved to database with response : {response}"
         )

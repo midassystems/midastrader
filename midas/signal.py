@@ -14,6 +14,22 @@ from midas.constants import PRICE_FACTOR
 
 @dataclass
 class SignalInstruction:
+    """
+    Represents a trading signal that specifies an instrument, order type, and
+    additional parameters needed to construct an order.
+
+    Attributes:
+        instrument (int): The identifier for the traded instrument (e.g., ticker ID).
+        order_type (OrderType): The type of order, defined in the OrderType enum.
+        action (Action): The action to perform, e.g., BUY or SELL, defined in the Action enum.
+        trade_id (int): A unique identifier for the trade associated with this signal.
+        leg_id (int): Identifier for the leg (part of a multi-leg strategy).
+        weight (float): Weight of the trade signal relative to the strategy's allocation.
+        quantity (Union[int, float]): The number of instruments to trade.
+        limit_price (Optional[float]): Price for a LIMIT order. Required for OrderType.LIMIT.
+        aux_price (Optional[float]): Trigger price for a STOPLOSS order. Required for OrderType.STOPLOSS.
+    """
+
     instrument: int
     order_type: OrderType
     action: Action
@@ -25,6 +41,13 @@ class SignalInstruction:
     aux_price: Optional[float] = None
 
     def __post_init__(self):
+        """
+        Validates the types and values of the input fields after initialization.
+
+        Raises:
+            TypeError: If a field is not of the expected type.
+            ValueError: If constraints on values are violated, e.g., negative IDs or prices.
+        """
         # Type Check
         if not isinstance(self.instrument, int):
             raise TypeError("'instrument' field must be of type int.")
@@ -68,6 +91,12 @@ class SignalInstruction:
             )
 
     def to_dict(self):
+        """
+        Converts the SignalInstruction object into a dictionary.
+
+        Returns:
+            dict: A dictionary representation of the signal instruction.
+        """
         return {
             "ticker": self.instrument,
             "order_type": self.order_type.value,
@@ -81,6 +110,16 @@ class SignalInstruction:
         }
 
     def to_mbn(self, ticker: str) -> mbn.SignalInstructions:
+        """
+        Converts the SignalInstruction object into a binary structure
+        (mbn.SignalInstructions).
+
+        Args:
+            ticker (str): The ticker or instrument identifier as a string.
+
+        Returns:
+            mbn.SignalInstructions: The binary-compatible signal structure.
+        """
         return mbn.SignalInstructions(
             ticker=ticker,
             order_type=self.order_type.value,
@@ -94,6 +133,13 @@ class SignalInstruction:
         )
 
     def to_order(self) -> BaseOrder:
+        """
+        Converts the signal into its corresponding order object.
+
+        Returns:
+            BaseOrder: A specific order type (MarketOrder, LimitOrder, StopLoss)
+                       based on the order_type attribute.
+        """
         if self.order_type == OrderType.MARKET:
             return MarketOrder(action=self.action, quantity=self.quantity)
         elif self.order_type == OrderType.LIMIT:
@@ -110,6 +156,12 @@ class SignalInstruction:
             )
 
     def __str__(self) -> str:
+        """
+        Returns a human-readable string representation of the SignalInstruction.
+
+        Returns:
+            str: A formatted string with the signal's details.
+        """
         return (
             f"Instrument: {self.instrument}, "
             f"Order Type: {self.order_type.name}, "

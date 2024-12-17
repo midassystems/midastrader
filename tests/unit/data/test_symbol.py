@@ -201,7 +201,7 @@ class TestEquity(unittest.TestCase):
     # Type Constraint
     def test_type_constraints(self):
         with self.assertRaisesRegex(
-            TypeError, "'instrument_id' field must be of type int."
+            TypeError, "'instrument_id' must be of type int."
         ):
             Equity(
                 instrument_id="str",
@@ -224,7 +224,7 @@ class TestEquity(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'currency' field must be enum instance Currency."
+            TypeError, "'currency' must be enum instance Currency."
         ):
             Equity(
                 instrument_id=self.instrument_id,
@@ -247,7 +247,7 @@ class TestEquity(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'broker_ticker' field must be of type str."
+            TypeError, "'broker_ticker' must be of type str."
         ):
             Equity(
                 instrument_id=self.instrument_id,
@@ -270,7 +270,7 @@ class TestEquity(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'exchange' field must be enum instance Venue."
+            TypeError, "'exchange' must be enum instance Venue."
         ):
             Equity(
                 instrument_id=self.instrument_id,
@@ -292,9 +292,7 @@ class TestEquity(unittest.TestCase):
                 slippage_factor=self.slippage_factor,
             )
 
-        with self.assertRaisesRegex(
-            TypeError, "'fees' field must be int or float."
-        ):
+        with self.assertRaisesRegex(TypeError, "'fees' must be int or float."):
             Equity(
                 instrument_id=self.instrument_id,
                 broker_ticker=self.broker_ticker,
@@ -316,7 +314,7 @@ class TestEquity(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'initial_margin' field must be an int or float."
+            TypeError, "'initial_margin' must be an int or float."
         ):
             Equity(
                 instrument_id=self.instrument_id,
@@ -340,7 +338,7 @@ class TestEquity(unittest.TestCase):
 
         with self.assertRaisesRegex(
             TypeError,
-            "'quantity_multiplier' field must be of type int or float.",
+            "'quantity_multiplier' must be type int or float.",
         ):
             Equity(
                 instrument_id=self.instrument_id,
@@ -363,7 +361,7 @@ class TestEquity(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'price_multiplier' field must be of type int or float."
+            TypeError, "'price_multiplier' must be of type int or float."
         ):
             Equity(
                 instrument_id=self.instrument_id,
@@ -386,7 +384,7 @@ class TestEquity(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'company_name' field must be of type str."
+            TypeError, "'company_name' must be of type str."
         ):
             Equity(
                 instrument_id=self.instrument_id,
@@ -409,7 +407,7 @@ class TestEquity(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'industry' field must be of type Industry."
+            TypeError, "'industry' must be of type Industry."
         ):
             Equity(
                 instrument_id=self.instrument_id,
@@ -432,7 +430,7 @@ class TestEquity(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'market_cap' field must be of type float."
+            TypeError, "'market_cap' must be of type float."
         ):
             Equity(
                 instrument_id=self.instrument_id,
@@ -455,7 +453,7 @@ class TestEquity(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'shares_outstanding' feild must be of type int."
+            TypeError, "'shares_outstanding' must be of type int."
         ):
             Equity(
                 instrument_id=self.instrument_id,
@@ -478,7 +476,7 @@ class TestEquity(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'slippage_factor' field must be of type int or float."
+            TypeError, "'slippage_factor' must be of type int or float."
         ):
             Equity(
                 instrument_id=self.instrument_id,
@@ -502,9 +500,7 @@ class TestEquity(unittest.TestCase):
 
     # Value Constraints
     def test_value_constraint(self):
-        with self.assertRaisesRegex(
-            ValueError, "'fees' field cannot be negative."
-        ):
+        with self.assertRaisesRegex(ValueError, "'fees' cannot be negative."):
             Equity(
                 instrument_id=self.instrument_id,
                 broker_ticker=self.broker_ticker,
@@ -526,7 +522,7 @@ class TestEquity(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            ValueError, "'initial_margin' field must be non-negative."
+            ValueError, "'initial_margin' must be non-negative."
         ):
             Equity(
                 instrument_id=self.instrument_id,
@@ -549,7 +545,7 @@ class TestEquity(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            ValueError, "'price_multiplier' field must be greater than zero."
+            ValueError, "'price_multiplier' must be greater than zero."
         ):
             Equity(
                 instrument_id=self.instrument_id,
@@ -573,7 +569,7 @@ class TestEquity(unittest.TestCase):
 
         with self.assertRaisesRegex(
             ValueError,
-            "'quantity_multiplier' field must be greater than zero.",
+            "'quantity_multiplier' must be greater than 0.",
         ):
             Equity(
                 instrument_id=self.instrument_id,
@@ -596,7 +592,7 @@ class TestEquity(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            ValueError, "'slippage_factor' field must be greater than zero."
+            ValueError, "'slippage_factor' must be greater than zero."
         ):
             Equity(
                 instrument_id=self.instrument_id,
@@ -907,7 +903,7 @@ class TestFuture(unittest.TestCase):
     # Type Constraint
     def test_type_constraints(self):
         with self.assertRaisesRegex(
-            TypeError, "'product_code' field must be of type str."
+            TypeError, "'product_code' must be of type str."
         ):
             Future(
                 instrument_id=self.instrument_id,
@@ -938,7 +934,7 @@ class TestFuture(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'product_name' field must be of type str."
+            TypeError, "'product_name' must be of type str."
         ):
             Future(
                 instrument_id=self.instrument_id,
@@ -969,7 +965,7 @@ class TestFuture(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'industry' field must be of type Industry."
+            TypeError, "'industry' must be of type Industry."
         ):
             Future(
                 instrument_id=self.instrument_id,
@@ -1000,7 +996,7 @@ class TestFuture(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'contract_size' field must be of type int or float."
+            TypeError, "'contract_size' must be of type int or float."
         ):
             Future(
                 instrument_id=self.instrument_id,
@@ -1031,7 +1027,7 @@ class TestFuture(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'contract_units' field must be of type ContractUnits."
+            TypeError, "'contract_units' must be of type ContractUnits."
         ):
             Future(
                 instrument_id=self.instrument_id,
@@ -1062,7 +1058,7 @@ class TestFuture(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'tick_size' field must be of type int or float."
+            TypeError, "'tick_size' must be of type int or float."
         ):
             Future(
                 instrument_id=self.instrument_id,
@@ -1094,7 +1090,7 @@ class TestFuture(unittest.TestCase):
 
         with self.assertRaisesRegex(
             TypeError,
-            "'min_price_fluctuation' field must be of type int or float.",
+            "'min_price_fluctuation' must be int or float.",
         ):
             Future(
                 instrument_id=self.instrument_id,
@@ -1125,7 +1121,7 @@ class TestFuture(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'continuous' field must be of type boolean."
+            TypeError, "'continuous' must be of type boolean."
         ):
             Future(
                 instrument_id=self.instrument_id,
@@ -1156,7 +1152,7 @@ class TestFuture(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'lastTradeDateOrContractMonth' field must be a string."
+            TypeError, "'lastTradeDateOrContractMonth' must be a string."
         ):
             Future(
                 instrument_id=self.instrument_id,
@@ -1189,7 +1185,7 @@ class TestFuture(unittest.TestCase):
     # Value Constraint
     def test_value_constraints(self):
         with self.assertRaisesRegex(
-            ValueError, "'tickSize' field must be greater than zero."
+            ValueError, "'tickSize' must be greater than zero."
         ):
             Future(
                 instrument_id=self.instrument_id,
@@ -1399,7 +1395,7 @@ class TestOption(unittest.TestCase):
     # Type Constraint
     def test_type_constraints(self):
         with self.assertRaisesRegex(
-            TypeError, "'strike_price' field must be of type int or float."
+            TypeError, "'strike_price' must be of type int or float."
         ):
             Option(
                 instrument_id=self.instrument_id,
@@ -1424,7 +1420,7 @@ class TestOption(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'expiration_date' field must be of type str."
+            TypeError, "'expiration_date' must be of type str."
         ):
             Option(
                 instrument_id=self.instrument_id,
@@ -1449,7 +1445,7 @@ class TestOption(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'option_type' field must be of type Right."
+            TypeError, "'option_type' must be of type Right."
         ):
             Option(
                 instrument_id=self.instrument_id,
@@ -1474,7 +1470,7 @@ class TestOption(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'contract_size' field must be of type int or float."
+            TypeError, "'contract_size' must be of type int or float."
         ):
             Option(
                 instrument_id=self.instrument_id,
@@ -1524,7 +1520,7 @@ class TestOption(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'lastTradeDateOrContractMonth' field must be a string."
+            TypeError, "'lastTradeDateOrContractMonth' must be a string."
         ):
             Option(
                 instrument_id=self.instrument_id,
@@ -1551,7 +1547,7 @@ class TestOption(unittest.TestCase):
     # Value Constraint
     def test_value_constraint(self):
         with self.assertRaisesRegex(
-            ValueError, "'strike' field must be greater than zero."
+            ValueError, "'strike' must be greater than zero."
         ):
             Option(
                 instrument_id=self.instrument_id,
@@ -1770,7 +1766,7 @@ class TestSymbolMap(unittest.TestCase):
 #     # Type Constraint
 #     def test_type_constraints(self):
 #         with self.assertRaisesRegex(
-#             TypeError, "'name' field must be of type str."
+#             TypeError, "'name' must be of type str."
 #         ):
 #             Index(
 #                 ticker=self.ticker,
@@ -1781,7 +1777,7 @@ class TestSymbolMap(unittest.TestCase):
 #             )
 #
 #         with self.assertRaisesRegex(
-#             TypeError, "'asset_class' field must be of type AssetClass."
+#             TypeError, "'asset_class' must be of type AssetClass."
 #         ):
 #             Index(
 #                 ticker=self.ticker,

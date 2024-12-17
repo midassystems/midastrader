@@ -5,11 +5,21 @@ from midas.engine.config import Mode
 
 def run(config_path: str, mode: str):
     """
-    This function initializes the trading engine using the given config file.
-    It creates all necessary components (logger, database, strategy, etc.)
-    and starts the engine for either live trading or backtesting.
+    Initializes and runs the Midas trading engine based on the provided configuration
+    file and mode.
 
-    :param config_path: Path to the configuration file (e.g., config.toml).
+    This function builds all required components such as logging, database client,
+    symbol maps, and gateways, then starts the engine for live trading or backtesting.
+
+    Args:
+        config_path (str): The path to the configuration file (e.g., "config.toml").
+        mode (str): The mode to run the engine in. Must be either "BACKTEST" or "LIVE".
+
+    Raises:
+        KeyError: If an invalid mode is passed that is not defined in the `Mode` enum.
+
+    Example:
+        run("config.toml", "backtest")
     """
     mode = Mode[mode.upper()]
 
@@ -33,8 +43,21 @@ def run(config_path: str, mode: str):
 
 def main():
     """
-    This is the main entry point for running the `midas` engine. It parses
-    the command-line arguments and passes the config file path to the `run()` function.
+    Entry point for running the Midas trading engine.
+
+    This function parses command-line arguments to determine the configuration file path
+    and the mode in which to run the engine (live trading or backtesting). It then
+    invokes the `run` function with these arguments.
+
+    Command-line Arguments:
+        config (str): Path to the configuration file (e.g., "config.toml").
+        mode (str): The mode to run the engine, either "backtest" or "live".
+
+    Example Usage:
+        python -m midas.engine.main config.toml backtest
+
+    Raises:
+        argparse.ArgumentError: If required arguments are not provided.
     """
     # Parse the command-line argument (the config path)
     parser = argparse.ArgumentParser(
@@ -51,8 +74,7 @@ def main():
 
     args = parser.parse_args()
 
-    # Call the `run` function with the provided config file
-    run(args.config)
+    run(args.config, args.mode)
 
 
 if __name__ == "__main__":

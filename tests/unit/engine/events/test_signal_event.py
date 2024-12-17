@@ -81,7 +81,7 @@ class TestSignalEvent(unittest.TestCase):
     # Type Check
     def test_type_constraints(self):
         with self.assertRaisesRegex(
-            TypeError, "'timestamp' field must be of type int."
+            TypeError, "'timestamp' must be of type int."
         ):
             SignalEvent(
                 timestamp=datetime(2024, 1, 1),
@@ -89,13 +89,13 @@ class TestSignalEvent(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'instructions' field must be of type list."
+            TypeError, "'instructions' must be of type list."
         ):
             SignalEvent(timestamp=self.timestamp, instructions=self.trade1)
 
         with self.assertRaisesRegex(
             TypeError,
-            "All instructions must be instances of SignalInstruction.",
+            "All instructions must be SignalInstruction.",
         ):
             SignalEvent(
                 timestamp=self.timestamp, instructions=["sell", "long"]
