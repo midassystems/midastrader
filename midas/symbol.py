@@ -1,3 +1,4 @@
+# noqa: C901
 from enum import Enum
 from typing import Optional, Dict, List
 from ibapi.contract import Contract
@@ -14,6 +15,17 @@ from midas.utils.unix import unix_to_iso
 
 # -- Symbol Details --
 class AssetClass(Enum):
+    """
+    Represents the broad classification of financial assets.
+
+    Values:
+        EQUITY: Equity or stock assets.
+        COMMODITY: Commodities like metals, oil, etc.
+        FIXED_INCOME: Fixed income instruments like bonds.
+        FOREX: Foreign exchange currencies.
+        CRYPTOCURRENCY: Digital or cryptocurrency assets.
+    """
+
     EQUITY = "EQUITY"
     COMMODITY = "COMMODITY"
     FIXED_INCOME = "FIXED_INCOME"
@@ -22,16 +34,44 @@ class AssetClass(Enum):
 
 
 class SecurityType(Enum):
+    """
+    Represents the specific type of a financial security.
+
+    Values:
+        STOCK: Stocks or equities.
+        OPTION: Options contracts.
+        FUTURE: Futures contracts.
+        CRYPTO: Cryptocurrency instruments.
+        INDEX: Index instruments.
+        BOND: Fixed income or bond instruments.
+    """
+
     STOCK = "STK"
     OPTION = "OPT"
     FUTURE = "FUT"
     CRYPTO = "CRYPTO"
     INDEX = "IND"
     BOND = "BOND"
-    # ['STK', 'CMDTY','FUT','OPT','CASH','CRYPTO','FIGI','IND','CFD','FOP','BOND']
 
 
 class Venue(Enum):
+    """
+    Represents the trading venue or exchange where financial instruments are traded.
+
+    Values:
+        NASDAQ: NASDAQ Exchange.
+        NYSE: New York Stock Exchange.
+        CME: Chicago Mercantile Exchange.
+        CBOT: Chicago Board of Trade.
+        CBOE: Chicago Board Options Exchange.
+        COMEX: Commodity Exchange.
+        GLOBEX: Electronic futures trading platform.
+        NYMEX: New York Mercantile Exchange.
+        INDEX: For index-related operations.
+        SMART: Interactive Brokers smart routing.
+        ISLAND: Interactive Brokers-specific venue.
+    """
+
     NASDAQ = "NASDAQ"
     NYSE = "NYSE"
     CME = "CME"
@@ -40,12 +80,24 @@ class Venue(Enum):
     COMEX = "COMEX"
     GLOBEX = "GLOBEX"
     NYMEX = "NYMEX"
-    INDEX = "INDEX"  # Specific for the creation of indexes
-    SMART = "SMART"  # IB specific
-    ISLAND = "ISLAND"  # IB specific
+    INDEX = "INDEX"
+    SMART = "SMART"
+    ISLAND = "ISLAND"
 
 
 class Currency(Enum):
+    """
+    Represents commonly traded global currencies.
+
+    Values:
+        USD: US Dollar.
+        CAD: Canadian Dollar.
+        EUR: Euro.
+        GBP: British Pound.
+        AUD: Australian Dollar.
+        JPY: Japanese Yen.
+    """
+
     USD = "USD"
     CAD = "CAD"
     EUR = "EUR"
@@ -55,7 +107,24 @@ class Currency(Enum):
 
 
 class Industry(Enum):
-    # Equities
+    """
+    Represents the industry classification for equities and commodities.
+
+    Values:
+        ENERGY: Energy sector.
+        MATERIALS: Materials sector.
+        INDUSTRIALS: Industrial sector.
+        UTILITIES: Utilities sector.
+        HEALTHCARE: Healthcare sector.
+        FINANCIALS: Financial sector.
+        CONSUMER: Consumer goods sector.
+        TECHNOLOGY: Technology sector.
+        COMMUNICATION: Communication services.
+        REAL_ESTATE: Real estate sector.
+        METALS: Metals commodities.
+        AGRICULTURE: Agricultural commodities.
+    """
+
     ENERGY = "Energy"
     MATERIALS = "Materials"
     INDUSTRIALS = "Industrials"
@@ -66,13 +135,23 @@ class Industry(Enum):
     TECHNOLOGY = "Technology"
     COMMUNICATION = "Communication"
     REAL_ESTATE = "Real Estate"
-
-    # Commodities
     METALS = "Metals"
     AGRICULTURE = "Agriculture"
 
 
 class ContractUnits(Enum):
+    """
+    Represents the units of measurement for commodity contracts.
+
+    Values:
+        BARRELS: Measurement in barrels (e.g., crude oil).
+        BUSHELS: Measurement in bushels (e.g., grains).
+        POUNDS: Measurement in pounds.
+        TROY_OUNCE: Measurement in troy ounces (e.g., gold, silver).
+        METRIC_TON: Measurement in metric tons.
+        SHORT_TON: Measurement in short tons.
+    """
+
     BARRELS = "Barrels"
     BUSHELS = "Bushels"
     POUNDS = "Pounds"
@@ -82,47 +161,130 @@ class ContractUnits(Enum):
 
 
 class Right(Enum):
+    """
+    Represents the type of option contract.
+
+    Values:
+        CALL: Call option.
+        PUT: Put option.
+    """
+
     CALL = "CALL"
     PUT = "PUT"
 
 
 class FuturesMonth(Enum):
-    F = 1  # JANUARY
-    G = 2  # FEB
-    H = 3  # MAR
-    J = 4  # APR
-    K = 5  # MAY
-    M = 6  # JUN
-    N = 7  # JULY
-    Q = 8  # AUG
-    U = 9  # SEPT
-    V = 10  # OCT
-    X = 11  # NOV
-    Z = 12  # DEC
+    """
+    Maps futures contract month codes to their respective months.
+
+    Values:
+        F: January
+        G: February
+        H: March
+        J: April
+        K: May
+        M: June
+        N: July
+        Q: August
+        U: September
+        V: October
+        X: November
+        Z: December
+    """
+
+    F = 1
+    G = 2
+    H = 3
+    J = 4
+    K = 5
+    M = 6
+    N = 7
+    Q = 8
+    U = 9
+    V = 10
+    X = 11
+    Z = 12
+
+
+class Timezones(Enum):
+    """
+    Represents time zones in North America.
+
+    Values:
+        PACIFIC: Pacific Time Zone.
+        MOUNTAIN: Mountain Time Zone.
+        CENTRAL: Central Time Zone.
+        EASTERN: Eastern Time Zone.
+        ATLANTIC: Atlantic Time Zone.
+        NEWFOUNDLAND: Newfoundland Time Zone.
+        ALASKA: Alaska Time Zone.
+        HAWAII: Hawaii Time Zone.
+    """
+
+    PACIFIC = "America/Los_Angeles"
+    MOUNTAIN = "America/Denver"
+    CENTRAL = "America/Chicago"
+    EASTERN = "America/New_York"
+    ATLANTIC = "America/Halifax"
+    NEWFOUNDLAND = "America/St_Johns"
+    ALASKA = "America/Anchorage"
+    HAWAII = "Pacific/Honolulu"
+
+    @classmethod
+    def list_timezones(cls):
+        """
+        Returns all available time zones as a list.
+
+        Returns:
+            list: List of timezone strings.
+        """
+        return [zone.value for zone in cls]
+
+    @classmethod
+    def is_valid(cls, timezone: str) -> bool:
+        """
+        Checks if a given string is a valid timezone.
+
+        Args:
+            timezone (str): The timezone string to validate.
+
+        Returns:
+            bool: True if valid, False otherwise.
+        """
+        return timezone in cls._value2member_map_
 
 
 @dataclass
 class TradingSession:
+    """
+    Represents the trading session times for an instrument.
+
+    Attributes:
+        day_open (time): Opening time for the day session.
+        day_close (time): Closing time for the day session.
+        night_open (Optional[time]): Opening time for the night session (optional).
+        night_close (Optional[time]): Closing time for the night session (optional).
+    """
+
     day_open: time
     day_close: time
     night_open: Optional[time] = None
     night_close: Optional[time] = None
-    # Optional third session for Asian markets (commented out for now)
+    # Optional third session for Asian markets
     # third_session_open: Optional[time] = None
     # third_session_close: Optional[time] = None
 
     def __post_init__(self):
         """
-        Ensure that time windows are correctly defined for day and night sessions.
+        Ensures the trading session times are valid.
+
+        Raises:
+            ValueError: If open/close times are not paired correctly or if no session is defined.
         """
         if self.day_open and not self.day_close:
-            raise ValueError(
-                "Day session must have both open and close times."
-            )
+            raise ValueError("Day session needs open and close times.")
         if self.night_open and not self.night_close:
-            raise ValueError(
-                "Night session must have both open and close times."
-            )
+            raise ValueError("Night session needs open and close times.")
         if not (self.day_open or self.night_open):
             raise ValueError("One session (day or night) must be defined.")
 
@@ -130,6 +292,26 @@ class TradingSession:
 # -- Symbols --
 @dataclass
 class Symbol(ABC):
+    """
+    Abstract base class representing a financial instrument or trading symbol.
+
+    Attributes:
+        instrument_id (int): Unique numeric identifier for the instrument.
+        broker_ticker (str): Ticker symbol used by the broker.
+        data_ticker (str): Ticker symbol used for data sources (e.g., market data feeds).
+        midas_ticker (str): Internal ticker name for the system.
+        security_type (SecurityType): Type of security (e.g., STOCK, OPTION, FUTURE).
+        currency (Currency): Currency in which the instrument trades.
+        exchange (Venue): Trading venue or exchange where the symbol is listed.
+        fees (float): Transaction fees (e.g., commission) per unit traded.
+        initial_margin (float): Margin required per unit of the instrument.
+        quantity_multiplier (int): Scaling factor for quantity (e.g., lot size, contract size).
+        price_multiplier (float): Scaling factor for price (e.g., futures multipliers).
+        trading_sessions (TradingSession): Time window(s) for when the symbol is tradable.
+        slippage_factor (float): Adjustment factor to simulate slippage in price.
+        contract (Contract): Interactive Brokers API `Contract` object (created post-init).
+    """
+
     instrument_id: int
     broker_ticker: str
     data_ticker: str
@@ -145,63 +327,56 @@ class Symbol(ABC):
     slippage_factor: float
     contract: Contract = field(init=False)
 
-    def __post_init__(self):
+    def __post_init__(self):  # noqa: C901
+        """
+        Validates the input attributes and enforces constraints on numeric fields.
+
+        Raises:
+            TypeError: If any attribute has an invalid type.
+            ValueError: If constraints like non-negative fees, margin, or multipliers are violated.
+        """
         # Type Validation
         if not isinstance(self.instrument_id, int):
-            raise TypeError("'instrument_id' field must be of type int.")
+            raise TypeError("'instrument_id' must be of type int.")
         if not isinstance(self.broker_ticker, str):
-            raise TypeError("'broker_ticker' field must be of type str.")
+            raise TypeError("'broker_ticker' must be of type str.")
         if not isinstance(self.security_type, SecurityType):
-            raise TypeError(
-                "'security_type' field must be of type SecurityType."
-            )
+            raise TypeError("'security_type' must be of type SecurityType.")
         if not isinstance(self.currency, Currency):
-            raise TypeError("'currency' field must be enum instance Currency.")
+            raise TypeError("'currency' must be enum instance Currency.")
         if not isinstance(self.exchange, Venue):
-            raise TypeError("'exchange' field must be enum instance Venue.")
+            raise TypeError("'exchange' must be enum instance Venue.")
         if not isinstance(self.fees, (float, int)):
-            raise TypeError("'fees' field must be int or float.")
+            raise TypeError("'fees' must be int or float.")
         if not isinstance(self.initial_margin, (float, int)):
-            raise TypeError("'initial_margin' field must be an int or float.")
+            raise TypeError("'initial_margin' must be an int or float.")
         if not isinstance(self.quantity_multiplier, (float, int)):
-            raise TypeError(
-                "'quantity_multiplier' field must be of type int or float."
-            )
+            raise TypeError("'quantity_multiplier' must be type int or float.")
         if not isinstance(self.price_multiplier, (float, int)):
-            raise TypeError(
-                "'price_multiplier' field must be of type int or float."
-            )
+            raise TypeError("'price_multiplier' must be of type int or float.")
         if not isinstance(self.slippage_factor, (float, int)):
-            raise TypeError(
-                "'slippage_factor' field must be of type int or float."
-            )
+            raise TypeError("'slippage_factor' must be of type int or float.")
         if not isinstance(self.data_ticker, str):
-            raise TypeError("'data_ticker' field must be a string or None.")
+            raise TypeError("'data_ticker' must be a string or None.")
 
         # Constraint Validation
         if self.fees < 0:
-            raise ValueError("'fees' field cannot be negative.")
+            raise ValueError("'fees' cannot be negative.")
         if self.initial_margin < 0:
-            raise ValueError("'initial_margin' field must be non-negative.")
+            raise ValueError("'initial_margin' must be non-negative.")
         if self.price_multiplier <= 0:
-            raise ValueError(
-                "'price_multiplier' field must be greater than zero."
-            )
+            raise ValueError("'price_multiplier' must be greater than zero.")
         if self.quantity_multiplier <= 0:
-            raise ValueError(
-                "'quantity_multiplier' field must be greater than zero."
-            )
+            raise ValueError("'quantity_multiplier' must be greater than 0.")
         if self.slippage_factor < 0:
-            raise ValueError(
-                "'slippage_factor' field must be greater than zero."
-            )
+            raise ValueError("'slippage_factor' must be greater than zero.")
 
     def to_contract_data(self) -> dict:
         """
-        Constructs a dictionary from instance variables used in the construction of Contract object.
+        Constructs a dictionary containing key contract details for IB API.
 
         Returns:
-        - dict : Representing the data to be added to Contract object.
+            Dict[str, str]: A dictionary with details such as symbol, security type, currency, exchange, and multiplier.
         """
         return {
             "symbol": self.broker_ticker,
@@ -213,10 +388,13 @@ class Symbol(ABC):
 
     def to_contract(self) -> Contract:
         """
-        Creates a ibapi Contract object from instance data.
+        Creates an IB API `Contract` object using the symbol's details.
 
         Returns:
-        - Contract: Object unique to the symbol used in the ibapi library.
+            Contract: A fully initialized `Contract` object.
+
+        Raises:
+            Exception: If an error occurs during contract creation.
         """
         try:
             contract_data = self.to_contract_data()
@@ -227,7 +405,13 @@ class Symbol(ABC):
         except Exception as e:
             raise Exception(f"Unexpected error during Contract creation: {e}")
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
+        """
+        Converts the symbol into a dictionary representation.
+
+        Returns:
+            Dict[str, str]: A dictionary containing `ticker` and `security_type`.
+        """
         return {
             "ticker": self.midas_ticker,
             "security_type": self.security_type.value,
@@ -235,26 +419,29 @@ class Symbol(ABC):
 
     def commission_fees(self, quantity: float) -> float:
         """
-        Calculates the commission fees for an order based on the quantity.
+        Calculates commission fees for a given order quantity.
 
-        Parameters:
-        - quantity (float): The quantity of the order.
+        Args:
+            quantity (float): The quantity of the order.
 
         Returns:
-        - float: The calculated commission fees.
+            float: Commission fees as a negative value to reflect cost.
         """
         return abs(quantity) * self.fees * -1
 
     def slippage_price(self, current_price: float, action: Action) -> float:
         """
-        Adjusts the current price based on slippage factor.
+        Adjusts the current price based on the slippage factor and order action.
 
-        Parameters:
-        - current_price (float): The current market price of the symbol.
-        - action (Action): The action associated with the order (LONG, SHORT, etc.). Used to determine which way to adjust price.
+        Args:
+            current_price (float): The current market price of the symbol.
+            action (Action): The action performed (LONG, SHORT, etc.).
 
         Returns:
-        - float: The adjusted price after accounting for slippage.
+            float: Adjusted price after accounting for slippage.
+
+        Raises:
+            ValueError: If the action is invalid or not an `Action` enum.
         """
         if action in [Action.LONG, Action.COVER]:  # Buying
             adjusted_price = current_price + self.slippage_factor
@@ -266,6 +453,15 @@ class Symbol(ABC):
         return adjusted_price
 
     def after_day_session(self, timestamp_ns: int) -> bool:
+        """
+        Checks if a given timestamp occurs after the day trading session.
+
+        Args:
+            timestamp_ns (int): Timestamp in nanoseconds.
+
+        Returns:
+            bool: True if the timestamp is after the session close time.
+        """
         dt = datetime.fromisoformat(
             unix_to_iso(timestamp_ns, tz_info="America/New_York")
         )
@@ -276,57 +472,132 @@ class Symbol(ABC):
         return False
 
     def in_day_session(self, timestamp_ns: int) -> bool:
+        """
+        Checks if a given timestamp occurs during the day trading session.
+
+        Args:
+            timestamp_ns (int): Timestamp in nanoseconds.
+
+        Returns:
+            bool: True if the timestamp falls within the session open and close times.
+        """
         dt = datetime.fromisoformat(
             unix_to_iso(timestamp_ns, tz_info="America/New_York")
         )
-        time = dt.time()
+        # time = dt.time()
 
-        # Check if the time falls within any of the trading sessions
-        if (
+        return (
             self.trading_sessions.day_open
-            <= time
+            <= dt.time()
             <= self.trading_sessions.day_close
-        ):
-            return True
-        return False
+        )
 
     @abstractmethod
     def value(self, quantity: float, price: Optional[float] = None) -> float:
+        """
+        Abstract method to calculate the total value of a position.
+
+        Args:
+            quantity (float): The quantity of the position.
+            price (Optional[float]): Market price for the position (optional).
+
+        Returns:
+            float: Total value of the position.
+        """
         pass
 
     @abstractmethod
     def cost(self, quantity: float, price: Optional[float] = None) -> float:
+        """
+        Abstract method to calculate the total cost of a position.
+
+        Args:
+            quantity (float): The quantity of the position.
+            price (Optional[float]): Market price for the position (optional).
+
+        Returns:
+            float: Total cost of the position.
+        """
         pass
 
 
 @dataclass
 class Equity(Symbol):
+    """
+    Represents an equity (stock) financial instrument.
+
+    Attributes:
+        instrument_id (int): Unique identifier for the equity.
+        broker_ticker (str): Ticker symbol used by the broker.
+        data_ticker (str): Ticker symbol for market data feeds.
+        midas_ticker (str): Internal system ticker name.
+        security_type (SecurityType): Type of security (set to STOCK for equities).
+        currency (Currency): Currency in which the equity trades.
+        exchange (Venue): Trading venue or exchange where the equity is listed.
+        fees (float): Transaction fees for the equity.
+        initial_margin (float): Margin requirement for the equity.
+        quantity_multiplier (int): Scaling factor for quantity.
+        price_multiplier (float): Scaling factor for price.
+        trading_sessions (TradingSession): Trading session times for the equity.
+        slippage_factor (float): Slippage adjustment factor.
+        company_name (str): The name of the company issuing the equity.
+        industry (Industry): The industry to which the company belongs.
+        market_cap (float): The market capitalization of the company.
+        shares_outstanding (int): Total number of shares outstanding for the equity.
+        contract (Contract): IB API Contract object (generated during initialization).
+    """
+
     company_name: str
     industry: Industry
     market_cap: float
     shares_outstanding: int
 
     def __post_init__(self):
+        """
+        Post-initialization setup for the Equity class.
+
+        - Sets the security type to `STOCK`.
+        - Performs type validation on attributes.
+        - Generates an IB API Contract object for the equity.
+
+        Raises:
+            TypeError: If any attribute has an invalid type.
+        """
         self.security_type = SecurityType.STOCK
         super().__post_init__()
+
         # Type checks
         if not isinstance(self.company_name, str):
-            raise TypeError("'company_name' field must be of type str.")
+            raise TypeError("'company_name' must be of type str.")
         if not isinstance(self.industry, Industry):
-            raise TypeError("'industry' field must be of type Industry.")
+            raise TypeError("'industry' must be of type Industry.")
         if not isinstance(self.market_cap, float):
-            raise TypeError("'market_cap' field must be of type float.")
+            raise TypeError("'market_cap' must be of type float.")
         if not isinstance(self.shares_outstanding, int):
-            raise TypeError("'shares_outstanding' feild must be of type int.")
+            raise TypeError("'shares_outstanding' must be of type int.")
 
         # Create contract object
         self.contract = self.to_contract()
 
     def to_contract_data(self) -> dict:
+        """
+        Constructs a dictionary containing key contract details for the equity.
+
+        Returns:
+            dict: Contract data including broker ticker, security type, currency, exchange, and multiplier.
+        """
         data = super().to_contract_data()
         return data
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
+        """
+        Converts the Equity object to a dictionary representation.
+
+        Returns:
+            dict: A dictionary containing:
+                - Ticker details.
+                - Symbol-specific data including company name, venue, currency, industry, market cap, and shares outstanding.
+        """
         symbol_dict = super().to_dict()
         symbol_dict["symbol_data"] = {
             "company_name": self.company_name,
@@ -340,33 +611,65 @@ class Equity(Symbol):
 
     def value(self, quantity: float, price: Optional[float] = None) -> float:
         """
-        Calculate the value of an equity,
+        Calculates the total value of a position in the equity.
 
-        Parameters:
-        - quantity (float): The quantity of the equity.
-        - price (float): The price of the equity.
+        Args:
+            quantity (float): The number of shares held.
+            price (float): The market price of the equity.
 
         Returns:
-        - float: The calculated value of the equity.
+            float: The calculated total value of the equity position.
         """
         return quantity * price
 
     def cost(self, quantity: float, price: Optional[float] = None) -> float:
         """
-        Calculate the cost of owning an equity,
+        Calculates the total cost of acquiring or holding a position in the equity.
 
-        Parameters:
-        - quantity (float): The quantity of the equity.
-        - price (float): The price of the equity.
+        Args:
+            quantity (float): The number of shares held or acquired.
+            price (float): The market price of the equity.
 
         Returns:
-        - float: The calculated cost of owning the equity.
+            float: The calculated cost of the equity position.
         """
         return abs(quantity) * price
 
 
 @dataclass
 class Future(Symbol):
+    """
+    Represents a futures contract traded on an exchange.
+
+    Attributes:
+        instrument_id (int): Unique numeric identifier for the instrument.
+        broker_ticker (str): Ticker symbol used by the broker.
+        data_ticker (str): Ticker symbol used for data sources (e.g., market data feeds).
+        midas_ticker (str): Internal ticker name for the system.
+        security_type (SecurityType): Type of security (e.g., STOCK, OPTION, FUTURE).
+        currency (Currency): Currency in which the instrument trades.
+        exchange (Venue): Trading venue or exchange where the symbol is listed.
+        fees (float): Transaction fees (e.g., commission) per unit traded.
+        initial_margin (float): Margin required per unit of the instrument.
+        quantity_multiplier (int): Scaling factor for quantity (e.g., lot size, contract size).
+        price_multiplier (float): Scaling factor for price (e.g., futures multipliers).
+        trading_sessions (TradingSession): Time window(s) for when the symbol is tradable.
+        slippage_factor (float): Adjustment factor to simulate slippage in price.
+        product_code (str): Unique code identifying the futures product.
+        product_name (str): Name of the futures product.
+        industry (Industry): The industry to which the futures product belongs.
+        contract_size (float): The size of a single futures contract.
+        contract_units (ContractUnits): The unit of measurement for the futures contract.
+        tick_size (float): The minimum price movement of the contract.
+        min_price_fluctuation (float): The minimum price fluctuation for the futures contract.
+        continuous (bool): Whether the futures contract is continuous (rolls over automatically).
+        lastTradeDateOrContractMonth (str): Last trade date or contract month for the futures product.
+        expr_months (List[FuturesMonth]): List of eligible expiration months for the futures product.
+        term_day_rule (str): Rule defining the termination or expiration day.
+        market_calendar (str): Calendar used for determining trading days.
+        contract (Contract): Interactive Brokers API `Contract` object (created post-init).
+    """
+
     product_code: str
     product_name: str
     industry: Industry
@@ -381,58 +684,68 @@ class Future(Symbol):
     market_calendar: str
 
     def __post_init__(self):
+        """
+        Post-initialization method for validating attributes and generating the contract object.
+
+        Raises:
+            TypeError: If any attribute fails type validation.
+            ValueError: If tick size is invalid or other constraints are not met.
+        """
         self.security_type = SecurityType.FUTURE
         super().__post_init__()
+
         # Type checks
         if not isinstance(self.product_code, str):
-            raise TypeError("'product_code' field must be of type str.")
+            raise TypeError("'product_code' must be of type str.")
         if not isinstance(self.product_name, str):
-            raise TypeError("'product_name' field must be of type str.")
+            raise TypeError("'product_name' must be of type str.")
         if not isinstance(self.industry, Industry):
-            raise TypeError("'industry' field must be of type Industry.")
+            raise TypeError("'industry' must be of type Industry.")
         if not isinstance(self.contract_size, (int, float)):
-            raise TypeError(
-                "'contract_size' field must be of type int or float."
-            )
+            raise TypeError("'contract_size' must be of type int or float.")
         if not isinstance(self.contract_units, ContractUnits):
-            raise TypeError(
-                "'contract_units' field must be of type ContractUnits."
-            )
+            raise TypeError("'contract_units' must be of type ContractUnits.")
         if not isinstance(self.tick_size, (int, float)):
-            raise TypeError("'tick_size' field must be of type int or float.")
+            raise TypeError("'tick_size' must be of type int or float.")
         if not isinstance(self.min_price_fluctuation, (int, float)):
-            raise TypeError(
-                "'min_price_fluctuation' field must be of type int or float."
-            )
+            raise TypeError("'min_price_fluctuation' must be int or float.")
         if not isinstance(self.continuous, bool):
-            raise TypeError("'continuous' field must be of type boolean.")
+            raise TypeError("'continuous' must be of type boolean.")
         if not isinstance(self.lastTradeDateOrContractMonth, str):
-            raise TypeError(
-                "'lastTradeDateOrContractMonth' field must be a string."
-            )
+            raise TypeError("'lastTradeDateOrContractMonth' must be a string.")
         for month in self.expr_months:
             if not isinstance(month, FuturesMonth):
-                raise TypeError(
-                    "'expr_month' must a list of type FuturesMonth."
-                )
+                raise TypeError("'expr_month' must be list of FuturesMonth.")
         if not isinstance(self.term_day_rule, str):
-            raise TypeError("'term_day_rule' field must be of type str.")
+            raise TypeError("'term_day_rule' must be of type str.")
 
         # Constraint Checks
         if self.tick_size <= 0:
-            raise ValueError("'tickSize' field must be greater than zero.")
+            raise ValueError("'tickSize' must be greater than zero.")
 
         # Create contract object
         self.contract = self.to_contract()
 
     def to_contract_data(self) -> dict:
+        """
+        Generates contract data required for trading or IB API.
+
+        Returns:
+            dict: A dictionary with contract-specific attributes including last trade date.
+        """
         data = super().to_contract_data()
         data["lastTradeDateOrContractMonth"] = (
             self.lastTradeDateOrContractMonth
         )
         return data
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
+        """
+        Converts the Future object to a dictionary representation.
+
+        Returns:
+            dict: A dictionary containing futures-specific and base symbol details.
+        """
         symbol_dict = super().to_dict()
         symbol_dict["symbol_data"] = {
             "product_code": self.product_code,
@@ -450,28 +763,31 @@ class Future(Symbol):
 
     def value(self, quantity: float, price: Optional[float] = None) -> float:
         """
-        Calculate the value of a futures contract.
+        Calculate the total value of the futures position.
 
-        Parameters:
-        - quantity (float): The numnber of contracts of the given future.
-        - price (float): The price of a single contract.
+        Args:
+            quantity (float): Number of contracts.
+            price (float): Price per contract.
 
         Returns:
-        - float: The calculated value for the given quantity of futures at the given price.
+            float: The total position value.
         """
+        if price is None:
+            raise ValueError("'price' cannot be None when calculating value.")
         return (
             self.price_multiplier * price * quantity * self.quantity_multiplier
         )
 
     def cost(self, quantity: float, price: Optional[float] = None) -> float:
         """
-        Calculate the cost to own a quantity of the instance contract.
+        Calculate the cost or margin requirement for the position.
 
-        Parameters:
-        - quantity (float): The quantity of the future order.
+        Args:
+            quantity (float): Number of contracts.
+            price (Optional[float]): Price per contract (not used for cost calculation).
 
         Returns:
-        - float: The calculated margin requirement for the future order.
+            float: The total margin requirement.
         """
         return abs(quantity) * self.initial_margin
 
@@ -482,22 +798,20 @@ class Future(Symbol):
         tz_info="UTC",
     ) -> bool:
         """
-        Check if the timestamp falls within the rolling window before the termination date.
+        Check if the given timestamp is within a rolling window near the contract's termination date.
 
-        Parameters:
-        - ts (int): The timestamp in nanoseconds.
-        - window (int): The rolling window size in days (defaults to 2).
-        - tz_info (str): The timezone information (defaults to "UTC").
+        Args:
+            ts (int): Timestamp in nanoseconds.
+            window (int): Rolling window size in days (default is 2).
+            tz_info (str): Timezone info (default is "UTC").
 
         Returns:
-        - bool: Whether the timestamp is within the rolling window of the termination period.
+            bool: True if within the rolling window, False otherwise.
         """
+
         # Convert the timestamp into a datetime object
         event_date = unix_to_date(ts, tz_info)
-
-        # Extract the year and month from the event_date
-        year = event_date.year
-        month = event_date.month
+        year, month = event_date.year, event_date.month
 
         if month in [month.value for month in self.expr_months]:
             # Get the termination date for the current contract month/year
@@ -509,12 +823,21 @@ class Future(Symbol):
 
             # Check if the event date falls within the rolling window
             return window_start <= event_date <= window_end
-        else:
-            return False
+        return False
 
     def apply_day_rule(self, month: int, year: int) -> datetime:
         """
-        Apply the user-friendly day rule to determine the expiration date.
+        Determine the contract expiration date based on the termination day rule.
+
+        Args:
+            month (int): Expiration month.
+            year (int): Expiration year.
+
+        Returns:
+            datetime: Expiration date as per the rule.
+
+        Raises:
+            ValueError: If the termination rule is invalid.
         """
         # Match "nth_business_day_10"
         if self.term_day_rule.startswith("nth_business_day"):
@@ -557,7 +880,20 @@ class Future(Symbol):
         market_calendar: str,
     ) -> datetime:
         """
-        Get the nth business day of the specified month and year.
+        Retrieve the nth business day of a specified month and year.
+
+        Args:
+            month (int): The target month (1-12).
+            year (int): The target year.
+            nth_day (int): The business day to retrieve (e.g., 1st, 2nd, etc.).
+            market_calendar (str): The trading calendar name (e.g., 'NYSE', 'CME').
+
+        Returns:
+            datetime: The date corresponding to the nth business day.
+
+        Raises:
+            IndexError: If `nth_day` exceeds the number of business days in the month.
+            ValueError: If invalid calendar name is provided.
         """
         start_date = pd.Timestamp(year, month, 1)
         year = year if month < 12 else year + 1
@@ -581,7 +917,20 @@ class Future(Symbol):
         market_calendar: str,
     ) -> datetime:
         """
-        Get the nth last business day of the specified month and year.
+        Retrieve the nth last business day of a specified month and year.
+
+        Args:
+            month (int): The target month (1-12).
+            year (int): The target year.
+            nth_last_day (int): The business day to retrieve, counting from the end (e.g., 1 = last).
+            market_calendar (str): The trading calendar name (e.g., 'NYSE', 'CME').
+
+        Returns:
+            datetime: The date corresponding to the nth last business day.
+
+        Raises:
+            IndexError: If `nth_last_day` exceeds the total business days in the month.
+            ValueError: If invalid calendar name is provided.
         """
         start_date = pd.Timestamp(year, month, 1)
         year = year if month < 12 else year + 1
@@ -606,7 +955,21 @@ class Future(Symbol):
         market_calendar: str,
     ) -> datetime:
         """
-        Get the nth business day before the specified target day in the given month and year.
+        Retrieve the nth business day before a specified target day within a given month and year.
+
+        Args:
+            month (FuturesMonth): The target month as a FuturesMonth enum.
+            year (int): The target year.
+            target_day (int): The target day of the month (e.g., 15 for the 15th day).
+            nth_day (int): The number of business days before the target day.
+            market_calendar (str): The trading calendar name (e.g., 'NYSE', 'CME').
+
+        Returns:
+            datetime: The date corresponding to the nth business day before the target day.
+
+        Raises:
+            IndexError: If the calculated business day does not exist.
+            ValueError: If invalid calendar name or parameters are provided.
         """
         start_date = pd.Timestamp(year, month, 1)
         end_date = pd.Timestamp(year, month, nth_day)
@@ -621,6 +984,39 @@ class Future(Symbol):
 
 @dataclass
 class Option(Symbol):
+    """
+    Represents an Option contract as a financial instrument.
+
+    This class extends the Symbol class and includes option-specific attributes such as
+    strike price, expiration date, and option type.
+
+    Attributes:
+        instrument_id (int): Unique identifier for the equity.
+        broker_ticker (str): Ticker symbol used by the broker.
+        data_ticker (str): Ticker symbol for market data feeds.
+        midas_ticker (str): Internal system ticker name.
+        security_type (SecurityType): Type of security (set to STOCK for equities).
+        currency (Currency): Currency in which the equity trades.
+        exchange (Venue): Trading venue or exchange where the equity is listed.
+        fees (float): Transaction fees for the equity.
+        initial_margin (float): Margin requirement for the equity.
+        quantity_multiplier (int): Scaling factor for quantity.
+        price_multiplier (float): Scaling factor for price.
+        trading_sessions (TradingSession): Trading session times for the equity.
+        slippage_factor (float): Slippage adjustment factor.
+        company_name (str): The name of the company issuing the equity.
+        industry (Industry): The industry to which the company belongs.
+        market_cap (float): The market capitalization of the company.
+        shares_outstanding (int): Total number of shares outstanding for the equity.
+        strike_price (float): The strike price at which the option can be exercised.
+        expiration_date (str): The expiration date of the option in YYYY-MM-DD format.
+        option_type (Right): The type of option, either CALL or PUT.
+        contract_size (int): The number of underlying units per contract.
+        underlying_name (str): The name of the underlying asset.
+        lastTradeDateOrContractMonth (str): The last trade date or contract month of the option.
+        contract (Contract): IB API Contract object (generated during initialization).
+    """
+
     strike_price: float
     expiration_date: str
     option_type: Right
@@ -629,36 +1025,45 @@ class Option(Symbol):
     lastTradeDateOrContractMonth: str
 
     def __post_init__(self):
+        """
+        Validates the Option fields and initializes the contract object.
+
+        Raises:
+            TypeError: If any field does not match its expected type.
+            ValueError: If 'strike_price' is less than or equal to zero.
+        """
         self.security_type = SecurityType.OPTION
         super().__post_init__()
+
         # Type checks
         if not isinstance(self.strike_price, (int, float)):
-            raise TypeError(
-                "'strike_price' field must be of type int or float."
-            )
+            raise TypeError("'strike_price' must be of type int or float.")
         if not isinstance(self.expiration_date, str):
-            raise TypeError("'expiration_date' field must be of type str.")
+            raise TypeError("'expiration_date' must be of type str.")
         if not isinstance(self.option_type, Right):
-            raise TypeError("'option_type' field must be of type Right.")
+            raise TypeError("'option_type' must be of type Right.")
         if not isinstance(self.contract_size, (int, float)):
-            raise TypeError(
-                "'contract_size' field must be of type int or float."
-            )
+            raise TypeError("'contract_size' must be of type int or float.")
         if not isinstance(self.underlying_name, str):
             raise TypeError("'underlying_name' must be of type str.")
         if not isinstance(self.lastTradeDateOrContractMonth, str):
-            raise TypeError(
-                "'lastTradeDateOrContractMonth' field must be a string."
-            )
+            raise TypeError("'lastTradeDateOrContractMonth' must be a string.")
 
         # Constraint checks
         if self.strike_price <= 0:
-            raise ValueError("'strike' field must be greater than zero.")
+            raise ValueError("'strike' must be greater than zero.")
 
         # Create contract object
         self.contract = self.to_contract()
 
     def to_contract_data(self) -> dict:
+        """
+        Constructs a dictionary representation for creating an IBKR Contract object.
+
+        Returns:
+            dict: A dictionary containing option-specific contract details such as strike price,
+                  expiration date, and option type, in addition to base contract details.
+        """
         data = super().to_contract_data()
         data["lastTradeDateOrContractMonth"] = (
             self.lastTradeDateOrContractMonth
@@ -667,7 +1072,14 @@ class Option(Symbol):
         data["strike"] = self.strike_price
         return data
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
+        """
+        Constructs a dictionary representation of the Option object.
+
+        Returns:
+            dict: A dictionary containing the option details including strike price, expiration,
+                  option type, and other metadata.
+        """
         symbol_dict = super().to_dict()
         symbol_dict["symbol_data"] = {
             "strike_price": self.strike_price,
@@ -682,14 +1094,17 @@ class Option(Symbol):
 
     def value(self, quantity: float, price: Optional[float] = None) -> float:
         """
-        Calculate the market value of the option position based on the premium price.
+        Calculate the total market value of the option position.
 
-        Parameters:
-        - quantity (float): The number of contracts.
-        - price (Optional[float]): The premium price of the option.
+        Args:
+            quantity (float): The number of contracts held.
+            price (Optional[float]): The premium price of the option.
 
         Returns:
-        - float: The market value of the option position.
+            float: The calculated market value of the option position.
+
+        Raises:
+            ValueError: If `price` is not provided.
         """
         if price is None:
             raise ValueError("Price must be provided to calculate value.")
@@ -697,14 +1112,17 @@ class Option(Symbol):
 
     def cost(self, quantity: float, price: Optional[float] = None) -> float:
         """
-        Calculate the cost to acquire the option position based on the premium price.
+        Calculate the cost to acquire or maintain the option position.
 
-        Parameters:
-        - quantity (float): The number of contracts.
-        - price (Optional[float]): The premium price of the option.
+        Args:
+            quantity (float): The number of contracts to be traded.
+            price (Optional[float]): The premium price of the option.
 
         Returns:
-        - float: The cost to acquire the option position.
+            float: The total cost to acquire the option position.
+
+        Raises:
+            ValueError: If `price` is not provided.
         """
         if price is None:
             raise ValueError("Price must be provided to calculate cost.")
@@ -712,49 +1130,28 @@ class Option(Symbol):
         return abs(quantity) * price * self.quantity_multiplier
 
 
-# @dataclass
-# class Index(Symbol):
-#     name: str
-#     asset_class: AssetClass
-#
-#     def __post_init__(self):
-#         # Default
-#         fees: float = 0.0
-#         initial_margin: float = 0.0
-#         quantity_multiplier: int = 1
-#         price_multiplier: float = 1.0
-#         exchange: Venue = Venue.INDEX
-#         security_type: SecurityType = SecurityType.INDEX
-#         super().__post_init__()
-#         # Type checks
-#         if not isinstance(self.name, str):
-#             raise TypeError("'name' field must be of type str.")
-#         if not isinstance(self.asset_class, AssetClass):
-#             raise TypeError("'asset_class' field must be of type AssetClass.")
-#
-#     def to_dict(self):
-#         symbol_dict = super().to_dict()
-#         symbol_dict["symbol_data"] = {
-#             "name": self.name,
-#             "currency": self.currency.value,
-#             "asset_class": self.asset_class.value,
-#             "venue": self.exchange.value,
-#         }
-#         return symbol_dict
-#
-#     def value(self, quantity: float, price: Optional[float] = None) -> float:
-#         pass
-#
-#     def cost(self, quantity: float, price: Optional[float] = None) -> float:
-#         pass
-#
-
-
 class SymbolFactory:
+    """
+    A factory class to create Symbol objects from a dictionary.
+
+    This class supports parsing and mapping symbol attributes, including time strings,
+    enumerated fields, and trading sessions. It dynamically determines the appropriate
+    Symbol subclass to instantiate (e.g., Equity, Future, Option).
+    """
+
     @classmethod
     def _get_symbol_class(cls, symbol_type: str):
         """
-        Returns the appropriate Symbol subclass based on the provided symbol type.
+        Get the appropriate Symbol subclass based on the provided symbol type.
+
+        Args:
+            symbol_type (str): The type of symbol (e.g., "Equity", "Future", "Option").
+
+        Returns:
+            Type[Symbol]: The corresponding Symbol subclass.
+
+        Raises:
+            ValueError: If the provided symbol type is not recognized.
         """
         if symbol_type == "Equity":
             return Equity
@@ -762,15 +1159,23 @@ class SymbolFactory:
             return Future
         elif symbol_type == "Option":
             return Option
-        # elif symbol_type == "Index":
-        #     return Index
         else:
             raise ValueError(f"Unknown symbol type: {symbol_type}")
 
     @classmethod
     def _parse_time(cls, time_str: str) -> time:
         """
-        Parse time from string in 'HH:MM' format.
+        Parse a time string in 'HH:MM' format into a time object.
+
+        Args:
+            time_str (str): The time string to parse.
+
+        Returns:
+            time: The parsed time object.
+
+        Example:
+            >>> SymbolFactory._parse_time("09:30")
+            datetime.time(9, 30)
         """
         hour, minute = map(int, time_str.split(":"))
         return time(hour, minute)
@@ -778,7 +1183,13 @@ class SymbolFactory:
     @classmethod
     def _map_symbol_enum_fields(cls, symbol_data: dict) -> dict:
         """
-        Maps string values to the appropriate enum types.
+        Map string values in symbol data to their respective Enum types.
+
+        Args:
+            symbol_data (dict): The dictionary containing raw symbol data.
+
+        Returns:
+            dict: A dictionary with enum fields mapped to their corresponding Enum values.
         """
         symbol_data["currency"] = Currency[symbol_data["currency"].upper()]
         symbol_data["security_type"] = SecurityType[
@@ -807,7 +1218,28 @@ class SymbolFactory:
     @classmethod
     def from_dict(cls, symbol_data: dict) -> Symbol:
         """
-        Parse a single symbol from a dictionary format, creating a symbol object.
+        Create a Symbol object from a dictionary.
+
+        Args:
+            symbol_data (dict): A dictionary containing symbol attributes.
+
+        Returns:
+            Symbol: An instance of the appropriate Symbol subclass (Equity, Future, or Option).
+
+        Raises:
+            ValueError: If the symbol type is not recognized.
+
+        Example:
+            >>> symbol_data = {
+                    "type": "Equity",
+                    "currency": "USD",
+                    "security_type": "STOCK",
+                    "exchange": "NASDAQ",
+                    "trading_sessions": {"day_open": "09:30", "day_close": "16:00"}
+                }
+            >>> symbol = SymbolFactory.from_dict(symbol_data)
+            >>> type(symbol)
+            <class 'Equity'>
         """
         symbol_type = symbol_data.pop("type")
         symbol_class = cls._get_symbol_class(symbol_type)
@@ -838,10 +1270,16 @@ class SymbolFactory:
 
 
 class SymbolMap:
+    """
+    A mapping class to manage Symbol objects by their universal instrument IDs and associated tickers.
+
+    This class allows retrieval, addition, and management of Symbol objects based on
+    various tickers (broker, data, midas) or instrument IDs.
+    """
+
     def __init__(self):
         """
-        Initializes the SymbolMap with a universal mapping of symbols by instrument ID
-        and their corresponding tickers from different providers.
+        Initialize the SymbolMap with dictionaries to map instrument IDs and tickers to Symbol objects.
         """
         # Maps the instrument ID to the Symbol object
         self.map: Dict[int, Symbol] = {}
@@ -851,20 +1289,17 @@ class SymbolMap:
         self.data_map: Dict[str, int] = {}
         self.midas_map: Dict[str, int] = {}
 
-    def add_symbol(
-        self,
-        symbol: Symbol,
-    ) -> None:
+    def add_symbol(self, symbol: Symbol) -> None:
         """
-        Add the symbol to the map, linking the universal instrument ID to the symbol
-        and its associated tickers (broker, data, midas).
+        Add a Symbol object to the map.
 
-        Parameters:
-        - instrument_id (int): The universal instrument ID.
-        - broker_ticker (str): The ticker used by the broker.
-        - data_ticker (str): The ticker used by the data provider.
-        - midas_ticker (str): The ticker used by the internal system (midas).
-        - symbol (Symbol): The Symbol object to add to the map.
+        Args:
+            symbol (Symbol): The Symbol object to add.
+
+        Example:
+            >>> equity_symbol = Equity(...)
+            >>> symbol_map = SymbolMap()
+            >>> symbol_map.add_symbol(equity_symbol)
         """
         # Map the tickers to the instrument ID
         self.broker_map[symbol.broker_ticker] = symbol.instrument_id
@@ -876,18 +1311,30 @@ class SymbolMap:
 
     def get_symbol(self, ticker: str) -> Symbol:
         """
-        Retrieve the symbol by any ticker (broker, data, or midas).
+        Retrieve the Symbol object associated with a given ticker.
 
-        Parameters:
-        - ticker (str): The broker, data, or midas ticker.
+        Args:
+            ticker (str): The ticker (broker, data, or midas) to look up.
 
         Returns:
-        - Symbol: The symbol associated with the provided ticker, or None if not found.
+            Symbol: The associated Symbol object, or None if not found.
+
+        Example:
+            >>> symbol = symbol_map.get_symbol("AAPL")
         """
         instrument_id = self.get_id(ticker)
         return self.map.get(instrument_id)
 
     def get_id(self, ticker: str) -> int:
+        """
+        Retrieve the instrument ID associated with a given ticker.
+
+        Args:
+            ticker (str): The ticker to look up.
+
+        Returns:
+            int: The instrument ID, or None if not found.
+        """
         instrument_id = (
             self.broker_map.get(ticker)
             or self.data_map.get(ticker)
@@ -897,24 +1344,50 @@ class SymbolMap:
 
     @property
     def symbols(self) -> List[Symbol]:
-        # Return the list of all unique symbols
+        """
+        Retrieve all unique Symbol objects.
+
+        Returns:
+            List[Symbol]: A list of all Symbol objects in the map.
+        """
         return list(self.map.values())
 
     @property
     def instrument_ids(self) -> List[int]:
+        """
+        Retrieve all unique instrument IDs.
+
+        Returns:
+            List[int]: A list of all instrument IDs.
+        """
         return list(self.map.keys())
 
     @property
     def broker_tickers(self) -> List[str]:
-        # Return just the broker tickers
+        """
+        Retrieve all broker tickers.
+
+        Returns:
+            List[str]: A list of all broker tickers.
+        """
         return list(self.broker_map.keys())
 
     @property
     def data_tickers(self) -> List[str]:
-        # Return just the data tickers
+        """
+        Retrieve all data provider tickers.
+
+        Returns:
+            List[str]: A list of all data provider tickers.
+        """
         return list(self.data_map.keys())
 
     @property
     def midas_tickers(self) -> List[str]:
-        # Return just the midas tickers
+        """
+        Retrieve all Midas tickers.
+
+        Returns:
+            List[str]: A list of all Midas tickers.
+        """
         return list(self.midas_map.keys())

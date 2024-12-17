@@ -305,7 +305,7 @@ class TestFuturePosition(unittest.TestCase):
     # Type/Constraint Validation
     def test_type_constraints(self):
         with self.assertRaisesRegex(
-            TypeError, "'action' field must be of type str."
+            TypeError, "'action' must be of type str."
         ):
             FuturePosition(
                 action=1234,
@@ -318,7 +318,7 @@ class TestFuturePosition(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'avg_price' field must be of type int or float."
+            TypeError, "'avg_price' must be of type int or float."
         ):
             FuturePosition(
                 action="BUY",
@@ -331,7 +331,7 @@ class TestFuturePosition(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'quantity' field must be of type int or float."
+            TypeError, "'quantity' must be of type int or float."
         ):
             FuturePosition(
                 action="BUY",
@@ -344,7 +344,7 @@ class TestFuturePosition(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'price_multiplier' field must be of type int or float."
+            TypeError, "'price_multiplier' must be of type int or float."
         ):
             FuturePosition(
                 action="BUY",
@@ -357,7 +357,7 @@ class TestFuturePosition(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'quantity_multiplier' field must be of type int."
+            TypeError, "'quantity_multiplier' must be of type int."
         ):
             FuturePosition(
                 action="BUY",
@@ -370,7 +370,7 @@ class TestFuturePosition(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'initial_margin' field must be of type int or float."
+            TypeError, "'initial_margin' must be of type int or float."
         ):
             FuturePosition(
                 action="BUY",
@@ -383,7 +383,7 @@ class TestFuturePosition(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'market_price' field must be of type int or float."
+            TypeError, "'market_price' must be of type int or float."
         ):
             FuturePosition(
                 action="BUY",
@@ -395,7 +395,7 @@ class TestFuturePosition(unittest.TestCase):
                 market_price="1234",
             )
 
-        # with self.assertRaisesRegex(TypeError, "'unrealized_pnl' field must be of type int or float."):
+        # with self.assertRaisesRegex(TypeError, "'unrealized_pnl' must be of type int or float."):
         #     FuturePosition(
         #                 action="BUY",
         #                 avg_price=self.avg_price,
@@ -420,7 +420,8 @@ class TestFuturePosition(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            ValueError, "'price_multiplier' field must be greater than zero."
+            ValueError,
+            "'price_multiplier' and 'quantity_multiplier' must be greater than zero.",
         ):
             FuturePosition(
                 action="BUY",
@@ -434,7 +435,7 @@ class TestFuturePosition(unittest.TestCase):
 
         with self.assertRaisesRegex(
             ValueError,
-            "'quantity_multiplier' field must be greater than zero.",
+            "'price_multiplier' and 'quantity_multiplier' must be greater than zero.",
         ):
             FuturePosition(
                 action="BUY",
@@ -447,7 +448,7 @@ class TestFuturePosition(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            ValueError, "'initial_margin' field must be non-negative."
+            ValueError, "'initial_margin' must be non-negative."
         ):
             FuturePosition(
                 action="BUY",
@@ -665,7 +666,7 @@ class TestEquityPosition(unittest.TestCase):
     # Type/Constraint Validation
     def test_type_constraints(self):
         with self.assertRaisesRegex(
-            TypeError, "'action' field must be of type str."
+            TypeError, "'action' must be of type str."
         ):
             EquityPosition(
                 action=1234,
@@ -677,7 +678,7 @@ class TestEquityPosition(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'avg_price' field must be of type int or float."
+            TypeError, "'avg_price' must be of type int or float."
         ):
             EquityPosition(
                 action="BUY",
@@ -689,7 +690,7 @@ class TestEquityPosition(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'quantity' field must be of type int or float."
+            TypeError, "'quantity' must be of type int or float."
         ):
             EquityPosition(
                 action=self.action,
@@ -701,7 +702,7 @@ class TestEquityPosition(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'price_multiplier' field must be of type int or float."
+            TypeError, "'price_multiplier' must be of type int or float."
         ):
             EquityPosition(
                 action=self.action,
@@ -713,7 +714,7 @@ class TestEquityPosition(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'quantity_multiplier' field must be of type int."
+            TypeError, "'quantity_multiplier' must be of type int."
         ):
             EquityPosition(
                 action=self.action,
@@ -725,7 +726,7 @@ class TestEquityPosition(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'market_price' field must be of type int or float."
+            TypeError, "'market_price' must be of type int or float."
         ):
             EquityPosition(
                 action=self.action,
@@ -748,7 +749,8 @@ class TestEquityPosition(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            ValueError, "'price_multiplier' field must be greater than zero."
+            ValueError,
+            "'price_multiplier' and 'quantity_multiplier' must be greater than zero.",
         ):
             EquityPosition(
                 action=self.action,
@@ -761,7 +763,7 @@ class TestEquityPosition(unittest.TestCase):
 
         with self.assertRaisesRegex(
             ValueError,
-            "'quantity_multiplier' field must be greater than zero.",
+            "'price_multiplier' and 'quantity_multiplier' must be greater than zero.",
         ):
             EquityPosition(
                 action=self.action,
@@ -985,7 +987,7 @@ class TestOptionPosition(unittest.TestCase):
     # Type/Value Constraints
     def test_type_check(self):
         with self.assertRaisesRegex(
-            TypeError, "'type' field must be of type Right enum."
+            TypeError, "'type' must be of type Right enum."
         ):
             OptionPosition(
                 action=self.action,
@@ -1000,7 +1002,7 @@ class TestOptionPosition(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'expiration_date' field must be of type str."
+            TypeError, "'expiration_date' must be of type str."
         ):
             OptionPosition(
                 action=self.action,
@@ -1015,7 +1017,7 @@ class TestOptionPosition(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'strike_price' field must be of type int or float."
+            TypeError, "'strike_price' must be of type int or float."
         ):
             OptionPosition(
                 action=self.action,
@@ -1031,7 +1033,7 @@ class TestOptionPosition(unittest.TestCase):
 
     def test_value_check(self):
         with self.assertRaisesRegex(
-            ValueError, "'strike_price' field must be greater than zero."
+            ValueError, "'strike_price' must be greater than zero."
         ):
             OptionPosition(
                 action=self.action,

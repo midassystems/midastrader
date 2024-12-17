@@ -51,23 +51,23 @@ class TestMarketEvent(unittest.TestCase):
     # Type Validation
     def test_type_constraints(self):
         with self.assertRaisesRegex(
-            TypeError, "'timestamp' field must be of type int."
+            TypeError, "'timestamp' must be of type int."
         ):
             MarketEvent(data=self.bar, timestamp=datetime(2024, 1, 1))
         with self.assertRaisesRegex(
-            TypeError, "'timestamp' field must be of type int."
+            TypeError, "'timestamp' must be of type int."
         ):
             MarketEvent(data=self.bar, timestamp=None)
         with self.assertRaisesRegex(
-            TypeError, "'timestamp' field must be of type int."
+            TypeError, "'timestamp' must be of type int."
         ):
             MarketEvent(data=self.bar, timestamp="14-10-2020")
         with self.assertRaisesRegex(
-            TypeError, "'data' field must be of type OhlcvMsg or BboMsg."
+            TypeError, "'data' must be of type OhlcvMsg or BboMsg."
         ):
             MarketEvent(data=[1, 2, 3], timestamp=self.timestamp)
         with self.assertRaisesRegex(
-            TypeError, "'data' field must be of type OhlcvMsg or BboMsg."
+            TypeError, "'data' must be of type OhlcvMsg or BboMsg."
         ):
             MarketEvent(data={1: 1, 2: 1, 3: 1}, timestamp=self.timestamp)
 

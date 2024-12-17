@@ -7,21 +7,21 @@ from midas.engine.components.gateways.backtest.broker_client import (
 
 class ContractManager:
     """
-    Class for managing contract validation with Interactive Brokers.
+    Manages the validation of contracts with Interactive Brokers.
 
     Attributes:
-    - client (DataClient): An instance of DataClient used for communication with the IB API.
-    - logger (logging.Logger): An instance of Logger for logging messages.
-    - validated_contracts (dict): A dictionary to store validated contracts.
+        client (BrokerClient): Instance of `BrokerClient` used for communication with the IB API.
+        logger (logging.Logger): Logger instance for logging messages.
+        validated_contracts (dict): Dictionary storing validated contracts, where keys are contract symbols
+            and values are the corresponding `Contract` instances.
     """
 
     def __init__(self, client_instance: BrokerClient):
         """
-        Initialize the ContractManager instance.
+        Initializes a `ContractManager` instance.
 
-        Parameters:
-        - client_instance (DataClient): An instance of DataClient for communication with the IB API.
-        - logger (logging.Logger): An instance of Logger for logging messages.
+        Args:
+            client_instance (BrokerClient): Instance of `BrokerClient` for communication with the IB API.
         """
         self.logger = SystemLogger.get_logger()
         self.client = client_instance
@@ -30,22 +30,28 @@ class ContractManager:
 
     def validate_contract(self, contract: Contract) -> bool:
         """
-        Validate a contract with Interactive Brokers.
+        Validates a contract with Interactive Brokers.
 
-        Parameters:
-        - contract (Contract): The contract to be validated.
+        Behavior:
+            - Checks if the contract is already validated.
+            - If not validated, sends a request to Interactive Brokers for validation.
+            - Updates `validated_contracts` upon successful validation.
+
+        Args:
+            contract (Contract): The `Contract` object to be validated.
 
         Returns:
-        - bool: True if the contract is successfully validated, False otherwise.
+            bool: `True` if the contract is successfully validated, otherwise `False`.
+
+        Raises:
+            ValueError: If the provided `contract` is not an instance of `Contract`.
         """
         if not isinstance(contract, Contract):
             raise ValueError("'contract' must be of type Contract instance.")
 
         # Check if the contract is already validated
         if self._is_contract_validated(contract):
-            self.logger.info(
-                f"Contract {contract.symbol} is already validated."
-            )
+            self.logger.info(f"Contract {contract.symbol} already validated.")
             return True
 
         # Reset the validation attribute in case it has been used before
@@ -72,12 +78,12 @@ class ContractManager:
 
     def _is_contract_validated(self, contract: Contract) -> bool:
         """
-        Check if a contract has already been validated.
+        Checks if a contract has already been validated.
 
-        Parameters:
-        - contract (Contract): The contract to check for validation.
+        Args:
+            contract (Contract): The `Contract` object to check for validation.
 
         Returns:
-        - bool: True if the contract has already been validated, False otherwise.
+            bool: `True` if the contract has already been validated, otherwise `False`.
         """
         return contract.symbol in self.validated_contracts

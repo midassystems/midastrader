@@ -247,7 +247,7 @@ class TestParameters(unittest.TestCase):
     # Type Validation
     def test_type_errors(self):
         with self.assertRaisesRegex(
-            TypeError, "'strategy_name' field must be of type str."
+            TypeError, "'strategy_name' must be of type str."
         ):
             Parameters(
                 schema=self.schema,
@@ -260,7 +260,7 @@ class TestParameters(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'capital' field must be of type int."
+            TypeError, "'capital' must be of type int."
         ):
             Parameters(
                 schema=self.schema,
@@ -274,7 +274,7 @@ class TestParameters(unittest.TestCase):
 
         with self.assertRaisesRegex(
             TypeError,
-            "'data_type' field must be an instance of MarketDataType.",
+            "'data_type' must be of type LiveDataType.",
         ):
             Parameters(
                 schema=self.schema,
@@ -286,9 +286,7 @@ class TestParameters(unittest.TestCase):
                 symbols=self.symbols,
             )
 
-        with self.assertRaisesRegex(
-            TypeError, "'start' field must be of type str."
-        ):
+        with self.assertRaisesRegex(TypeError, "'start' must be of type str."):
             Parameters(
                 schema=self.schema,
                 strategy_name=self.strategy_name,
@@ -299,9 +297,7 @@ class TestParameters(unittest.TestCase):
                 symbols=self.symbols,
             )
 
-        with self.assertRaisesRegex(
-            TypeError, "'end' field must be of type str."
-        ):
+        with self.assertRaisesRegex(TypeError, "'end' must be of type str."):
             Parameters(
                 schema=self.schema,
                 strategy_name=self.strategy_name,
@@ -313,7 +309,7 @@ class TestParameters(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'symbols' field must be of type list."
+            TypeError, "'symbols' must be of type list."
         ):
             Parameters(
                 schema=self.schema,
@@ -327,7 +323,7 @@ class TestParameters(unittest.TestCase):
 
         with self.assertRaisesRegex(
             TypeError,
-            "All items in 'symbols' field must be instances of Symbol",
+            "All 'symbols' must be instances of Symbol",
         ):
             Parameters(
                 schema=self.schema,
@@ -342,7 +338,7 @@ class TestParameters(unittest.TestCase):
     # Constraint Validation
     def test_value_constraints(self):
         with self.assertRaisesRegex(
-            ValueError, "'capital' field must be greater than zero."
+            ValueError, "'capital' must be greater than zero."
         ):
             Parameters(
                 schema=self.schema,

@@ -3,7 +3,15 @@ from abc import ABC, abstractmethod
 
 
 class EventType(Enum):
-    """Enum for different types of events that can be observed."""
+    """
+    Represents the types of events observed within the trading system.
+
+    Categories:
+        - Market Events: Events related to market data and order book updates.
+        - Order Events: Events triggered by changes in orders and trades.
+        - Portfolio Events: Events related to position, account, and equity updates.
+        - Risk and End-of-Day Events: Events triggered by risk updates or end-of-day processing.
+    """
 
     MARKET_DATA = auto()
     ORDER_BOOK = auto()
@@ -11,7 +19,6 @@ class EventType(Enum):
     ORDER_CREATED = auto()
     TRADE_EXECUTED = auto()
     EOD_EVENT = auto()
-
     # OLD
     POSITION_UPDATE = auto()
     ORDER_UPDATE = auto()
@@ -23,32 +30,41 @@ class EventType(Enum):
 
 
 class Subject:
-    """Class representing a subject that can notify observers about various events."""
+    """
+    Represents a subject in the Observer pattern that can notify observers of events.
+
+    The `Subject` maintains a list of observers subscribed to specific event types.
+    Observers are notified when the corresponding event occurs, enabling decoupled communication.
+    """
 
     def __init__(self):
-        """Initialize the Subject with an empty observer dictionary."""
-        # Maps EventType to observers interested in that event
+        """
+        Initializes the Subject with an empty dictionary of observers.
+
+        Each key in the dictionary corresponds to an `EventType`,
+        and its value is a list of observers subscribed to that event.
+        """
         self._observers = {}
 
-    def attach(self, observer: "Observer", event_type: EventType):
+    def attach(self, observer: "Observer", event_type: EventType) -> None:
         """
-        Attach an observer to a specific event type.
+        Attaches an observer to a specific event type.
 
-        Parameters:
-        - observer (Observer): The observer to attach.
-        - event_type (EventType): The event type to which the observer should be attached.
+        Args:
+            observer (Observer): The observer to attach.
+            event_type (EventType): The event type the observer wants to subscribe to.
         """
         if event_type not in self._observers:
             self._observers[event_type] = []
         self._observers[event_type].append(observer)
 
-    def detach(self, observer: "Observer", event_type: EventType):
+    def detach(self, observer: "Observer", event_type: EventType) -> None:
         """
-        Detach an observer from a specific event type.
+        Detaches an observer from a specific event type.
 
-        Parameters:
-        - observer (Observer): The observer to detach.
-        - event_type (EventType): The event type from which the observer should be detached.
+        Args:
+            observer (Observer): The observer to detach.
+            event_type (EventType): The event type the observer wants to unsubscribe from.
         """
         if (
             event_type in self._observers
@@ -56,14 +72,19 @@ class Subject:
         ):
             self._observers[event_type].remove(observer)
 
-    def notify(self, event_type: EventType, *args, **kwargs):
+    def notify(self, event_type: EventType, *args, **kwargs) -> None:
         """
-        Notify all observers about an event, passing dynamic data.
+        Notifies all observers subscribed to a specific event type.
 
-        Parameters:
-        - event_type (EventType): The event type that has occurred.
-        - *args: Additional positional arguments to be passed to the observers.
-        - **kwargs: Additional keyword arguments to be passed to the observers.
+        Behavior:
+            - Iterates through all observers subscribed to the given `event_type`.
+            - Calls the `handle_event` method of each observer, passing along the event data.
+
+        Args:
+            event_type (EventType): The event type that has occurred.
+            *args: Additional positional arguments to be passed to the observers.
+            **kwargs: Additional keyword arguments to be passed to the observers.
+
         """
         if event_type in self._observers:
             for observer in self._observers[event_type]:
@@ -71,18 +92,33 @@ class Subject:
 
 
 class Observer(ABC):
-    """Abstract base class for observers that need to respond to subject events."""
+    """
+    Abstract base class for observers in the Observer pattern.
+
+    Observers are entities that subscribe to specific events emitted by a `Subject`.
+    When an event occurs, the subject notifies its observers, and each observer handles the event.
+    """
 
     @abstractmethod
     def handle_event(
-        self, subject: Subject, event_type: EventType, *args, **kwargs
+        self,
+        subject: Subject,
+        event_type: EventType,
+        *args,
+        **kwargs,
     ):
         """
-        Handle the event based on the type.
+        Handles an event triggered by a `Subject`.
 
-            Parameters:
-            - subject (Subject): The subject that triggered the event.
-                - event_type (EventType): The type of event that was triggered.
+        Behavior:
+            - This method must be implemented by all concrete subclasses.
+            - Defines how the observer processes specific event types.
+
+        Args:
+            subject (Subject): The subject that triggered the event.
+            event_type (EventType): The type of event that was triggered.
+            *args: Additional positional arguments with event-specific data.
+            **kwargs: Additional keyword arguments with event-specific data.
+
         """
-
-    pass
+        pass

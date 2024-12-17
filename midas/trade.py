@@ -6,6 +6,22 @@ from midas.constants import PRICE_FACTOR
 
 @dataclass
 class Trade:
+    """
+    Represents a single trade event with details about execution, price, cost, and fees.
+
+    Attributes:
+        timestamp (int): The timestamp of the trade, typically in Unix epoch time.
+        trade_id (int): Unique identifier for the trade.
+        leg_id (int): Identifier for the leg (part of a multi-leg trades).
+        instrument (int): Identifier for the traded instrument, e.g., ticker ID.
+        quantity (Union[int, float]): The amount of the instrument traded.
+        avg_price (float): The average execution price of the trade. Must be > 0.
+        trade_value (float): The total notional value (quantity × price) of the trade.
+        trade_cost (float): The total cost associated with entering the trade. (e.g., trade_value for equities, initial margin for futures, premium for options).
+        action (str): Type of trade, e.g., "BUY", "SELL", "LONG", "SHORT", "COVER".
+        fees (float): Fees incurred for the trade.
+    """
+
     timestamp: int
     trade_id: int
     leg_id: int
@@ -18,6 +34,13 @@ class Trade:
     fees: float
 
     def __post_init__(self):
+        """
+        Post-initialization method to validate field types and values.
+
+        Raises:
+            TypeError: If a field is not of the expected type.
+            ValueError: If 'action' is invalid or 'avg_price' is <= 0.
+        """
         # Type Check
         if not isinstance(self.timestamp, int):
             raise TypeError("'timestamp' field must be of type int.")
@@ -51,6 +74,12 @@ class Trade:
             raise ValueError("'avg_price' field must be greater than zero.")
 
     def to_dict(self):
+        """
+        Converts the Trade object into a dictionary.
+
+        Returns:
+            dict: A dictionary representation of the Trade object.
+        """
         return {
             "timestamp": int(self.timestamp),
             "trade_id": self.trade_id,
@@ -65,6 +94,15 @@ class Trade:
         }
 
     def to_mbn(self, ticker: str) -> mbn.Trades:
+        """
+        Converts the Trade object into a custom binary structure.
+
+        Args:
+            ticker (str): The instrument ticker to associate with the trade.
+
+        Returns:
+            mbn.Trades: A custom binary trade object.
+        """
         return mbn.Trades(
             trade_id=self.trade_id,
             leg_id=self.leg_id,
@@ -78,6 +116,15 @@ class Trade:
         )
 
     def pretty_print(self, indent: str = "") -> str:
+        """
+        Generates a formatted string representation of the Trade object.
+
+        Args:
+            indent (str): Optional string for indentation.
+
+        Returns:
+            str: A human-readable formatted string of trade details.
+        """
         return (
             f"{indent}Timestamp: {self.timestamp}\n"
             f"{indent}Trade ID: {self.trade_id}\n"

@@ -7,19 +7,18 @@ from dataclasses import dataclass, field
 @dataclass
 class ExecutionEvent:
     """
-    Represents an event triggered after the execution of a trade order in a trading system, capturing the
-    details of the trade execution.
+    Represents a trade execution event within a trading system.
 
-    This event is vital for tracking trade executions, allowing the system to update portfolios, execute risk management
-    protocols, and provide transaction reports. It includes detailed information about the trade, the involved contract,
-    and the type of action performed.
+    The `ExecutionEvent` class captures the details of a trade execution after an order has been executed.
+    It serves as a key event to update portfolios, trigger risk management logic, and generate execution reports.
+    This event includes detailed information such as the trade details, the financial contract, and the action performed.
 
     Attributes:
-    - timestamp (int): The UNIX timestamp in nanoseconds when the execution occurred.
-    - trade_details (Trade): Trade object detailing the execution of the trade, including price, volume, and other relevant metrics.
-    - action (Action): The type of action (e.g., BUY, SELL) that was executed.
-    - contract (Contract): The contract object detailing the financial instrument involved in the trade.
-    - type (str): The type of the event, set to 'EXECUTION' by default.
+        timestamp (int): The UNIX timestamp in nanoseconds indicating when the execution occurred.
+        trade_details (Trade): The executed trade details, including price, volume, and metrics.
+        action (Action): The action type associated with the trade (e.g., BUY, SELL).
+        contract (Contract): The contract object describing the financial instrument being traded.
+        type (str): Event type, automatically set to 'EXECUTION'.
     """
 
     timestamp: int
@@ -29,21 +28,30 @@ class ExecutionEvent:
     type: str = field(init=False, default="EXECUTION")
 
     def __post_init__(self):
+        """
+        Validates the input fields and ensures their types are consistent.
+
+        Raises:
+            TypeError: If any of the attributes are not of the expected type.
+        """
         # Type Check
         if not isinstance(self.timestamp, int):
-            raise TypeError("'timestamp' field must be of type int.")
+            raise TypeError("'timestamp' must be of type int.")
         if not isinstance(self.action, Action):
-            raise TypeError("'action' field must be of type Action enum.")
+            raise TypeError("'action' must be of type Action enum.")
         if not isinstance(self.trade_details, Trade):
-            raise TypeError(
-                "'trade_details' field must be of type Trade instance."
-            )
+            raise TypeError("'trade_details' must be of type Trade instance.")
         if not isinstance(self.contract, Contract):
-            raise TypeError(
-                "'contract' field must be of type Contract instance."
-            )
+            raise TypeError("'contract' must be of type Contract instance.")
 
     def __str__(self) -> str:
+        """
+        Returns a human-readable string representation of the `ExecutionEvent`.
+
+        Returns:
+            str: A formatted string containing execution event details such as timestamp, action,
+                 contract, and trade details.
+        """
         return (
             f"\n{self.type} EVENT:\n"
             f"  Timestamp: {self.timestamp}\n"

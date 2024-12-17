@@ -48,7 +48,7 @@ class TestExecutionEvent(unittest.TestCase):
     # Type Check
     def test_type_constraint(self):
         with self.assertRaisesRegex(
-            TypeError, "'timestamp' field must be of type int."
+            TypeError, "'timestamp' must be of type int."
         ):
             ExecutionEvent(
                 timestamp=datetime(2024, 1, 1),
@@ -58,7 +58,7 @@ class TestExecutionEvent(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'action' field must be of type Action enum."
+            TypeError, "'action' must be of type Action enum."
         ):
             ExecutionEvent(
                 timestamp=self.timetamp,
@@ -68,7 +68,7 @@ class TestExecutionEvent(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'trade_details' field must be of type Trade instance."
+            TypeError, "'trade_details' must be of type Trade instance."
         ):
             ExecutionEvent(
                 timestamp=self.timetamp,
@@ -78,7 +78,7 @@ class TestExecutionEvent(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'contract' field must be of type Contract instance."
+            TypeError, "'contract' must be of type Contract instance."
         ):
             ExecutionEvent(
                 timestamp=self.timetamp,

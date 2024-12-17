@@ -20,7 +20,7 @@ class TestExecutionEvent(unittest.TestCase):
         # Test
         with self.assertRaisesRegex(
             TypeError,
-            "'timestamp' should be an datetime.date instance, got int.",
+            "'timestamp' should be a datetime.date.",
         ):
             EODEvent(100000000000)
 

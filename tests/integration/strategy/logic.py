@@ -191,7 +191,6 @@ class Cointegrationzscore(BaseStrategy):
                 # Update the respective columns in `self.current_price`
                 close = event.data.close
                 key = event.data.instrument_id
-                self.logger.info(event.data.ts_event)
 
                 self.current_price[f"{key}"] = close / 1e9
                 self.current_price[f"{key}_log"] = np.log(close / 1e9)

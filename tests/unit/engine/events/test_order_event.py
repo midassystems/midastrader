@@ -40,7 +40,7 @@ class TestOrderEvent(unittest.TestCase):
     # Type Checks
     def test_type_constraint(self):
         with self.assertRaisesRegex(
-            TypeError, "'timestamp' field must be of type int."
+            TypeError, "'timestamp' must be of type int."
         ):
             OrderEvent(
                 timestamp=datetime(2024, 1, 1),
@@ -52,7 +52,7 @@ class TestOrderEvent(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'trade_id' field must be of type int."
+            TypeError, "'trade_id' must be of type int."
         ):
             OrderEvent(
                 timestamp=self.timestamp,
@@ -64,7 +64,7 @@ class TestOrderEvent(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'leg_id' field must be of type int."
+            TypeError, "'leg_id' must be of type int."
         ):
             OrderEvent(
                 timestamp=self.timestamp,
@@ -76,7 +76,7 @@ class TestOrderEvent(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'action' field must be of type Action enum."
+            TypeError, "'action' must be of type Action enum."
         ):
             OrderEvent(
                 timestamp=self.timestamp,
@@ -88,7 +88,7 @@ class TestOrderEvent(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'contract' field must be of type Contract."
+            TypeError, "'contract' must be of type Contract."
         ):
             OrderEvent(
                 timestamp=self.timestamp,
@@ -100,7 +100,7 @@ class TestOrderEvent(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'order' field must be of type BaseOrder."
+            TypeError, "'order' must be of type BaseOrder."
         ):
             OrderEvent(
                 timestamp=self.timestamp,
@@ -114,7 +114,7 @@ class TestOrderEvent(unittest.TestCase):
     # Constraint Check
     def test_value_constraint(self):
         with self.assertRaisesRegex(
-            ValueError, "'trade_id' field must be greater than zero."
+            ValueError, "'trade_id' must be greater than zero."
         ):
             OrderEvent(
                 timestamp=self.timestamp,
@@ -126,7 +126,7 @@ class TestOrderEvent(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            ValueError, "'leg_id' field must be greater than zero."
+            ValueError, "'leg_id' must be greater than zero."
         ):
             OrderEvent(
                 timestamp=self.timestamp,
