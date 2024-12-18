@@ -65,7 +65,7 @@ class OrderBook(Subject, Observer):
 
             # Put market event in the event queue
             market_event = MarketEvent(timestamp=record.ts_event, data=record)
-            self.logger.info(market_event)
+            self.logger.debug(market_event)
 
             # Check inital data loaded
             if not self.tickers_loaded:

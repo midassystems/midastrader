@@ -135,7 +135,7 @@ class BrokerApp(EWrapper, EClient, Subject):
         with self.next_valid_order_id_lock:
             self.next_valid_order_id = orderId
 
-        self.logger.info(f"Next Valid Id {self.next_valid_order_id}")
+        self.logger.debug(f"Next Valid Id {self.next_valid_order_id}")
         self.valid_id_event.set()
 
     def contractDetails(self, reqId: int, contractDetails: ContractDetails):
@@ -155,7 +155,7 @@ class BrokerApp(EWrapper, EClient, Subject):
         Parameters:
             reqId (int): The request ID associated with the end of contract details.
         """
-        self.logger.info("Contract Details Received.")
+        self.logger.debug("Contract Details Received.")
         self.validate_contract_event.set()
 
     #### wrapper function for reqAccountUpdates. returns accoutninformation whenever there is a change
@@ -201,7 +201,7 @@ class BrokerApp(EWrapper, EClient, Subject):
 
         # Updating portfolio server outside the lock to avoid deadlocks
         self.notify(EventType.ACCOUNT_UPDATE, account_info_copy)
-        self.logger.info("Processed buffered account updates.")
+        self.logger.debug("Processed buffered account updates.")
 
     #### wrapper function for reqAccountUpdates. Get position information
     def updatePortfolio(
@@ -279,7 +279,7 @@ class BrokerApp(EWrapper, EClient, Subject):
         self.process_account_updates()
         self.notify(EventType.ACCOUNT_UPDATE, self.account_info)
 
-        self.logger.info(f"AccountDownloadEnd. Account: {accountName}")
+        self.logger.debug(f"AccountDownloadEnd. Account: {accountName}")
         self.account_download_event.set()
 
     def openOrder(
@@ -319,7 +319,7 @@ class BrokerApp(EWrapper, EClient, Subject):
                 auxPrice=order.auxPrice,
                 status=orderState.status,
             )
-            self.logger.info(f"Received new order : {orderId}")
+            self.logger.debug(f"Received new order : {orderId}")
 
             # Update last new order id
             self.last_order_id = orderId
@@ -377,7 +377,7 @@ class BrokerApp(EWrapper, EClient, Subject):
             whyHeld,
             mktCapPrice,
         )
-        self.logger.info(f"Received order status update : {orderId}")
+        self.logger.debug(f"Received order status update : {orderId}")
 
         order_data = ActiveOrder(
             permId=permId,
@@ -424,7 +424,7 @@ class BrokerApp(EWrapper, EClient, Subject):
         - reqId (int): The request ID associated with the account summary.
         """
         self.account_info.timestamp = int(time.time() * 1e9)
-        self.logger.info(f"Account Summary Request Complete: {reqId}")
+        self.logger.debug(f"Account Summary Request Complete: {reqId}")
         self.notify(EventType.ACCOUNT_UPDATE, self.account_info)
 
     ####   wrapper function for reqExecutions.   this function gives the executed orders
@@ -439,7 +439,7 @@ class BrokerApp(EWrapper, EClient, Subject):
         - contract (Contract): The contract.
         - execution (Execution): The execution details.
         """
-        self.logger.info(f"Recieved trade details : {execution.orderId}")
+        self.logger.debug(f"Recieved trade details : {execution.orderId}")
         super().execDetails(reqId, contract, execution)
 
         # Symbol

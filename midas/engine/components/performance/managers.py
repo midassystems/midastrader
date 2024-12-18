@@ -62,7 +62,7 @@ class TradeManager:
             trade_data (Trade): Trade object containing trade details.
         """
         self.trades[trade_id] = trade_data
-        self.logger.info(
+        self.logger.debug(
             f"\nTrade Updated:\n{trade_data.pretty_print("  ")}\n"
         )
 
@@ -83,8 +83,8 @@ class TradeManager:
         """
         if trade_id in self.trades:
             self.trades[trade_id].fees = commission
-            self.logger.info(f"Commission Updated : {trade_id}")
-            self.logger.info(
+            self.logger.debug(f"Commission Updated : {trade_id}")
+            self.logger.debug(
                 f"\nTrade Updated:\n{self.trades[trade_id].pretty_print("  ")}"
             )
         else:
@@ -476,11 +476,11 @@ class EquityManager:
         """
         if equity_details not in self.equity_value:
             self.equity_value.append(equity_details)
-            self.logger.info(
+            self.logger.debug(
                 f"\nEQUITY UPDATED: \n  {self.equity_value[-1]}\n"
             )
         else:
-            self.logger.info(
+            self.logger.debug(
                 f"Equity update already included ignoring: {equity_details}"
             )
 
@@ -722,7 +722,7 @@ class SignalManager:
             signal (SignalEvent): The signal event to be added to the log.
         """
         self.signals.append(signal)
-        self.logger.info(f"\nSIGNALS UPDATED: \n{signal}")
+        self.logger.debug(f"\nSIGNALS UPDATED: \n{signal}")
 
     def _output_signals(self) -> str:
         """

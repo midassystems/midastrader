@@ -63,7 +63,7 @@ class OrderExecutionManager(Subject, Observer):
 
         """
         if event_type == EventType.SIGNAL:
-            self.logger.info(event)
+            self.logger.debug(event)
             if not isinstance(event, SignalEvent):
                 raise TypeError("'event' must be SignalEvent.")
 
@@ -74,14 +74,14 @@ class OrderExecutionManager(Subject, Observer):
             active_orders_tickers = (
                 self.portfolio_server.get_active_order_tickers()
             )
-            self.logger.info(f"Active order tickers {active_orders_tickers}")
+            self.logger.debug(f"Active order tickers {active_orders_tickers}")
 
             # Check if any of the tickers in trade_instructions are in active orders or positions
             if any(
                 trade.instrument in active_orders_tickers
                 for trade in trade_instructions
             ):
-                self.logger.info(
+                self.logger.debug(
                     "One or more tickers in trade instructions have active orders; ignoring signal."
                 )
                 return
@@ -115,7 +115,7 @@ class OrderExecutionManager(Subject, Observer):
         total_capital_required = 0
 
         for trade in trade_instructions:
-            self.logger.info(trade)
+            self.logger.debug(trade)
             symbol = self.symbols_map.map[trade.instrument]
             order = self._create_order(trade)
             current_price = self.order_book.retrieve(symbol.instrument_id)
@@ -147,7 +147,7 @@ class OrderExecutionManager(Subject, Observer):
                     order["order"],
                 )
             else:
-                self.logger.info("Not enough capital to execute all orders")
+                self.logger.debug("Not enough capital to execute all orders")
 
     def _create_order(self, trade_instruction: SignalInstruction) -> BaseOrder:
         """

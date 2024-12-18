@@ -480,7 +480,6 @@ class PerformanceManager(Subject, Observer):
             **self.account_manager.account_log[0].to_dict(prefix="start_"),
             **self.account_manager.account_log[-1].to_dict(prefix="end_"),
         }
-        self.logger.info(f"Account Data {combined_data}")
 
         # Create Live Summary Object
         self.live_summary = mbn.LiveData(
