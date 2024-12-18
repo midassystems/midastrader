@@ -288,7 +288,7 @@ class TestPositionManager(unittest.TestCase):
         self.manager.update_positions(instrument_id, position)
 
         # Validation
-        self.assertEqual(self.manager.logger.info.call_count, 1)
+        self.assertEqual(self.manager.logger.debug.call_count, 1)
 
 
 class TestOrderManager(unittest.TestCase):
@@ -495,7 +495,7 @@ class TestOrderManager(unittest.TestCase):
         self.manager.update_orders(active_order)
 
         # Validation
-        self.assertEqual(self.manager.logger.info.call_count, 1)
+        self.assertEqual(self.manager.logger.debug.call_count, 1)
 
 
 class TestAccountManager(unittest.TestCase):

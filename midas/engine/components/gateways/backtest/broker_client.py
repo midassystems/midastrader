@@ -104,7 +104,7 @@ class BrokerClient(Subject, Observer, BaseBrokerClient):
         - contract (Contract): The financial instrument involved in the order.
         - order (BaseOrder): The specific order details including type and quantity.
         """
-        self.logger.info(event)
+        self.logger.debug(event)
 
         timestamp = event.timestamp
         trade_id = event.trade_id
@@ -129,7 +129,7 @@ class BrokerClient(Subject, Observer, BaseBrokerClient):
         Parameters:
             event (ExecutionEvent): The event detailing the trade execution.
         """
-        self.logger.info(event)
+        self.logger.debug(event)
 
         # Update trades look with current event
         contract = event.contract

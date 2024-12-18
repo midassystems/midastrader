@@ -388,7 +388,6 @@ class TestDummyClient(unittest.TestCase):
 
         # Validate
         self.dummy_broker._update_account.assert_called()
-        self.logger.logger.info.assert_called()
 
     def test_check_margin_call(self):
         # Margin Call

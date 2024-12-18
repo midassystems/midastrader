@@ -154,7 +154,7 @@ class DataClient(Subject, BaseDataClient):
         if not self.eod_triggered and symbol.after_day_session(
             record.ts_event
         ):
-            self.logger.info("EOD triggered")
+            self.logger.debug("EOD triggered")
             self.eod_triggered = True
             self.notify(
                 EventType.EOD_EVENT,

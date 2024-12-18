@@ -73,7 +73,7 @@ class DummyBroker(Subject, Observer):
         event,
     ) -> None:
         if event_type == EventType.EOD_EVENT:
-            self.logger.info(event)
+            self.logger.debug(event)
             self.mark_to_market()
             self.check_margin_call()
             self.notify(EventType.EOD_EVENT, event)
@@ -274,7 +274,7 @@ class DummyBroker(Subject, Observer):
         Marks all positions to market based on current market prices and updates account PnL accordingly.
         """
         self._update_account()
-        self.logger.info("Account marked-to-market.")
+        self.logger.debug("Account marked-to-market.")
 
     def check_margin_call(self) -> None:
         """

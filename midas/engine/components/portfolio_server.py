@@ -74,7 +74,7 @@ class OrderManager:
                 self.active_orders[order.orderId] = order
 
         # self.notify(EventType.ORDER_UPDATE)  # update database
-        self.logger.info(f"\nORDERS UPDATED: \n{self._ouput_orders()}")
+        self.logger.debug(f"\nORDERS UPDATED: \n{self._ouput_orders()}")
 
     def _ouput_orders(self) -> str:
         """
@@ -153,7 +153,7 @@ class PositionManager:
 
         # Notify listener and log
         self.pending_positions_update.discard(instrument_id)
-        self.logger.info(f"\nPOSITIONS UPDATED: \n{self._output_positions()}")
+        self.logger.debug(f"\nPOSITIONS UPDATED: \n{self._output_positions()}")
 
     def _output_positions(self) -> str:
         """
@@ -217,7 +217,7 @@ class AccountManager:
 
         """
         self.account = account_details
-        self.logger.info(
+        self.logger.debug(
             f"\nACCOUNT UPDATED: \n{self.account.pretty_print("  ")}"
         )
 

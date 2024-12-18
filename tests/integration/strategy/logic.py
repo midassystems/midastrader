@@ -227,13 +227,13 @@ class Cointegrationzscore(BaseStrategy):
             self.symbols_map.map[symbol].in_day_session(ts_event)
             for symbol in self.weights.keys()
         )
-        self.logger.info(f"All in session {all_in_session}")
+        self.logger.debug(f"All in session {all_in_session}")
 
         not_in_rolling_window = all(
             not self.symbols_map.map[symbol].in_rolling_window(ts_event)
             for symbol in self.weights.keys()
         )
-        self.logger.info(f"None in rolling window : {not_in_rolling_window}")
+        self.logger.debug(f"None in rolling window : {not_in_rolling_window}")
 
         # Check Signal
         if (
