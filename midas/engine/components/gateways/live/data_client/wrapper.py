@@ -16,34 +16,31 @@ import time
 
 class DataApp(EWrapper, EClient, Subject):
     """
-    A specialized class that handles the interaction with the Interactive Brokers (IB) API, managing the flow of data,
-    handling errors, and executing event-driven responses. It extends functionality from both EWrapper and EClient
-    to integrate event handling and client functionalities.
+    A specialized class that handles interaction with the Interactive Brokers (IB) API. Manages data flow,
+    handles errors, and executes event-driven responses by integrating functionality from both EWrapper and EClient.
 
     Attributes:
-    - event_queue (Queue): Queue to manage asynchronous event-driven data handling.
-    - order_book (OrderBook): A data structure to maintain and update market order information.
-    - logger (logging.Logger): Logger for capturing and reporting log messages.
-    - next_valid_order_id (int): Tracks the next valid order ID provided by the IB server.
-    - is_valid_contract (bool): Indicator of whether a contract is valid after a contract details request.
-    - reqId_to_symbol_map (dict): Maps request IDs to symbol names for tracking data requests.
-    - market_data_top_book (dict): Stores top-of-the-book market data indexed by request IDs.
-    - current_bar_data (dict): Holds the latest bar data received from the server, reset after each update.
-    - connected_event (threading.Event): Event to signal successful connection to the server.
-    - valid_id_event (threading.Event): Event to signal receipt of the next valid order ID.
-    - validate_contract_event (threading.Event): Event to signal the completion of contract validation.
-    - next_valid_order_id_lock (threading.Lock): Lock to ensure thread-safe operations on next_valid_order_id.
+        order_book (OrderBook): Data structure to maintain and update market order information.
+        logger (logging.Logger): Logger for capturing and reporting log messages.
+        next_valid_order_id (int): Tracks the next valid order ID provided by the IB server.
+        is_valid_contract (bool): Indicates if a contract is valid after a contract details request.
+        reqId_to_instrument (dict): Maps request IDs to instrument IDs for tracking data requests.
+        tick_data (dict): Stores tick data indexed by request IDs.
+        connected_event (threading.Event): Event to signal successful connection to the server.
+        valid_id_event (threading.Event): Event to signal receipt of the next valid order ID.
+        validate_contract_event (threading.Event): Event to signal the completion of contract validation.
+        next_valid_order_id_lock (threading.Lock): Lock to ensure thread-safe operations on next_valid_order_id.
+        update_interval (int): Interval in seconds for pushing market events.
+        is_running (bool): Indicates if the timer thread is running.
+        timer_thread (threading.Thread): Timer thread for periodic operations.
     """
 
     def __init__(self, tick_interval: Optional[int]):
         """
-        Initializes a new instance of the DataApp, setting up the necessary attributes for managing data interactions
-        with the Interactive Brokers API.
+        Initializes a new instance of DataApp, setting up attributes for managing data interactions with IB API.
 
-        Parameters:
-        - event_queue (Queue): Queue for handling asynchronous events such as market data updates.
-        - order_book (OrderBook): Manages and updates market order data.
-        - logger (logging.Logger): Used for logging messages, errors, and other important information.
+        Args:
+            tick_interval (Optional[int]): Interval in seconds for pushing market events.
         """
         EClient.__init__(self, self)
         Subject.__init__(self)
@@ -74,14 +71,18 @@ class DataApp(EWrapper, EClient, Subject):
         )
         self.timer_thread.start()
 
-    def _run_timer(self):
-        """A continuously running timer in a separate thread that checks every 5 seconds."""
+    def _run_timer(self) -> None:
+        """
+        Continuously runs a timer in a separate thread that triggers every update_interval seconds.
+        """
         while self.is_running:
             time.sleep(self.update_interval)
             self.push_market_event()
 
-    def stop(self):
-        """Gracefully stop the timer thread and other resources."""
+    def stop(self) -> None:
+        """
+        Gracefully stops the timer thread and other resources.
+        """
         self.is_running = False
         self.timer_thread.join()
         self.logger.info("Shutting down the DataApp.")
@@ -92,16 +93,15 @@ class DataApp(EWrapper, EClient, Subject):
         errorCode: int,
         errorString: str,
         advancedOrderRejectJson: Union[str, None] = None,
-    ):
+    ) -> None:
         """
-        Handles errors reported by the Interactive Brokers server. Logs critical errors and manages application state
-        changes based on specific error codes.
+        Handles errors reported by the IB server. Logs critical errors and manages application state based on error codes.
 
-        Parameters:
-        - reqId (int): The request ID associated with the error, if applicable.
-        - errorCode (int): The error code provided by the Interactive Brokers server.
-        - errorString (str): A descriptive string of the error.
-        - advancedOrderRejectJson (str, optional): Additional JSON-formatted data about the rejection of advanced orders.
+        Args:
+            reqId (int): Request ID associated with the error, if applicable.
+            errorCode (int): Error code provided by the IB server.
+            errorString (str): Description of the error.
+            advancedOrderRejectJson (Union[str, None], optional): JSON data about rejection of advanced orders.
         """
         super().error(reqId, errorCode, errorString)
         if errorCode == 502:  # Error for wrong port
@@ -115,32 +115,29 @@ class DataApp(EWrapper, EClient, Subject):
             self.validate_contract_event.set()
 
     #### wrapper function to signifying completion of successful connection.
-    def connectAck(self):
+    def connectAck(self) -> None:
         """
-        Acknowledges a successful connection to the Interactive Brokers server. Logs this event and sets an event flag
-        to signal other parts of the application that the connection has been established.
+        Acknowledges a successful connection to the IB server. Logs this event and signals other parts of the application.
         """
         super().connectAck()
         self.logger.info("Established Data Connection")
         self.connected_event.set()
 
     #### wrapper function for disconnect() -> Signals disconnection.
-    def connectionClosed(self):
+    def connectionClosed(self) -> None:
         """
-        Handles the event of a connection closure with the Interactive Brokers server. Logs the disconnection and cleans
-        up relevant data structures if necessary.
+        Handles the event of a connection closure with the IB server. Logs the disconnection and cleans up resources.
         """
         super().connectionClosed()
         self.logger.info("Closed Data Connection.")
 
     #### wrapper function for reqIds() -> This function manages the Order ID.
-    def nextValidId(self, orderId: int):
+    def nextValidId(self, orderId: int) -> None:
         """
-        Receives and updates the next valid order ID from the Interactive Brokers server. Ensures thread-safe access to
-        this critical resource.
+        Receives and updates the next valid order ID from the IB server. Ensures thread-safe access to the resource.
 
-        Parameters:
-        - orderId (int): The next valid order ID provided by the server.
+        Args:
+            orderId (int): Next valid order ID provided by the server.
         """
         super().nextValidId(orderId)
         with self.next_valid_order_id_lock:
@@ -149,23 +146,26 @@ class DataApp(EWrapper, EClient, Subject):
         self.logger.info(f"Next Valid Id {self.next_valid_order_id}")
         self.valid_id_event.set()
 
-    def contractDetails(self, reqId: int, contractDetails: ContractDetails):
+    def contractDetails(
+        self,
+        reqId: int,
+        contractDetails: ContractDetails,
+    ) -> None:
         """
-        Receives and processes contract details, confirming the validity of a contract based on a request.
+        Processes contract details, confirming the validity of a contract based on a request.
 
-        Parameters:
-        - reqId (int): The request ID associated with the contract details.
-        - contractDetails (ContractDetails): The detailed information about the contract.
+        Args:
+            reqId (int): Request ID associated with the contract details.
+            contractDetails (ContractDetails): Detailed information about the contract.
         """
         self.is_valid_contract = True
 
-    def contractDetailsEnd(self, reqId: int):
+    def contractDetailsEnd(self, reqId: int) -> None:
         """
-        Signals the end of processing for contract details. Sets an event to indicate that validation of the contract
-        is complete and further actions can proceed.
+        Signals the end of processing for contract details. Indicates that validation of the contract is complete.
 
-        Parameters:
-        - reqId (int): The request ID associated with the end of the contract details.
+        Args:
+            reqId (int): Request ID associated with the end of the contract details.
         """
         self.validate_contract_event.set()
 
@@ -180,20 +180,20 @@ class DataApp(EWrapper, EClient, Subject):
         volume: Decimal,
         wap: Decimal,
         count: int,
-    ):
+    ) -> None:
         """
-        Processes and updates the real-time bar data for a specific contract. This data is critical for live trading decisions.
+        Processes and updates real-time bar data for a specific contract.
 
-        Parameters:
-        - reqId (int): The request ID associated with this data stream.
-        - time (int): The timestamp for the bar data.
-        - open (float): The opening price in the bar.
-        - high (float): The highest price in the bar.
-        - low (float): The lowest price in the bar.
-        - close (float): The closing price in the bar.
-        - volume (Decimal): The volume of trading during the bar.
-        - wap (float): The weighted average price during the bar.
-        - count (int): The count of trades during the bar.
+        Args:
+            reqId (int): Request ID associated with this data stream.
+            time (int): Timestamp for the bar data.
+            open_ (float): Opening price in the bar.
+            high (float): Highest price in the bar.
+            low (float): Lowest price in the bar.
+            close (float): Closing price in the bar.
+            volume (Decimal): Trading volume during the bar.
+            wap (Decimal): Weighted average price during the bar.
+            count (int): Number of trades during the bar.
         """
         super().realtimeBar(
             reqId,
@@ -225,8 +225,16 @@ class DataApp(EWrapper, EClient, Subject):
         tickType: TickType,
         price: float,
         attrib: TickAttrib,
-    ):
-        """Market data tick price callback. Handles all price related ticks."""
+    ) -> None:
+        """
+        Callback for market data tick price. Handles all price-related ticks.
+
+        Args:
+            reqId (int): Request ID associated with the tick.
+            tickType (TickType): Type of the tick (e.g., BID, ASK, LAST).
+            price (float): Price value of the tick.
+            attrib (TickAttrib): Additional attributes of the tick.
+        """
         # print(tickType)
         if tickType == 1:  # BID
             # print("dbid")
@@ -240,9 +248,15 @@ class DataApp(EWrapper, EClient, Subject):
             self.tick_data[reqId].price = int(price * 1e9)
             self.logger.info(f"Last : {reqId} :  {price}")
 
-    def tickSize(self, reqId: int, tickType, size: Decimal):
-        """Market data tick size callback. Handles all size-related ticks."""
+    def tickSize(self, reqId: int, tickType, size: Decimal) -> None:
+        """
+        Callback for market data tick size. Handles all size-related ticks.
 
+        Args:
+            reqId (int): Request ID associated with the tick.
+            tickType (TickType): Type of the tick (e.g., BID_SIZE, ASK_SIZE, LAST_SIZE).
+            size (Decimal): Size value of the tick.
+        """
         if tickType == 0:  # BID_SIZE
             self.tick_data[reqId].levels[0].bid_sz = int(size)
             self.logger.info(f"BID SIZE : {reqId} : {size}")
@@ -253,20 +267,29 @@ class DataApp(EWrapper, EClient, Subject):
             self.tick_data[reqId].size = int(size)
             self.logger.info(f"Last SIZE : {reqId} : {size}")
 
-    def tickString(self, reqId: int, tickType: TickType, value: str):
-        """Handles string-based market data updates."""
+    def tickString(self, reqId: int, tickType: TickType, value: str) -> None:
+        """
+        Handles string-based market data updates.
 
+        Args:
+            reqId (int): Request ID associated with the tick.
+            tickType (TickType): Type of the tick (e.g., TIMESTAMP).
+            value (str): String value of the tick.
+        """
         if tickType == 45:  # TIMESTAMP
             self.tick_data[reqId].hd.ts_event = int(int(value) * 1e9)
             self.logger.info(f"Time Last : {reqId} : {value}")
             self.logger.info(f"Recv :{datetime.now()}")
 
-    def push_market_event(self):
-        """Pushes a market event after processing the tick data."""
+    def push_market_event(self) -> None:
+        """
+        Pushes a market event after processing the tick data.
+
+        This method processes the latest tick data and notifies the system with the processed data.
+        """
 
         self.logger.info(f"Market event pushed at {datetime.now()}")
 
         # Process the latest tick data (This is just an example)
         for _, data in self.tick_data.items():
-            # Notify system with the processed tick data
             self.notify(EventType.MARKET_DATA, data)

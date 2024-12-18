@@ -21,13 +21,16 @@ class DummyBroker(Subject, Observer):
     handles operations like marking-to-market, margin call checks, and position liquidation.
 
     Attributes:
-    - event_queue (Queue): The queue for posting execution events and other notifications.
-    - order_book (OrderBook): The order book for retrieving market data and managing orders.
-    - logger (Logger): The logger for recording broker activities and errors.
-    - symbols_map (Dict[str, Symbol]): A mapping of ticker symbols to instrument details.
-    - positions (Dict[Contract, PositionDetails]): Current positions held by the broker.
-    - last_trade (Dict[str, ExecutionDetails]): Details of the last executed trades.
-    - account (AccountDetails): Details of the broker's account including available funds, P&L, etc.
+        symbols_map (SymbolMap): A mapping of ticker symbols to instrument details.
+        order_book (OrderBook): The order book for retrieving market data and managing orders.
+        logger (logging.Logger): Logger for recording broker activities and errors.
+        positions (Dict[Contract, Position]): Current positions held by the broker.
+        unrealized_pnl (Dict[str, float]): Unrealized profit and loss for accounts.
+        margin_required (Dict[str, float]): Required margin for accounts.
+        liquidation_value (Dict[str, float]): Liquidation value for accounts.
+        last_trades (Dict[str, Trade]): Details of the last executed trades.
+        last_trade (Union[Trade, None]): Details of the most recent trade.
+        account (Account): Details of the broker's account including available funds, P&L, etc.
     """
 
     def __init__(
@@ -39,12 +42,10 @@ class DummyBroker(Subject, Observer):
         """
         Initializes the DummyBroker with necessary components and account details.
 
-        Parameters:
-        - symbols_map (Dict[str, Symbol]): A dictionary mapping ticker symbols to instrument details.
-        - event_queue (Queue): The queue for posting execution events.
-        - order_book (OrderBook): The order book for managing orders and retrieving market data.
-        - capital (float): Initial capital available in the broker's account.
-        - logger (Logger): The logger instance for recording broker activities.
+        Args:
+            symbols_map (SymbolMap): A mapping of ticker symbols to instrument details.
+            order_book (OrderBook): The order book for managing orders and retrieving market data.
+            capital (float): Initial capital available in the broker's account.
         """
         super().__init__()
         self.logger = SystemLogger.get_logger()
@@ -72,6 +73,14 @@ class DummyBroker(Subject, Observer):
         event_type: EventType,
         event,
     ) -> None:
+        """
+        Handles end-of-day events by marking to market and checking margin calls.
+
+        Args:
+            subject (Subject): The subject sending the event.
+            event_type (EventType): The type of event being processed.
+            event: The event object containing relevant details.
+        """
         if event_type == EventType.EOD_EVENT:
             self.logger.debug(event)
             self.mark_to_market()
@@ -88,15 +97,15 @@ class DummyBroker(Subject, Observer):
         order: BaseOrder,
     ) -> None:
         """
-        Simulates the placing fo an order to the broker in the backtest environment.
+        Simulates placing an order in the backtest environment.
 
-        Parameters:
-        - timestamp (int): The timestamp of the order.
-        - trade_id (int): The unique identifier for the trade.
-        - leg_id (int): The identifier for the leg of the trade.
-        - action (Action): The action to perform (BUY or SELL).
-        - contract (Contract): The contract for which the order is placed.
-        - order (BaseOrder): The order details including quantity, price, etc.
+        Args:
+            timestamp (int): The timestamp of the order.
+            trade_id (int): The unique identifier for the trade.
+            leg_id (int): The identifier for the leg of the trade.
+            action (Action): The action to perform (BUY or SELL).
+            contract (Contract): The contract for which the order is placed.
+            order (BaseOrder): The order details including quantity, price, etc.
         """
         symbol = self.symbols_map.get_symbol(contract.symbol)
 
@@ -136,16 +145,17 @@ class DummyBroker(Subject, Observer):
         fill_price: float,
     ) -> None:
         """
-        Updates the positions dictionary with the latest position details.
+        Update the positions dictionary with the latest position details.
 
-        Parameterss:
-        - symbol (Symbol): The symbol object associated with the position update.
-        - action (Action): The action associated with the position update (BUY, SELL, etc.).
-        - quantity (float): The quantity of the order.
-        - fill_price (float): The fill price of the order.
+        Args:
+            symbol (Symbol): The symbol object associated with the position update.
+            action (Action): The action associated with the position update (e.g., BUY, SELL).
+            quantity (float): The quantity of the order.
+            fill_price (float): The fill price of the order.
 
         Notes:
-        - This method handles updating the broker's positions, including adding new positions, updating existing positions, and removing positions if they are closed out completely.
+            This method updates the broker's positions, including adding new positions,
+            updating existing positions, and removing positions if fully closed.
         """
         if symbol.contract not in self.positions:
             details = {
@@ -166,7 +176,14 @@ class DummyBroker(Subject, Observer):
         # Update cash impact of position trade
         self.account.full_available_funds += impact.cash
 
-    def _update_account(self):
+    def _update_account(self) -> None:
+        """
+        Update the account details based on current positions and market data.
+
+        Notes:
+            This method calculates and updates account metrics such as unrealized PnL,
+            margin requirements, and net liquidation value.
+        """
         for contract, position in self.positions.items():
             symbol = self.symbols_map.get_symbol(contract.symbol)
             mkt_data = self.order_book.retrieve(symbol.instrument_id)
@@ -203,23 +220,23 @@ class DummyBroker(Subject, Observer):
         fees: float,
     ) -> Trade:
         """
-        Updates the broker's executed trades dictionary with details of the latest trade.
+        Update the executed trades dictionary with the latest trade details.
 
-        Parameters:
-        - timestamp (Union[int, float]): The timestamp of the trade.
-        - trade_id (int): The ID of the trade.
-        - leg_id (int): The ID of the leg of the trade.
-        - contract (Contract): The contract associated with the trade.
-        - quantity (float): The quantity of the trade.
-        - action (Action): The action associated with the trade (BUY, SELL, etc.).
-        - fill_price (float): The fill price of the trade.
-        - fees (float): The commission fees incurred by the trade.
+        Args:
+            timestamp (int): The timestamp of the trade.
+            trade_id (int): The ID of the trade.
+            leg_id (int): The ID of the trade leg.
+            symbol (Symbol): The symbol associated with the trade.
+            quantity (float): The quantity of the trade.
+            action (Action): The action associated with the trade (e.g., BUY, SELL).
+            fill_price (float): The fill price of the trade.
+            fees (float): The commission fees incurred by the trade.
 
         Returns:
-        - ExecutionDetails: Details of the executed trade.
+            Trade: Details of the executed trade.
 
         Notes:
-        - This method updates the broker's executed trades dictionary with details of the latest trade for record-keeping.
+            This method records the latest executed trade details for record-keeping.
         """
         trade = Trade(
             timestamp=timestamp,
@@ -248,11 +265,14 @@ class DummyBroker(Subject, Observer):
         """
         Create and queue an ExecutionEvent based on trade details.
 
-        Parameters:
-        - timestamp (int): The timestamp of the execution.
-        - trade_details (ExecutionDetails): Details of the executed trade.
-        - action (Action): The action associated with the trade (BUY, SELL, etc.).
-        - contract (Contract): The contract associated with the trade.
+        Args:
+            timestamp (int): The timestamp of the execution.
+            trade_details (Trade): Details of the executed trade.
+            action (Action): The action associated with the execution (e.g., BUY, SELL).
+            symbol (Symbol): The symbol associated with the trade.
+
+        Raises:
+            RuntimeError: If an error occurs during the creation or queuing of the ExecutionEvent.
         """
         try:
             self.last_trade = trade_details
@@ -271,17 +291,20 @@ class DummyBroker(Subject, Observer):
 
     def mark_to_market(self) -> None:
         """
-        Marks all positions to market based on current market prices and updates account PnL accordingly.
+        Mark all positions to market based on current market prices and update account PnL.
+
+        Notes:
+            This method recalculates account values using the latest market data.
         """
         self._update_account()
         self.logger.debug("Account marked-to-market.")
 
     def check_margin_call(self) -> None:
         """
-        Checks if a margin call is triggered based on available funds and initial margin requirements.
+        Check if a margin call is triggered based on available funds and margin requirements.
 
-        Returns:
-        - bool: True if a margin call is triggered, False otherwise.
+        Notes:
+            Logic to handle margin calls (e.g., liquidating positions) should be implemented.
         """
         # TODO: Logic to handle margin call, e.g., liquidate positions to meet margin requirements
         if self.account.check_margin_call():
@@ -289,7 +312,10 @@ class DummyBroker(Subject, Observer):
 
     def liquidate_positions(self) -> None:
         """
-        Liquidates all positions to allow for full performance calculations.
+        Liquidate all positions to allow for full performance calculations.
+
+        Notes:
+            This method handles the closing of all positions and logs the liquidation details.
         """
         for contract, position in list(self.positions.items()):
             symbol = self.symbols_map.get_symbol(contract.symbol)
@@ -328,10 +354,13 @@ class DummyBroker(Subject, Observer):
 
     def return_positions(self) -> dict:
         """
-        Returns the current positions held by the broker.
+        Return the current positions held by the broker.
 
         Returns:
-        - dict: Dictionary containing current positions.
+            dict: Dictionary containing current positions.
+
+        Notes:
+            Positions with zero quantity are removed before returning.
         """
         # Create a copy to return the original positions
         positions = self.positions.copy()
@@ -350,24 +379,26 @@ class DummyBroker(Subject, Observer):
 
     def return_account(self) -> dict:
         """
-        Returns details of the broker's account.
+        Return details of the broker's account.
 
         Returns:
-        - dict: Dictionary containing account details.
+            dict: Dictionary containing account details.
         """
         return self.account
 
     def return_executed_trades(
-        self, contract: Contract = None
+        self,
+        contract: Contract = None,
     ) -> Union[dict, Trade]:
         """
-        Returns details of executed trades.
+        Return details of executed trades.
 
-        Parameters:
-        - contract (Contract, optional): The contract associated with the executed trade. If provided, returns trade details for that contract only.
+        Args:
+            contract (Contract, optional): The contract associated with the executed trade.
+                If provided, returns trade details for that contract only.
 
         Returns:
-        - Union[dict, ExecutionDetails]: Dictionary or ExecutionDetails object containing details of executed trades.
+            Union[dict, Trade]: Dictionary or Trade object containing details of executed trades.
         """
         if contract:
             return self.last_trades[contract]
@@ -376,9 +407,9 @@ class DummyBroker(Subject, Observer):
 
     def return_equity_value(self) -> EquityDetails:
         """
-        Returns details of the broker's equity value.
+        Return details of the broker's equity value.
 
         Returns:
-        - EquityDetails: Details of the broker's equity value.
+            EquityDetails: Details of the broker's equity value.
         """
         return self.account.equity_value()

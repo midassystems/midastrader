@@ -27,32 +27,30 @@ class BrokerApp(EWrapper, EClient, Subject):
     Class representing the application interfacing with the broker's API.
 
     Attributes:
-    - logger (logging.Logger): An instance of Logger for logging messages.
-    - portfolio_server (PortfolioServer): An instance of PortfolioServer for managing portfolio data.
-    - performance_manager (LivePerformanceManager): An instance of LivePerformanceManager for managing performance calculations.
-    - symbols_map (dict): A dictionary mapping symbols to contract details.
-    - next_valid_order_id (int): The next valid order ID.
-    - is_valid_contract (bool): Flag indicating whether a contract is valid.
-    - account_info (AccountDetails): Information about the account.
-    - account_info_keys (dict_keys): Keys for account information.
-    - account_update_timer (Timer): Timer for updating account information.
-    - account_update_lock (threading.Lock): Lock for managing thread safety of account updates.
-    - connected_event (threading.Event): Event signaling successful connection.
-    - valid_id_event (threading.Event): Event signaling reception of valid order ID.
-    - validate_contract_event (threading.Event): Event signaling successful contract validation.
-    - account_download_event (threading.Event): Event signaling completion of account download.
-    - open_orders_event (threading.Event): Event signaling reception of open orders.
-    - next_valid_order_id_lock (threading.Lock): Lock for managing thread safety of order IDs.
+        logger (logging.Logger): Instance for logging messages.
+        portfolio_server (PortfolioServer): Manages portfolio data.
+        performance_manager (LivePerformanceManager): Manages performance calculations.
+        symbols_map (dict): Maps symbols to contract details.
+        next_valid_order_id (int): Tracks the next valid order ID.
+        is_valid_contract (bool): Indicates whether a contract is valid.
+        account_info (AccountDetails): Information about the account.
+        account_info_keys (dict_keys): Keys for account information.
+        account_update_timer (Timer): Timer for updating account information.
+        account_update_lock (threading.Lock): Lock for thread-safe account updates.
+        connected_event (threading.Event): Signals successful connection.
+        valid_id_event (threading.Event): Signals reception of valid order ID.
+        validate_contract_event (threading.Event): Signals successful contract validation.
+        account_download_event (threading.Event): Signals completion of account download.
+        open_orders_event (threading.Event): Signals reception of open orders.
+        next_valid_order_id_lock (threading.Lock): Ensures thread safety for order IDs.
     """
 
     def __init__(self, symbols_map: SymbolMap):
         """
-        Initialize the BrokerApp instance.
+        Initializes the BrokerApp instance.
 
-        Parameters:
-        - logger (logging.Logger): An instance of Logger for logging messages.
-        - portfolio_server (PortfolioServer): An instance of PortfolioServer for managing portfolio data.
-        - performance_manager (LivePerformanceManager): An instance of LivePerformanceManager for managing performance calculations.
+        Args:
+            symbols_map (SymbolMap): Mapping of symbols to instrument IDs.
         """
         EClient.__init__(self, self)
         Subject.__init__(self)
@@ -90,15 +88,15 @@ class BrokerApp(EWrapper, EClient, Subject):
         errorCode: int,
         errorString: str,
         advancedOrderRejectJson: str = None,
-    ):
+    ) -> None:
         """
-        Handle errors from the broker's API.
+        Handles errors from the broker's API.
 
-        Parameters:
-        - reqId (int): The request ID associated with the error.
-        - errorCode (int): The error code.
-        - errorString (str): The error message.
-        - advancedOrderRejectJson (str, optional): JSON string containing advanced order rejection information. Defaults to None.
+        Args:
+            reqId (int): Request ID associated with the error.
+            errorCode (int): Error code.
+            errorString (str): Error message.
+            advancedOrderRejectJson (str, optional): JSON string with advanced order rejection information. Defaults to None.
         """
         super().error(reqId, errorCode, errorString)
         if errorCode == 502:  # Error for wrong port
@@ -113,23 +111,28 @@ class BrokerApp(EWrapper, EClient, Subject):
 
     #### wrapper function to signifying completion of successful connection.
     def connectAck(self):
-        """handle acknowledgment of successful connection."""
+        """
+        Acknowledges successful connection to the broker's API.
+        """
         super().connectAck()
         self.logger.info("Established Broker Connection")
         self.connected_event.set()
 
     #### wrapper function for disconnect() -> signals disconnection.
     def connectionClosed(self):
-        """handle closure of the connection."""
+        """
+        Handles closure of the connection to the broker's API.
+        """
         super().connectionClosed()
         self.logger.info("Closed Broker Connection.")
 
     #### wrapper function for reqids() -> this function manages the order id.
-    def nextValidId(self, orderId: int):
+    def nextValidId(self, orderId: int) -> None:
         """
-        handle receipt of the next valid order id.
-        parameters:
-        - orderid (int): the next valid order id.
+        Handles receipt of the next valid order ID.
+
+        Args:
+            orderId (int): Next valid order ID.
         """
         super().nextValidId(orderId)
         with self.next_valid_order_id_lock:
@@ -138,38 +141,46 @@ class BrokerApp(EWrapper, EClient, Subject):
         self.logger.debug(f"Next Valid Id {self.next_valid_order_id}")
         self.valid_id_event.set()
 
-    def contractDetails(self, reqId: int, contractDetails: ContractDetails):
+    def contractDetails(
+        self,
+        reqId: int,
+        contractDetails: ContractDetails,
+    ) -> None:
         """
-        Handle receipt of contract details.
+        Handles receipt of contract details.
 
-        Parameters:
-        - reqId (int): The request ID associated with the contract details.
-        - contractDetails (ContractDetails): Details of the contract.
+        Args:
+            reqId (int): Request ID associated with the contract details.
+            contractDetails (ContractDetails): Details of the contract.
         """
         self.is_valid_contract = True
 
-    def contractDetailsEnd(self, reqId: int):
+    def contractDetailsEnd(self, reqId: int) -> None:
         """
-        Handle end of contract details.
+        Handles the end of contract details.
 
-        Parameters:
-            reqId (int): The request ID associated with the end of contract details.
+        Args:
+            reqId (int): Request ID associated with the end of contract details.
         """
         self.logger.debug("Contract Details Received.")
         self.validate_contract_event.set()
 
     #### wrapper function for reqAccountUpdates. returns accoutninformation whenever there is a change
     def updateAccountValue(
-        self, key: str, val: str, currency: str, accountName: str
-    ):
+        self,
+        key: str,
+        val: str,
+        currency: str,
+        accountName: str,
+    ) -> None:
         """
-        Handle updates to account values.
+        Handles updates to account values.
 
-        Parameters:
-        - key (str): The key of the account value.
-        - val (str): The value of the account value.
-        - currency (str): The currency of the account.
-        - accountName (str): The name of the account.
+        Args:
+            key (str): Key of the account value.
+            val (str): Value of the account value.
+            currency (str): Currency of the account.
+            accountName (str): Name of the account.
         """
         super().updateAccountValue(key, val, currency, accountName)
 
@@ -190,8 +201,10 @@ class BrokerApp(EWrapper, EClient, Subject):
                 )
                 self.account_update_timer.start()
 
-    def process_account_updates(self):
-        """Process buffered account updates."""
+    def process_account_updates(self) -> None:
+        """
+        Processes buffered account updates.
+        """
         with self.account_update_lock:
             self.account_update_timer = None
             self.account_info.timestamp = int(time.time() * 1e9)
@@ -214,19 +227,19 @@ class BrokerApp(EWrapper, EClient, Subject):
         unrealizedPNL: float,
         realizedPNL: float,
         accountName: str,
-    ):
+    ) -> None:
         """
-        Handle updates to the portfolio.
+        Handles updates to the portfolio.
 
-        Parameters:
-        - contract (Contract): The contract associated with the position.
-        - position (Decimal): The position.
-        - marketPrice (float): The market price.
-        - marketValue (float): The market value.
-        - averageCost (float): The average cost.
-        - unrealizedPNL (float): The unrealized profit/loss.
-        - realizedPNL (float): The realized profit/loss.
-        - accountName (str): The name of the account.
+        Args:
+            contract (Contract): Contract associated with the position.
+            position (Decimal): Position quantity.
+            marketPrice (float): Market price.
+            marketValue (float): Market value.
+            averageCost (float): Average cost.
+            unrealizedPNL (float): Unrealized profit/loss.
+            realizedPNL (float): Realized profit/loss.
+            accountName (str): Name of the account.
         """
         super().updatePortfolio(
             contract,
@@ -261,12 +274,12 @@ class BrokerApp(EWrapper, EClient, Subject):
             )
 
     #### wrapper function for reqAccountUpdates. Signals the end of account information
-    def accountDownloadEnd(self, accountName: str):
+    def accountDownloadEnd(self, accountName: str) -> None:
         """
-        Handle completion of account download.
+        Handles completion of account download.
 
-        Parameters:
-        - accountName (str): The name of the account.
+        Args:
+            accountName (str): Name of the account.
         """
         super().accountDownloadEnd(accountName)
 
@@ -288,15 +301,15 @@ class BrokerApp(EWrapper, EClient, Subject):
         contract: Contract,
         order: Order,
         orderState: OrderState,
-    ):
+    ) -> None:
         """
-        Handle receipt of open orders.
+        Handles receipt of open orders.
 
-        Parameters:
-        - orderId (int): The order ID.
-        - contract (Contract): The contract associated with the order.
-        - order (Order): The order.
-        - orderState (OrderState): The state of the order.
+        Args:
+            orderId (int): Order ID.
+            contract (Contract): Contract associated with the order.
+            order (Order): Order details.
+            orderState (OrderState): State of the order.
         """
         super().openOrder(orderId, contract, order, orderState)
         instrument = self.symbols_map.get_id(contract.symbol)
@@ -329,7 +342,9 @@ class BrokerApp(EWrapper, EClient, Subject):
 
     # Wrapper function for openOrderEnd
     def openOrderEnd(self):
-        """Handle end of open orders."""
+        """
+        Handles end of open orders.
+        """
         self.logger.info("Initial Open Orders Received.")
         self.open_orders_event.set()
 
@@ -347,22 +362,22 @@ class BrokerApp(EWrapper, EClient, Subject):
         clientId: int,
         whyHeld: str,
         mktCapPrice: float,
-    ):
+    ) -> None:
         """
-        Handle order status updates.
+        Handles order status updates.
 
-        Parameters:
-        - orderId (int): The order ID.
-        - status (str): The status of the order.
-        - filled (Decimal): The filled quantity.
-        - remaining (Decimal): The remaining quantity.
-        - avgFillPrice (float): The average fill price.
-        - permId (int): The permanent order ID.
-        - parentId (int): The parent order ID.
-        - lastFillPrice (float): The price of the last fill.
-        - clientId (int): The client ID.
-        - whyHeld (str): Reason for order hold.
-        - mktCapPrice (float): Market cap price.
+        Args:
+            orderId (int): Order ID.
+            status (str): Status of the order.
+            filled (Decimal): Filled quantity.
+            remaining (Decimal): Remaining quantity.
+            avgFillPrice (float): Average fill price.
+            permId (int): Permanent order ID.
+            parentId (int): Parent order ID.
+            lastFillPrice (float): Price of the last fill.
+            clientId (int): Client ID.
+            whyHeld (str): Reason for order hold.
+            mktCapPrice (float): Market cap price.
         """
         super().orderStatus(
             orderId,
@@ -397,16 +412,16 @@ class BrokerApp(EWrapper, EClient, Subject):
     #### Wrapper function for reqAccountSummary
     def accountSummary(
         self, reqId: int, account: str, tag: str, value: str, currency: str
-    ):
+    ) -> None:
         """
-        Method called upon receiving account summary.
+        Handles receipt of account summary.
 
-        Parameters:
-        - reqId (int): The request ID associated with the account summary.
-        - account (str): The account.
-        - tag (str): The tag.
-        - value (str): The value.
-        - currency (str): The currency of the account.
+        Args:
+            reqId (int): Request ID associated with the account summary.
+            account (str): Account name.
+            tag (str): Tag of the account summary.
+            value (str): Value of the account summary.
+            currency (str): Currency of the account.
         """
         super().accountSummary(reqId, account, tag, value, currency)
 
@@ -416,12 +431,12 @@ class BrokerApp(EWrapper, EClient, Subject):
         self.account_info.currency = currency
 
     #### Wrapper function for end of reqAccountSummary
-    def accountSummaryEnd(self, reqId: int):
+    def accountSummaryEnd(self, reqId: int) -> None:
         """
-        Method called upon the end of receiving account summary.
+        Handles end of account summary.
 
-        Parameters:
-        - reqId (int): The request ID associated with the account summary.
+        Args:
+            reqId (int): Request ID associated with the account summary.
         """
         self.account_info.timestamp = int(time.time() * 1e9)
         self.logger.debug(f"Account Summary Request Complete: {reqId}")
@@ -429,15 +444,18 @@ class BrokerApp(EWrapper, EClient, Subject):
 
     ####   wrapper function for reqExecutions.   this function gives the executed orders
     def execDetails(
-        self, reqId: int, contract: Contract, execution: Execution
-    ):
+        self,
+        reqId: int,
+        contract: Contract,
+        execution: Execution,
+    ) -> None:
         """
-        Method called upon receiving execution details.
+        Handles receipt of execution details.
 
-        Parameters:
-        - reqId (int): The request ID associated with the execution details.
-        - contract (Contract): The contract.
-        - execution (Execution): The execution details.
+        Args:
+            reqId (int): Request ID associated with the execution details.
+            contract (Contract): Contract associated with the execution.
+            execution (Execution): Execution details.
         """
         self.logger.debug(f"Recieved trade details : {execution.orderId}")
         super().execDetails(reqId, contract, execution)
@@ -472,12 +490,12 @@ class BrokerApp(EWrapper, EClient, Subject):
             )
             self.notify(EventType.TRADE_UPDATE, execution.execId, trade)
 
-    def commissionReport(self, commissionReport: CommissionReport):
+    def commissionReport(self, commissionReport: CommissionReport) -> None:
         """
-        Method called upon receiving commission report.
+        Handles receipt of commission report.
 
-        Parameters:
-        - commissionReport (CommissionReport): The commission report.
+        Args:
+            commissionReport (CommissionReport): Commission report details.
         """
         self.notify(
             EventType.TRADE_COMMISSION_UPDATE,
@@ -486,16 +504,16 @@ class BrokerApp(EWrapper, EClient, Subject):
         )
 
 
-def datetime_to_unix_ns(datetime_str: str, timezone_str: str):
+def datetime_to_unix_ns(datetime_str: str, timezone_str: str) -> int:
     """
-    Convert a datetime string with a specified timezone to Unix time in nanoseconds.
+    Converts a datetime string with a specified timezone to Unix time in nanoseconds.
 
-    Parameters:
-    - datetime_str (str): The datetime string in the format "YYYYMMDD HH:MM:SS".
-    - timezone_str (str): The timezone string, e.g., "US/Central".
+    Args:
+        datetime_str (str): Datetime string in the format "YYYYMMDD HH:MM:SS".
+        timezone_str (str): Timezone string, e.g., "US/Central".
 
     Returns:
-    - int: Unix timestamp in nanoseconds.
+        int: Unix timestamp in nanoseconds.
     """
     # Parse the datetime part
     dt_naive = datetime.strptime(datetime_str, "%Y%m%d %H:%M:%S")

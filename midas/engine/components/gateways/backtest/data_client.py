@@ -19,9 +19,13 @@ class DataClient(Subject, BaseDataClient):
     processing it according to specified parameters, and streaming it to simulate live trading conditions in a backtest environment.
 
     Attributes:
-    - event_queue (Queue): The queue used for posting market data and end-of-day events.
-    - data_client (DatabaseClient): A client class based on a Django Rest-Framework API for interacting with the database.
-    - order_book (OrderBook): The order book where market data is posted for trading operations.
+        database_client (DatabaseClient): A client class based on a Django Rest-Framework API for interacting with the database.
+        symbols_map (SymbolMap): Maps symbols to unique identifiers for instruments.
+        data (BufferStore): A buffer storing historical market data.
+        last_ts (Optional[int]): The timestamp of the last processed record.
+        next_date (Optional[datetime.date]): The next date for processing data.
+        current_date (Optional[datetime.date]): The current trading date being processed.
+        eod_triggered (bool): Flag indicating if the end-of-day event has been triggered for the current date.
     """
 
     def __init__(
@@ -32,10 +36,9 @@ class DataClient(Subject, BaseDataClient):
         """
         Initializes the DataClient with the necessary components for market data management.
 
-        Parameters:
-        - event_queue (Queue): The main event queue for posting data-related events.
-        - data_client (DatabaseClient): The database client used for retrieving market data.
-        - order_book (OrderBook): The order book where the market data will be used for trading operations.
+        Args:
+            database_client (DatabaseClient): The database client used for retrieving market data.
+            symbols_map (SymbolMap): Mapping of symbols to unique identifiers for instruments.
         """
         super().__init__()
         self.logger = SystemLogger.get_logger()
@@ -55,7 +58,19 @@ class DataClient(Subject, BaseDataClient):
         schema: Schema,
         data_file_path: Optional[str] = None,
     ) -> bool:
-        """Loads backtest data."""
+        """
+        Loads backtest data from a file or database.
+
+        Args:
+            tickers (List[str]): List of ticker symbols (e.g., ['AAPL', 'MSFT']).
+            start_date (str): The start date for the data retrieval in ISO format 'YYYY-MM-DD'.
+            end_date (str): The end date for the data retrieval in ISO format 'YYYY-MM-DD'.
+            schema (Schema): Schema defining the structure of the data.
+            data_file_path (Optional[str]): Path to the file containing historical data. If provided, data is loaded from the file.
+
+        Returns:
+            bool: True if data retrieval is successful.
+        """
 
         self.data = self.get_data(
             tickers,
@@ -78,15 +93,15 @@ class DataClient(Subject, BaseDataClient):
         """
         Retrieves historical market data from the database or a file and initializes the data processing.
 
-        Parameters:
-        - tickers (List[str]): A list of ticker symbols (e.g., ['AAPL', 'MSFT']).
-        - start_date (str): The start date for the data retrieval in ISO format 'YYYY-MM-DD'.
-        - end_date (str): The end date for the data retrieval in ISO format 'YYYY-MM-DD'.
-        - missing_values_strategy (str): Strategy to handle missing values, either 'drop' or 'fill_forward'.
-        - data_file_path (Optional[str]): Path to the file containing the historical data. If provided, data will be loaded from the file instead of the database.
+        Args:
+            tickers (List[str]): A list of ticker symbols (e.g., ['AAPL', 'MSFT']).
+            start_date (str): The start date for the data retrieval in ISO format 'YYYY-MM-DD'.
+            end_date (str): The end date for the data retrieval in ISO format 'YYYY-MM-DD'.
+            schema (Schema): Schema defining the structure of the data.
+            data_file_path (Optional[str]): Path to the file containing the historical data. If provided, data will be loaded from the file instead of the database.
 
         Returns:
-        - bool: True if data retrieval and initial processing are successful.
+            BufferStore: The buffer containing the retrieved data.
         """
         if data_file_path:
             data = BufferStore.from_file(data_file_path)
@@ -97,6 +112,12 @@ class DataClient(Subject, BaseDataClient):
         return data
 
     def next_record(self) -> RecordMsg:
+        """
+        Retrieves the next record from the data buffer and adjusts its instrument ID.
+
+        Returns:
+            RecordMsg: The next record with updated instrument ID.
+        """
         record = self.data.replay()
 
         if record is None:
@@ -112,15 +133,11 @@ class DataClient(Subject, BaseDataClient):
 
     def data_stream(self) -> bool:
         """
-        Simulate data stream.
+        Simulates streaming of market data by processing the next record in the data buffer.
+
+        Returns:
+            bool: True if a record was processed, False if no more records are available.
         """
-        # record = self.data.replay()
-        #
-        # # Adjust instrument id
-        # id = record.hd.instrument_id
-        # ticker = self.data.metadata.mappings.get_ticker(id)
-        # new_id = self.symbols_map.get_symbol(ticker).instrument_id
-        # record.instrument_id = new_id
 
         record = self.next_record()
 
@@ -132,13 +149,15 @@ class DataClient(Subject, BaseDataClient):
 
         # Update market data
         self.notify(EventType.MARKET_DATA, record)
-        # elf.notify_market_data(record)
 
         return True
 
-    def _check_eod(self, record: RecordMsg):
+    def _check_eod(self, record: RecordMsg) -> None:
         """
-        Checks if the current record marks the end of a trading day.
+        Checks if the current record marks the end of a trading day and triggers the end-of-day event if necessary.
+
+        Args:
+            record (RecordMsg): The current record being processed.
         """
         ts = datetime.fromisoformat(
             unix_to_iso(record.ts_event, tz_info="America/New_York")
@@ -160,20 +179,3 @@ class DataClient(Subject, BaseDataClient):
                 EventType.EOD_EVENT,
                 EODEvent(timestamp=self.current_date),
             )
-
-            # self.notify_eod_event()
-
-    # def notify_eod_event(self):
-    #     """
-    #     Processes End-of-Day operations.
-    #
-    #     Parameters:
-    #     - current_day (datetime.date): The current day to process EOD operations.
-    #     """
-    #     self.notify(EventType.EOD_EVENT, EODEvent(timestamp=self.current_date))
-    #
-    # def notify_market_data(self, record: RecordMsg):
-    #     """
-    #     Posts the latest market data to the order book for trading simulation.
-    #     """
-    #     self.notify(EventType.MARKET_DATA, record)
