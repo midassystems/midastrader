@@ -244,7 +244,7 @@ class DummyBroker(Subject, Observer):
             leg_id=leg_id,
             instrument=symbol.instrument_id,
             quantity=round(quantity, 4),
-            avg_price=fill_price,
+            avg_price=fill_price * symbol.price_multiplier,
             trade_value=round(symbol.value(quantity, fill_price), 2),
             trade_cost=round(symbol.cost(quantity, fill_price), 2),
             action=action.value,
@@ -330,7 +330,7 @@ class DummyBroker(Subject, Observer):
                 leg_id=self.last_trades[contract].leg_id,
                 instrument=symbol.instrument_id,
                 quantity=round(position.quantity * -1, 4),
-                avg_price=current_price,
+                avg_price=current_price * symbol.price_multiplier,
                 trade_value=round(
                     symbol.value(position.quantity, current_price), 2
                 ),

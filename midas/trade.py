@@ -111,6 +111,7 @@ class Trade:
             quantity=int(self.quantity * PRICE_FACTOR),
             avg_price=int(self.avg_price * PRICE_FACTOR),
             trade_value=int(self.trade_value * PRICE_FACTOR),
+            trade_cost=int(self.trade_cost * PRICE_FACTOR),
             action=self.action,
             fees=int(self.fees * PRICE_FACTOR),
         )

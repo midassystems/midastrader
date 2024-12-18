@@ -330,11 +330,11 @@ class TestPerformanceManager(unittest.TestCase):
             EquityDetails(timestamp=1641047400000000000, equity_value=1000.0),
             EquityDetails(timestamp=1641070800000000000, equity_value=1000.0),
             EquityDetails(timestamp=1641133800000000000, equity_value=1030.0),
-            EquityDetails(timestamp=1641142800000000000, equity_value=1330.0),
-            EquityDetails(timestamp=1641157200000000000, equity_value=1330.0),
-            EquityDetails(timestamp=1641220200000000000, equity_value=1330.0),
-            EquityDetails(timestamp=1641225600000000000, equity_value=1330.0),
-            EquityDetails(timestamp=1641243600000000000, equity_value=1330.0),
+            EquityDetails(timestamp=1641142800000000000, equity_value=1033.0),
+            EquityDetails(timestamp=1641157200000000000, equity_value=1033.0),
+            EquityDetails(timestamp=1641220200000000000, equity_value=1044.0),
+            EquityDetails(timestamp=1641225600000000000, equity_value=1044.0),
+            EquityDetails(timestamp=1641243600000000000, equity_value=1044.0),
         ]
 
         # Signals
@@ -392,6 +392,7 @@ class TestPerformanceManager(unittest.TestCase):
             "beginning_equity",
             "ending_equity",
             "total_return",
+            "annualized_return",
             "daily_standard_deviation_percentage",
             "annual_standard_deviation_percentage",
             "max_drawdown_percentage_period",

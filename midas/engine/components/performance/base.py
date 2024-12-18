@@ -147,36 +147,6 @@ class PerformanceManager(Subject, Observer):
                     raise ValueError("Missing signal data for SIGNAL_UPDATE")
             case _:
                 raise ValueError(f"Unhandled event type: {event_type}")
-        # if event_type == EventType.EQUITY_VALUE_UPDATE:
-        #     if len(args) == 1:
-        #         self.equity_manager.update_equity(args[0])
-        #     else:
-        #         raise ValueError("Missing required arguments for EQUITY_EVENT")
-        # elif event_type == EventType.ACCOUNT_UPDATE:
-        #     if len(args) == 1:
-        #         self.account_manager.update_account_log(args[0])
-        #     else:
-        #         raise ValueError("Missing account details for ACCOUNT_UPDATE")
-        # elif event_type == EventType.TRADE_UPDATE:
-        #     if len(args) == 2:
-        #         self.trade_manager.update_trades(args[0], args[1])
-        #     else:
-        #         raise ValueError("Missing order data for TRADE_UPDATE")
-        # elif event_type == EventType.TRADE_COMMISSION_UPDATE:
-        #     if len(args) == 2:
-        #         self.trade_manager.update_trade_commission(args[0], args[1])
-        #     else:
-        #         raise ValueError(
-        #             "Missing order data for TRADE_COMMMISSION_UPDATE"
-        #         )
-        # elif event_type == EventType.SIGNAL:
-        #     if len(args) == 1:
-        #         self.signal_manager.update_signals(args[0])
-        #     else:
-        #         raise ValueError("Missing order data for SIGNAL_UPDATE")
-        #
-        # else:
-        #     raise ValueError(f"Unhandled event type: {event_type}")
 
     def export_results(self, static_stats: dict, output_path: str) -> None:
         """
@@ -310,6 +280,9 @@ class PerformanceManager(Subject, Observer):
             ),
             ending_equity=int(static_stats["ending_equity"] * PRICE_FACTOR),
             total_return=int(static_stats["total_return"] * PRICE_FACTOR),
+            annualized_return=int(
+                static_stats["annualized_return"] * PRICE_FACTOR
+            ),
             daily_standard_deviation_percentage=int(
                 static_stats["daily_standard_deviation_percentage"]
                 * PRICE_FACTOR
