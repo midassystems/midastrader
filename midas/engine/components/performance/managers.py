@@ -629,12 +629,14 @@ class EquityManager:
         raw_equity_curve = raw_equity_df["equity_value"].to_numpy()
         daily_returns = self.daily_stats["period_return"].to_numpy()
         period_returns = self.period_stats["period_return"].to_numpy()
+        annualized_return = round(((1 + daily_returns.mean()) ** 252) - 1, 4)
 
         return {
             "net_profit": float(Metrics.net_profit(raw_equity_curve)),
             "beginning_equity": float(raw_equity_curve[0]),
             "ending_equity": float(raw_equity_curve[-1]),
             "total_return": float(Metrics.total_return(raw_equity_curve)),
+            "annualized_return": float(annualized_return),
             "daily_standard_deviation_percentage": float(
                 Metrics.standard_deviation(daily_returns)
             ),
