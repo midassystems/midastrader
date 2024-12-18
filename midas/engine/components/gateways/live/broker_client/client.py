@@ -14,33 +14,26 @@ from midas.engine.components.gateways.live.broker_client.wrapper import (
 
 class BrokerClient(BaseBrokerClient):
     """
-    A client for interacting with a broker's API, specifically for broker data feeds (e.g. account, orders, portfolio, trades).
+    A client for interacting with a broker's API, specifically for broker data feeds (e.g., account, orders, portfolio, trades).
 
     Attributes:
-    - event_queue (Queue): A queue for exchanging events between different components.
-    - logger (logging.Logger): An instance of Logger for logging messages.
-    - portfolio_server (PortfolioServer): An instance of PortfolioServer for managing portfolio data.
-    - performance_manager (BasePerformanceManager): An instance of PerformanceManager for managing performance calculations.
-    - host (str): The host address for connecting to the broker's API.
-    - port (int): The port number for connecting to the broker's API.
-    - clientId (str): The client ID used for identifying the client when connecting to the broker's API.
-    - ib_account (str): The IB account used for managing accounts and positions.
-    - lock (threading.Lock): A lock for managing thread safety.
+        logger (logging.Logger): An instance of Logger for logging messages.
+        portfolio_server (PortfolioServer): An instance of PortfolioServer for managing portfolio data.
+        performance_manager (BasePerformanceManager): An instance of PerformanceManager for managing performance calculations.
+        host (str): The host address for connecting to the broker's API.
+        port (int): The port number for connecting to the broker's API.
+        clientId (str): The client ID used for identifying the client when connecting to the broker's API.
+        ib_account (str): The IB account used for managing accounts and positions.
+        lock (threading.Lock): A lock for managing thread safety.
     """
 
     def __init__(self, config: Config, symbol_map: SymbolMap):
         """
         Initialize the BrokerClient instance.
 
-        Parameters:
-        - event_queue (Queue): A queue for exchanging events between different components.
-        - logger (logging.Logger): An instance of Logger for logging messages.
-        - portfolio_server (PortfolioServer): An instance of PortfolioServer for managing portfolio data.
-        - performance_manager (BasePerformanceManager): An instance of PerformanceManager for managing performance calculations.
-        - host (str, optional): The host address for connecting to the broker's API. Defaults to config('HOST').
-        - port (str, optional): The port number for connecting to the broker's API. Defaults to config('PORT').
-        - clientId (str, optional): The client ID used for identifying the client when connecting to the broker's API. Defaults to config('TRADE_CLIENT_ID').
-        - ib_account (str, optional): The IB account used for managing accounts and positions. Defaults to config('IB_ACCOUNT').
+        Args:
+            config (Config): Configuration object containing broker connection details.
+            symbol_map (SymbolMap): Mapping of symbols to broker-specific details.
         """
         self.logger = SystemLogger.get_logger()
         self.app = BrokerApp(symbol_map)
@@ -52,7 +45,7 @@ class BrokerClient(BaseBrokerClient):
         self.lock = threading.Lock()  # create a lock
 
     # -- Helper --
-    def _websocket_connection(self):
+    def _websocket_connection(self) -> None:
         """
         Establish a websocket connection with the broker's API.
         """
@@ -71,12 +64,15 @@ class BrokerClient(BaseBrokerClient):
             self.app.next_valid_order_id += 1
             return current_valid_id
 
-    def _manange_subscription_to_account_updates(self, subscribe: bool):
+    def _manange_subscription_to_account_updates(
+        self,
+        subscribe: bool,
+    ) -> None:
         """
         Manage subscription to account updates.
 
-        Parameters:
-        - subscribe (bool): Flag indicating whether to subscribe or unsubscribe.
+        Args:
+            subscribe (bool): Flag indicating whether to subscribe or unsubscribe.
         """
         self.app.reqAccountUpdates(subscribe=subscribe, acctCode=self.account)
 
@@ -87,7 +83,7 @@ class BrokerClient(BaseBrokerClient):
         self.app.reqOpenOrders()
 
     # -- Connection --
-    def connect(self):
+    def connect(self) -> None:
         """
         Connect to the broker's API.
         """
@@ -112,7 +108,7 @@ class BrokerClient(BaseBrokerClient):
         self._get_initial_active_orders()
         self.app.open_orders_event.wait()
 
-    def disconnect(self):
+    def disconnect(self) -> None:
         """
         Disconnect from the broker's API.
         """
@@ -124,7 +120,7 @@ class BrokerClient(BaseBrokerClient):
         Check if the client is connected to the broker's API.
 
         Returns:
-        - bool: True if connected, False otherwise.
+            bool: True if connected, False otherwise.
         """
         return self.app.isConnected()
 
@@ -136,10 +132,15 @@ class BrokerClient(BaseBrokerClient):
         event,
     ) -> None:
         """
-        Handles new order events from the event queue and initiates order processing.
+        Handle new order events from the event queue and initiate order processing.
 
-        Parameters:
-        - event (OrderEvent): The event containing order details for execution.
+        Args:
+            subject (Subject): The subject associated with the event.
+            event_type (EventType): The type of the event.
+            event (OrderEvent): The event containing order details for execution.
+
+        Raises:
+            ValueError: If the event is not of type OrderEvent.
         """
         if event_type == EventType.ORDER_CREATED:
             if not isinstance(event, OrderEvent):
@@ -148,13 +149,12 @@ class BrokerClient(BaseBrokerClient):
                 )
             self.handle_order(event)
 
-    def handle_order(self, event: OrderEvent):
+    def handle_order(self, event: OrderEvent) -> None:
         """
         Handle placing orders.
 
-        Parameters:
-        - contract (Contract): The contract for the order.
-        - order (Order): The order to be placed.
+        Args:
+            event (OrderEvent): The event containing the contract and order details.
         """
         orderId = self._get_valid_id()
         try:
@@ -166,19 +166,22 @@ class BrokerClient(BaseBrokerClient):
         except Exception as e:
             raise e
 
-    def cancel_order(self, orderId: int):
+    def cancel_order(self, orderId: int) -> None:
         """
         Cancel an order.
 
-        Parameters:
-        - orderId (int): The ID of the order to  be canceled.
+        Args:
+            orderId (int): The ID of the order to be canceled.
         """
         self.app.cancelOrder(orderId=orderId)
 
     # -- Account request --
-    def request_account_summary(self):
+    def request_account_summary(self) -> None:
         """
         Request account summary.
+
+        Raises:
+            Exception: If an error occurs while requesting the account summary.
         """
         # Get a unique request identifier
         reqId = self._get_valid_id()
