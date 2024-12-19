@@ -467,11 +467,8 @@ class Engine:
         Raises:
             RuntimeError: If the backtest data fails to load.
         """
-        response = self.hist_data_client.load_backtest_data(
-            self.symbols_map.midas_tickers,
-            self.parameters.start,
-            self.parameters.end,
-            self.parameters.schema,
+        response = self.hist_data_client.get_data(
+            self.parameters,
             self.config.data_file,
         )
 

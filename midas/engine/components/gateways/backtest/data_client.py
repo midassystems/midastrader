@@ -1,5 +1,5 @@
-from typing import List, Optional
-from mbn import Schema, BufferStore, RecordMsg
+from typing import Optional
+from mbn import BufferStore, RecordMsg
 from midasClient.client import DatabaseClient
 from midasClient.historical import RetrieveParams
 from midas.utils.unix import unix_to_iso
@@ -9,6 +9,7 @@ from midas.engine.components.observer.base import Subject, EventType
 from midas.symbol import SymbolMap
 from datetime import datetime
 from midas.utils.logger import SystemLogger
+from midas.engine.config import Parameters
 
 
 class DataClient(Subject, BaseDataClient):
@@ -50,66 +51,44 @@ class DataClient(Subject, BaseDataClient):
         self.current_date = None
         self.eod_triggered = False
 
-    def load_backtest_data(
+    def get_data(
         self,
-        tickers: List[str],
-        start_date: str,
-        end_date: str,
-        schema: Schema,
+        parameters: Parameters,
         data_file_path: Optional[str] = None,
     ) -> bool:
         """
-        Loads backtest data from a file or database.
+        Retrieve historical market data from the database or a file and initialize the data processing.
 
         Args:
-            tickers (List[str]): List of ticker symbols (e.g., ['AAPL', 'MSFT']).
-            start_date (str): The start date for the data retrieval in ISO format 'YYYY-MM-DD'.
-            end_date (str): The end date for the data retrieval in ISO format 'YYYY-MM-DD'.
-            schema (Schema): Schema defining the structure of the data.
-            data_file_path (Optional[str]): Path to the file containing historical data. If provided, data is loaded from the file.
+            parameters (Parameters):
+                A `Parameters` object containing the following:
+                - `tickers` (List[str]): List of ticker symbols (e.g., ['AAPL', 'MSFT']).
+                - `start` (str): The start date for data retrieval in ISO format ('YYYY-MM-DD').
+                - `end` (str): The end date for data retrieval in ISO format ('YYYY-MM-DD').
+                - `schema` (Schema): Schema defining the structure of the data.
+            data_file_path (Optional[str]):
+                Path to the file containing the historical data. If provided, data will be loaded from the file instead of the database.
 
         Returns:
             bool: True if data retrieval is successful.
         """
-
-        self.data = self.get_data(
-            tickers,
-            start_date,
-            end_date,
-            schema,
-            data_file_path,
-        )
-
-        return True
-
-    def get_data(
-        self,
-        tickers: List[str],
-        start_date: str,
-        end_date: str,
-        schema: Schema,
-        data_file_path: Optional[str] = None,
-    ) -> BufferStore:
-        """
-        Retrieves historical market data from the database or a file and initializes the data processing.
-
-        Args:
-            tickers (List[str]): A list of ticker symbols (e.g., ['AAPL', 'MSFT']).
-            start_date (str): The start date for the data retrieval in ISO format 'YYYY-MM-DD'.
-            end_date (str): The end date for the data retrieval in ISO format 'YYYY-MM-DD'.
-            schema (Schema): Schema defining the structure of the data.
-            data_file_path (Optional[str]): Path to the file containing the historical data. If provided, data will be loaded from the file instead of the database.
-
-        Returns:
-            BufferStore: The buffer containing the retrieved data.
-        """
         if data_file_path:
             data = BufferStore.from_file(data_file_path)
+            metadata = data.metadata
+            parameters.start = unix_to_iso(metadata.start)
+            parameters.end = unix_to_iso(metadata.end)
+            parameters.schema = metadata.schema.__str__()
         else:
-            params = RetrieveParams(tickers, start_date, end_date, schema)
+            params = RetrieveParams(
+                parameters.tickers,
+                parameters.start,
+                parameters.end,
+                parameters.schema,
+            )
             data = self.database_client.historical.get_records(params)
 
-        return data
+        self.data = data
+        return True
 
     def next_record(self) -> RecordMsg:
         """
