@@ -6,8 +6,6 @@ log_level = "INFO"
 log_output = "file"
 output_path = "tests/integration/backtest/output/"
 data_file= "tests/integration/he_zc_2024-09-01_2024-12-10_ohlcv-1h.bin" 
-# train_data_file = "/Users/anthony/projects/midas/engine/python/tests/integration/hogs_corn_ohlcv1h.bin"
-# test_data_file =  "/Users/anthony/projects/midas/engine/python/tests/integration/hogs_corn_ohlcv1h.bin"
 
 [database]
 url = "http://192.53.120.167:8080" #"http://127.0.0.1:8080"

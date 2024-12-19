@@ -18,6 +18,8 @@ from midas.symbol import (
     FuturesMonth,
     TradingSession,
 )
+from midas.engine.config import Config, LiveDataType
+from midas.engine.config import Parameters
 
 
 class TestDataClient(unittest.TestCase):
@@ -73,6 +75,7 @@ class TestDataClient(unittest.TestCase):
                 day_open=time(9, 0), day_close=time(14, 0)
             ),
         )
+        self.symbols = [hogs, aapl]
 
         self.symbols_map = SymbolMap()
         self.symbols_map.add_symbol(hogs)
@@ -89,57 +92,61 @@ class TestDataClient(unittest.TestCase):
         self.data_client = DataClient(self.db_client, self.symbols_map)
 
     # Basic Validation
-    def test_load_backtest_data(self):
-        tickers = ["AAPL", "TSLA"]
-        start_date = "2024-01-01"
-        end_date = "2024-12-12"
-        schema = Schema.OHLCV1_S
+    def test_get_data_file(self):
+        # Parameters
+        self.schema = "Ohlcv-1s"
+        self.strategy_name = "Testing"
+        self.capital = 1000000
+        self.data_type = LiveDataType.BAR
+        self.strategy_allocation = 1.0
+        self.start = "2020-05-18"
+        self.end = "2023-12-31"
 
-        # Test
-        self.data_client.get_data = Mock()
-        self.data_client.load_backtest_data(
-            tickers,
-            start_date,
-            end_date,
-            schema,
+        params = Parameters(
+            strategy_name=self.strategy_name,
+            capital=self.capital,
+            schema=self.schema,
+            data_type=self.data_type,
+            start=self.start,
+            end=self.end,
+            risk_free_rate=0.9,
+            symbols=self.symbols,
         )
 
-        # Validate
-        self.assertTrue(self.data_client.get_data.called)
-
-    def test_get_data_file(self):
-        tickers = ["AAPL", "TSLA"]
-        start_date = "2024-01-01"
-        end_date = "2024-12-12"
-        schema = Schema.OHLCV1_S
         data_file = "tests/unit/engine/hogs_corn_ohlcv1h.bin"
 
         # Test
-        data = self.data_client.get_data(
-            tickers,
-            start_date,
-            end_date,
-            schema,
+        response = self.data_client.get_data(
+            params,
             data_file,
         )
 
         # Validate
-        self.assertIsInstance(data, BufferStore)
+        self.assertTrue(response)
 
     def test_get_data_database(self):
-        tickers = ["AAPL", "TSLA"]
-        start_date = "2024-01-01"
-        end_date = "2024-12-12"
-        schema = Schema.OHLCV1_S
+        # Parameters
+        self.schema = "Ohlcv-1s"
+        self.strategy_name = "Testing"
+        self.capital = 1000000
+        self.data_type = LiveDataType.BAR
+        self.strategy_allocation = 1.0
+        self.start = "2020-05-18"
+        self.end = "2023-12-31"
+
+        params = Parameters(
+            strategy_name=self.strategy_name,
+            capital=self.capital,
+            schema=self.schema,
+            data_type=self.data_type,
+            start=self.start,
+            end=self.end,
+            risk_free_rate=0.9,
+            symbols=self.symbols,
+        )
 
         # Test
-        self.db_client.historical.get_records = Mock()
-        _ = self.data_client.get_data(
-            tickers,
-            start_date,
-            end_date,
-            schema,
-        )
+        _ = self.data_client.get_data(params)
 
         # Validate
         self.assertTrue(self.db_client.historical.get_records.called)

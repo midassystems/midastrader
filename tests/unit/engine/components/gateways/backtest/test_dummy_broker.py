@@ -500,7 +500,7 @@ class TestDummyClient(unittest.TestCase):
             leg_id=1,
             instrument=self.hogs.instrument_id,
             quantity=round(hogs_position.quantity * -1, 4),
-            avg_price=current_price,
+            avg_price=current_price * hogs_position.price_multiplier,
             trade_value=round(
                 (
                     current_price
@@ -521,7 +521,7 @@ class TestDummyClient(unittest.TestCase):
             leg_id=2,
             instrument=self.aapl.instrument_id,
             quantity=round(aapl_position.quantity * -1, 4),
-            avg_price=current_price,
+            avg_price=current_price * 1,
             trade_value=round(current_price * aapl_position.quantity, 2),
             trade_cost=round(current_price * abs(aapl_position.quantity), 2),
             action=Action.SELL.value,
