@@ -348,10 +348,12 @@ class PerformanceManager(Subject, Observer):
 
         # Create Backtest Object
         self.backtest = BacktestData(
-            backtest_id=None,
-            backtest_name=self.generate_backtest_name(),
-            parameters=self.params.to_mbn(),
-            static_stats=self.mbn_static_stats(static_stats),
+            metadata=mbn.BacktestMetaData(
+                backtest_id=0,  # dummy value server will assign a unique id
+                backtest_name=self.generate_backtest_name(),
+                parameters=self.params.to_mbn(),
+                static_stats=self.mbn_static_stats(static_stats),
+            ),
             period_timeseries_stats=self.equity_manager.period_stats_mbn,
             daily_timeseries_stats=self.equity_manager.daily_stats_mbn,
             trades=self.trade_manager.to_mbn(self.symbols_map),
@@ -359,6 +361,7 @@ class PerformanceManager(Subject, Observer):
         )
         # Save Backtest Object
         response = self.database.trading.create_backtest(self.backtest)
+        print(response)
         self.logger.info(f"Backtest saved with response : {response}")
 
     def mbn_account_summary(self, account: dict) -> mbn.AccountSummary:
