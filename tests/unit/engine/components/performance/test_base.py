@@ -370,7 +370,8 @@ class TestPerformanceManager(unittest.TestCase):
 
         # Validate parameters
         self.assertEqual(
-            backtest.parameters.__dict__(), self.params.to_mbn().__dict__()
+            backtest.metadata.parameters.__dict__(),
+            self.params.to_mbn().__dict__(),
         )
 
         # Validate static stats
@@ -401,11 +402,13 @@ class TestPerformanceManager(unittest.TestCase):
             "sortino_ratio",
         ]
 
-        static_stats = list(backtest.static_stats.__dict__().keys())
+        static_stats = list(backtest.metadata.static_stats.__dict__().keys())
 
         for key in static_stats:
             self.assertIn(key, expected_static_keys)
-            self.assertIsNotNone(backtest.static_stats.__dict__()[key])
+            self.assertIsNotNone(
+                backtest.metadata.static_stats.__dict__()[key]
+            )
 
         # Validate timeseries stats
         expected_timeseries_keys = {

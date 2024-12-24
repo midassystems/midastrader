@@ -82,7 +82,7 @@ class OrderExecutionManager(Subject, Observer):
                 for trade in trade_instructions
             ):
                 self.logger.debug(
-                    "One or more tickers in trade instructions have active orders; ignoring signal."
+                    "One or more tickers in signal has active orders; ignoring signal."
                 )
                 return
             else:
@@ -131,13 +131,17 @@ class OrderExecutionManager(Subject, Observer):
             }
 
             orders.append(order_details)
-            total_capital_required += order_cost
 
-        for order in orders:
-            if (
-                order["action"] in [Action.SELL, Action.COVER]
-                or total_capital_required <= self.portfolio_server.capital
-            ):
+            # SELL/Cover are exits so available capital will be freed up
+            if trade.action not in [Action.SELL, Action.COVER]:
+                total_capital_required += order_cost
+
+        if total_capital_required <= self.portfolio_server.capital:
+            for order in orders:
+                # if (
+                #     order["action"] in [Action.SELL, Action.COVER]
+                #     or total_capital_required <= self.portfolio_server.capital
+                # ):
                 self._set_order(
                     order["timestamp"],
                     order["trade_id"],
@@ -146,8 +150,8 @@ class OrderExecutionManager(Subject, Observer):
                     order["contract"],
                     order["order"],
                 )
-            else:
-                self.logger.debug("Not enough capital to execute all orders")
+        else:
+            self.logger.debug("Not enough capital to execute all orders")
 
     def _create_order(self, trade_instruction: SignalInstruction) -> BaseOrder:
         """
