@@ -1,25 +1,26 @@
+# config.toml
 name = "testing123"
 
-# General
 [general]
+# mode = "BACKTEST"
 session_id = 1001
-log_level = "DEBUG"
+log_level = "INFO"
 log_output = "file"
-output_path = "tests/integration/backtest/output/"
+output_path = "output/"
 
 # Data Vendors
 [vendor.historical]
-url = "http://192.53.120.167:8080" #"http://127.0.0.1:8080"
+url = "http://127.0.0.1:8080"
 key = "your_database_key"
-data_file= "tests/integration/he_zc_2024-09-01_2024-12-10_ohlcv-1h.bin" 
+data_file= "tests/unit/hogs_corn_ohlcv1h.bin" 
 
-# [vendor.interactive_brokers]
-# host="127.0.0.1"
-# port="7497" #7496 for real account
-# account_id="U4976268"
-# client_id=1
-# tick_interval = 5 # only matters for tick data
-# data_type = "BAR"
+[vendor.interactive_brokers]
+host="127.0.0.1"
+port="7497" 
+account_id="U4976268"
+client_id=1
+tick_interval = 5 # only matters for tick data
+data_type = "BAR"
 
 # Executors 
 [executor.interactive_brokers]
@@ -28,21 +29,18 @@ port="7497" # 7496 for real account
 account_id="U4976268"
 client_id=0
 
-# Strategy
 [strategy.logic]
-module = "tests/integration/strategy/logic.py"
-class = "Cointegrationzscore"
+module = "tests/unit/random_logic.py"
+class = "RandomSignalStrategy"
 
 [strategy.parameters]
-strategy_name = "Cointegrationzscore"
+strategy_name = "RandomSignalStrategy"
 capital = 1000000
 data_type = "BAR"
 tick_interval = 5 # only matters for tick data
 schema = "ohlcv-1h"
-start = "2024-09-01"
-end = "2024-12-10"
-test_start = ""
-test_end = "2024-12-11" #2024-05-04 00:00:00"
+start = "2024-01-01"
+end = "2024-01-31"
 missing_values_strategy = "drop"
 risk_free_rate = 0.04
 
@@ -107,46 +105,3 @@ market_calendar ="CMEGlobex_Grains"
 module = ""
 class = ""
 
-
-
-# # config.toml
-# [general]
-# # mode = "BACKTEST"
-# session_id = 1001
-# log_level = "INFO"
-# log_output = "file"
-# output_path = "tests/integration/backtest/output/"
-# data_file= "tests/integration/he_zc_2024-09-01_2024-12-10_ohlcv-1h.bin" 
-#
-# [database]
-# url = "http://192.53.120.167:8080" #"http://127.0.0.1:8080"
-# key = "your_database_key"
-#
-# [data_source]
-# host="127.0.0.1"
-# port="7497" #7496 for real account
-# account_id="U4976268"
-# client_id=1
-#
-# [broker]
-# host="127.0.0.1"
-# port="7497" # 7496 for real account
-# account_id="U4976268"
-# client_id=0
-#
-# [strategy.logic]
-# module = "tests/integration/strategy/logic.py"
-# class = "Cointegrationzscore"
-#
-# [strategy.parameters]
-# strategy_name = "Cointegrationzscore"
-# capital = 1000000
-# data_type = "BAR"
-# tick_interval = 5 # only matters for tick data
-# schema = "ohlcv-1h"
-# start = "2024-09-01"
-# end = "2024-12-10"
-# test_start = ""
-# test_end = "2024-12-11" #2024-05-04 00:00:00"
-# missing_values_strategy = "drop"
-# risk_free_rate = 0.04
