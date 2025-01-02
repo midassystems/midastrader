@@ -1,5 +1,8 @@
 import os
 import logging
+import threading
+import time
+from queue import PriorityQueue
 
 
 class SystemLogger:
@@ -28,15 +31,30 @@ class SystemLogger:
         output_format="file",
         output_file_path="output/",
         level=logging.INFO,
+        flush_interval=1.0,
+        buffer_size=100,
     ):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance._initialize(
-                name, output_format, output_file_path, level
+                name,
+                output_format,
+                output_file_path,
+                level,
+                flush_interval,
+                buffer_size,
             )
         return cls._instance
 
-    def _initialize(self, name, output_format, output_file_path, level):
+    def _initialize(
+        self,
+        name,
+        output_format,
+        output_file_path,
+        level,
+        flush_interval,
+        buffer_size,
+    ):
         """
         Initialize the logger with file and/or terminal output.
 
@@ -48,6 +66,12 @@ class SystemLogger:
         """
         self.logger = logging.getLogger(f"{name}_logger")
         self.logger.setLevel(level)
+        self.flush_interval = flush_interval
+        self.buffer_size = buffer_size
+        self.buffer = PriorityQueue()  # Thread-safe priority queue
+        self.lock = threading.Lock()
+        self.stop_event = threading.Event()
+
         if output_format in ["file", "both"]:
             if not os.path.exists(output_file_path):
                 os.makedirs(output_file_path, exist_ok=True)
@@ -65,6 +89,67 @@ class SystemLogger:
                 logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
             )
             self.logger.addHandler(stream_handler)
+
+        # Start background flusher thread
+        self.flusher_thread = threading.Thread(
+            target=self._flush_daemon,
+            daemon=True,
+        )
+        self.flusher_thread.start()
+
+    def log(self, level, message):
+        """
+        Add a log message to the buffer with a timestamp.
+
+        Args:
+            level (int): Logging level (e.g., logging.INFO).
+            message (str): The log message.
+        """
+        timestamp = time.time()
+        with self.lock:
+            self.buffer.put((timestamp, level, message))
+            if self.buffer.qsize() >= self.buffer_size:
+                self._flush()
+
+    def info(self, message):
+        self.log(logging.INFO, message)
+
+    def debug(self, message):
+        self.log(logging.DEBUG, message)
+
+    def warning(self, message):
+        self.log(logging.WARNING, message)
+
+    def error(self, message):
+        self.log(logging.ERROR, message)
+
+    def critical(self, message):
+        self.log(logging.CRITICAL, message)
+
+    def _flush_daemon(self):
+        """
+        Background thread that periodically flushes the buffer.
+        """
+        while not self.stop_event.is_set():
+            time.sleep(self.flush_interval)
+            self._flush()
+
+    def _flush(self):
+        """
+        Flush the buffer to the logger.
+        """
+        with self.lock:
+            while not self.buffer.empty():
+                timestamp, level, message = self.buffer.get()
+                self.logger.log(level, message)
+
+    def stop(self):
+        """
+        Stop the background flusher thread and flush any remaining logs.
+        """
+        self.stop_event.set()
+        self.flusher_thread.join()
+        self._flush()
 
     @classmethod
     def get_logger(cls):

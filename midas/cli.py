@@ -1,6 +1,6 @@
 import argparse
-from midas.engine.engine import EngineBuilder
-from midas.engine.config import Mode
+from midas.main_engine import EngineBuilder
+from midas.config import Mode
 
 
 def run(config_path: str, mode: str):
@@ -26,17 +26,17 @@ def run(config_path: str, mode: str):
     # Build the engine using the EngineBuilder
     engine = (
         EngineBuilder(config_path, mode)
-        .create_logger()  # Initialize logging
+        .create_logger()
+        .create_messagebus()
         .create_parameters()  # Load and parse the parameters
-        .create_database_client()  # Set up the database client
         .create_symbols_map()  # Create the map for the trading symbols
-        .create_core_components()  # Initialize order book, portfolio, etc.
-        .create_gateways()  # Set up live or backtest gateways
-        .create_observers()  # Set up the observer (for live trading)
+        .create_data_engine()  # Initialize logging
+        .create_execution_engine()
+        .create_core_engine()
         .build()  # Finalize the engine setup
     )
 
-    # Initialize and start the engine
+    # # Initialize and start the engine
     engine.initialize()
     engine.start()
 
