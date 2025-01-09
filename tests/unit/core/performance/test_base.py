@@ -11,13 +11,13 @@ from midas.structs.symbol import SymbolMap
 from midas.utils.logger import SystemLogger
 from midas.structs.account import Account, EquityDetails
 from midas.message_bus import MessageBus, EventType
-from midas.core.performance.base import PerformanceManager
+from midas.core.adapters.performance.base import PerformanceManager
 from midas.config import Parameters, Mode, LiveDataType
 from midas.structs.trade import Trade
 from midas.structs.events import SignalEvent, TradeCommissionEvent, TradeEvent
 from midas.structs.orders import OrderType, Action
 from midas.structs.signal import SignalInstruction
-from midas.core.base_strategy import BaseStrategy
+from midas.core.adapters.base_strategy import BaseStrategy
 from midas.structs.constants import PRICE_FACTOR
 from midas.structs.symbol import (
     Equity,

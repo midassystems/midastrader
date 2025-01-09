@@ -8,19 +8,19 @@ from mbn import BacktestData
 
 from midas.structs.symbol import SymbolMap
 from midas.config import Parameters, Mode
-from midas.core.base_strategy import BaseStrategy
+from midas.core.adapters.base_strategy import BaseStrategy
 from midas.utils.unix import unix_to_iso
 from midasClient.client import DatabaseClient
 from midas.structs.constants import PRICE_FACTOR
-from midas.core.performance.managers import (
+from midas.message_bus import MessageBus, EventType
+from midas.structs.events import TradeCommissionEvent, TradeEvent
+from midas.core.adapters.base import CoreAdapter
+from .managers import (
     AccountManager,
     EquityManager,
     TradeManager,
     SignalManager,
 )
-from midas.message_bus import MessageBus, EventType
-from midas.core.base import CoreAdapter
-from midas.structs.events import TradeCommissionEvent, TradeEvent
 
 
 def replace_nan_inf_in_dict(d: dict) -> None:
@@ -88,12 +88,16 @@ class PerformanceManager(CoreAdapter):
         self.output_dir = output_dir
         self.strategy: BaseStrategy = None
         self.threads = []
+        self.running = threading.Event()
 
         # Subscribe to events
-        self.trade_queue = self.bus.subscribe(EventType.TRADE_UPDATE)
         self.account_queue = self.bus.subscribe(EventType.ACCOUNT_UPDATE_LOG)
         self.equity_queue = self.bus.subscribe(EventType.EQUITY_UPDATE)
         self.signal_queue = self.bus.subscribe(EventType.SIGNAL_UPDATE)
+        self.trade_queue = self.bus.subscribe(EventType.TRADE_UPDATE)
+        self.trade_commission_queue = self.bus.subscribe(
+            EventType.TRADE_COMMISSION_UPDATE
+        )
 
     def set_strategy(self, strategy: BaseStrategy) -> None:
         """
@@ -122,6 +126,9 @@ class PerformanceManager(CoreAdapter):
 
             for thread in self.threads:
                 thread.start()
+
+            self.logger.info("Performancemanager running ...")
+            self.running.set()
 
             for thread in self.threads:
                 thread.join()

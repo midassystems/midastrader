@@ -1,12 +1,36 @@
 import threading
+from enum import Enum
 from typing import Dict
 
 from midas.message_bus import MessageBus
-from midas.execution.sources import Executors
 from midas.structs.symbol import SymbolMap
 from midas.utils.logger import SystemLogger
 from midas.config import Parameters, Mode
-from midas.execution.adaptors.dummy import DummyAdaptor
+from midas.execution.adaptors import IBAdaptor, DummyAdaptor
+
+
+class Executors(Enum):
+    IB = "interactive_brokers"
+    DUMMY = "dummy"
+
+    @staticmethod
+    def from_str(value: str) -> "Executors":
+        match value.lower():
+            case "interactive_brokers":
+                return Executors.IB
+            case "dummy":
+                return Executors.DUMMY
+            case _:
+                raise ValueError(f"Unknown vendor: {value}")
+
+    def adapter(self):
+        """Map the enum to the appropriate adapter class."""
+        if self == Executors.IB:
+            return IBAdaptor
+        elif self == Executors.DUMMY:
+            return DummyAdaptor
+        else:
+            raise ValueError(f"No adapter found for vendor: {self.value}")
 
 
 class ExecutionEngine:
@@ -26,23 +50,13 @@ class ExecutionEngine:
         self.adapters = []
         self.threads = []  # List to track threads
         self.completed = threading.Event()  # Event to signal completion
+        self.running = threading.Event()
 
     def initialize_adaptors(self, executors: Dict[str, dict]) -> bool:
         if self.mode == Mode.BACKTEST:
             return self.initialize_dummy()
         else:
             return self.initialize_live(executors)
-        # for e in executors.keys():
-        #     adapter = Executors.from_str(e).adapter()
-        #     self.adapters.append(
-        #         adapter(
-        #             self.symbol_map,
-        #             self.message_bus,
-        #             **executors[e],
-        #         )
-        #     )
-        #
-        # return True
 
     def initialize_live(self, executors: Dict[str, dict]) -> bool:
         for e in executors.keys():
@@ -75,9 +89,12 @@ class ExecutionEngine:
             thread = threading.Thread(target=adapter.process, daemon=True)
             self.threads.append(thread)  # Keep track of threads
             thread.start()
+            adapter.running.wait()
 
         # Start a monitoring thread to check when all adapter threads are done
         threading.Thread(target=self._monitor_threads, daemon=True).start()
+        self.logger.info("Execution-engine running ...")
+        self.running.set()
 
     def _monitor_threads(self):
         """
@@ -97,6 +114,7 @@ class ExecutionEngine:
 
     def stop(self):
         """Start adapters in separate threads."""
+
         for adapter in self.adapters:
             adapter.shutdown_event.set()
 

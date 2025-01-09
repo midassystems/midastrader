@@ -5,10 +5,10 @@ from typing import List
 from mbn import OhlcvMsg
 
 from midas.structs.symbol import SymbolMap
-from midas.core.base_strategy import BaseStrategy
 from midas.structs.signal import SignalInstruction, OrderType, Action
 from midas.message_bus import MessageBus
 from midas.structs.events.market_event import MarketEvent
+from midas.core.adapters.base_strategy import BaseStrategy
 
 
 class Signal(Enum):

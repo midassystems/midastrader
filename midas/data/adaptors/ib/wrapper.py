@@ -60,16 +60,14 @@ class DataApp(EWrapper, EClient):
         # Thread Locks
         self.next_valid_order_id_lock = threading.Lock()
 
-        # Tick interval updater
-        self.update_interval = (
-            tick_interval  # Seconds interval for pushing the event
-        )
-        self.is_running = True
-        self.timer_thread = threading.Thread(
-            target=self._run_timer,
-            daemon=True,
-        )
-        self.timer_thread.start()
+        # Tick interval updater FOR TICK DATA
+        # Seconds interval for pushing the event
+        # self.update_interval = tick_interval
+        # self.is_running = True
+        # self.timer_thread = threading.Thread(
+        #     target=self._run_timer, daemon=True
+        # )
+        # self.timer_thread.start()
 
     def _run_timer(self) -> None:
         """

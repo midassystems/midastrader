@@ -12,6 +12,7 @@ class ExecutionAdapter(ABC):
         self.symbols_map = symbols_map
         self.logger = SystemLogger.get_logger()
         self.shutdown_event = threading.Event()  # Flag to signal shutdown
+        self.running = threading.Event()
 
         self.order_queue = self.bus.subscribe(EventType.ORDER)
 

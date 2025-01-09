@@ -4,13 +4,14 @@ from typing import Dict
 from mbn import RecordMsg
 from threading import Lock
 from typing import Optional
+import threading
 
 from midas.config import Mode
 from midas.structs.symbol import SymbolMap
 from midas.structs.events import MarketEvent, EODEvent
 from midas.message_bus import MessageBus, EventType
 from midas.structs.events.base import SystemEvent
-from midas.core.base import CoreAdapter
+from midas.core.adapters.base import CoreAdapter
 
 
 class OrderBook:
@@ -104,6 +105,7 @@ class OrderBookManager(CoreAdapter):
         super().__init__(symbols_map, bus)
         self.mode = mode
         self.book = OrderBook.get_instance()
+        self.running = threading.Event()
 
         # Subscribe to events
         self.data_queue = self.bus.subscribe(EventType.DATA)
@@ -116,9 +118,13 @@ class OrderBookManager(CoreAdapter):
         This function runs as the main loop for the `OrderBook` to handle
         incoming market data messages from the `MessageBus`.
         """
+        self.logger.info("Orderbook running ...")
+        self.running.set()
+
         while not self.shutdown_event.is_set():
             try:
                 item = self.data_queue.get()
+                # self.logger.info(f"OB - {item}")
                 self.handle_event(item)
             except queue.Empty:
                 continue
@@ -169,13 +175,14 @@ class OrderBookManager(CoreAdapter):
             self.book._tickers_loaded = self.check_tickers_loaded()
 
         # Backtest only
-        self.bus.publish(EventType.UPDATE_SYSTEM, True)
-        self.bus.publish(EventType.UPDATE_EQUITY, True)
+        if self.mode == Mode.BACKTEST:
+            self.bus.publish(EventType.UPDATE_SYSTEM, True)
+            self.bus.publish(EventType.UPDATE_EQUITY, True)
 
         # Notify any observers about the market update
         self.bus.publish(EventType.ORDER_BOOK, market_event)
-
-        self.await_updates()
+        if self.mode == Mode.BACKTEST:
+            self.await_updates()
 
     def check_tickers_loaded(self) -> bool:
         """

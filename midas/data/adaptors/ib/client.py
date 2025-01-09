@@ -1,6 +1,5 @@
 # client.py
 import threading
-import queue
 from enum import Enum
 from ibapi.contract import Contract
 from mbn import BboMsg, BidAskPair, Side
@@ -85,13 +84,26 @@ class IBAdaptor(DataAdapter):
             return current_valid_id
 
     def process(self):
+        # self.connect()
+        thread = threading.Thread(
+            target=self._websocket_connection, daemon=True
+        )
+        thread.start()
+
+        # Waiting for confirmation of connection
+        self.logger.info("Waiting For Data Connection...")
+        self.app.connected_event.wait()
+
+        #  Waiting for next valid id to be returned
+        self.app.valid_id_event.wait()
+
+        self._load_live_data()
+
+        self.logger.info("IBDataAdaptor running ...")
+        self.running.set()
+
         while not self.shutdown_event.is_set():
-            try:
-                event = self.orderbook_queue.get()
-                self.logger.info(f"strategy event {event}")
-                self.handle_event(event)
-            except queue.Empty:
-                continue
+            continue
 
         self.cleanup()
 
