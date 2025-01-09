@@ -8,7 +8,7 @@ from unittest.mock import MagicMock
 
 from midas.config import Mode
 from midas.structs.events import MarketEvent
-from midas.core.order_book import OrderBook, OrderBookManager
+from midas.core.adapters.order_book import OrderBook, OrderBookManager
 from midas.message_bus import MessageBus, EventType
 from midas.structs.symbol import (
     Equity,

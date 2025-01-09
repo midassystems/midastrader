@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import MagicMock
 
 from midas.config import Mode
-from midas.main_engine import EngineBuilder, Engine
+from midas.engine import EngineBuilder, Engine
 
 
 class TestEngineBuilder(unittest.TestCase):
@@ -56,6 +56,9 @@ class TestEngineBacktest(unittest.TestCase):
         self.engine.core_engine.start = MagicMock()
         self.engine.data_engine.start = MagicMock()
         self.engine.execution_engine.start = MagicMock()
+        self.engine.core_engine.running.set()
+        self.engine.data_engine.running.set()
+        self.engine.execution_engine.running.set()
 
         # Test
         self.engine.mode = Mode.BACKTEST
@@ -97,6 +100,9 @@ class TestEngineLive(unittest.TestCase):
         self.engine.core_engine.start = MagicMock()
         self.engine.data_engine.start = MagicMock()
         self.engine.execution_engine.start = MagicMock()
+        self.engine.core_engine.running.set()
+        self.engine.data_engine.running.set()
+        self.engine.execution_engine.running.set()
 
         # Test
         self.engine.mode = Mode.LIVE

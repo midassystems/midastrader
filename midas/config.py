@@ -2,11 +2,10 @@ import toml
 from enum import Enum
 from typing import List
 from dataclasses import dataclass, field
-from mbn import Schema
-from mbn import Parameters as MbnParameters
+from mbn import Schema, Parameters as MbnParameters
 
-from midas.utils.unix import iso_to_unix
-from midas.structs.symbol import Symbol, SymbolFactory
+from midas.utils import iso_to_unix
+from midas.structs import Symbol, SymbolFactory
 
 
 class Mode(Enum):

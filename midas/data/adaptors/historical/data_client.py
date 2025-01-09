@@ -7,7 +7,7 @@ from datetime import datetime
 from midas.utils.unix import unix_to_iso
 from midas.structs.events import EODEvent
 from midas.structs.symbol import SymbolMap
-from midas.config import Parameters
+from midas.config import Parameters, Mode
 from midas.data.adaptors.base import DataAdapter
 from midas.message_bus import MessageBus, EventType
 
@@ -41,7 +41,8 @@ class HistoricalAdaptor(DataAdapter):
         super().__init__(symbols_map, bus)
         self.data_file = kwargs["data_file"]
         self.database_client = DatabaseClient()
-        self.data: BufferStore
+        self.data: BufferStore = None
+        self.mode: Mode = None
         self.last_ts = None
         self.next_date = None
         self.current_date = None
@@ -55,6 +56,9 @@ class HistoricalAdaptor(DataAdapter):
         """
         Main processing loop that streams data and handles EOD synchronization.
         """
+        self.logger.info("HistoricalAdaptor running ...")
+        self.running.set()
+
         while self.data_stream():
             if self.shutdown_event.is_set():
                 break
@@ -67,6 +71,9 @@ class HistoricalAdaptor(DataAdapter):
         Main processing loop that streams data and handles EOD synchronization.
         """
         self.logger.info("Data Engine - stream done")
+
+    def set_mode(self, mode: Mode) -> None:
+        self.mode = mode
 
     def get_data(self, parameters: Parameters) -> bool:
         """
@@ -113,6 +120,7 @@ class HistoricalAdaptor(DataAdapter):
         record = self.data.replay()
 
         if record is None:
+            self.logger.info("No more records in historical stream.")
             return None
 
         # Adjust instrument id
@@ -136,7 +144,8 @@ class HistoricalAdaptor(DataAdapter):
             return False
 
         # Check for end of trading da
-        self._check_eod(record)
+        if self.mode == Mode.BACKTEST:
+            self._check_eod(record)
 
         # Update market data
         self.bus.publish(EventType.DATA, record)
@@ -179,7 +188,6 @@ class HistoricalAdaptor(DataAdapter):
         """
         self.logger.debug("Data Engine - Waiting for data processed flag...")
         while True:
-            # eod_processed = self.bus.get_flag(EventType.DATA_PROCESSED)
             if self.bus.get_flag(EventType.DATA_PROCESSED):
                 self.logger.debug("Data Engine - EOD processed ...")
                 self.bus.publish(EventType.DATA_PROCESSED, False)

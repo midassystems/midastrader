@@ -1,4 +1,5 @@
 import queue
+import threading
 from typing import List
 from ibapi.contract import Contract
 
@@ -7,9 +8,9 @@ from midas.structs.events import SignalEvent, OrderEvent
 from midas.message_bus import MessageBus, EventType
 from midas.structs.signal import SignalInstruction
 from midas.structs.orders import Action, BaseOrder
-from midas.core.portfolio import PortfolioServer
-from midas.core.order_book import OrderBook
-from midas.core.base import CoreAdapter
+from midas.core.adapters.portfolio import PortfolioServer
+from midas.core.adapters.order_book import OrderBook
+from midas.core.adapters.base import CoreAdapter
 
 
 class OrderExecutionManager(CoreAdapter):
@@ -33,6 +34,7 @@ class OrderExecutionManager(CoreAdapter):
         super().__init__(symbols_map, bus)
         self.order_book = OrderBook.get_instance()
         self.portfolio_server = PortfolioServer.get_instance()
+        self.running = threading.Event()
 
         # Subcriptions
         self.signal_queue = self.bus.subscribe(EventType.SIGNAL)
@@ -55,6 +57,9 @@ class OrderExecutionManager(CoreAdapter):
             TypeError: If `event` is not an instance of `SignalEvent`.
 
         """
+        self.logger.info("Ordermanager running ...")
+        self.running.set()
+
         while not self.shutdown_event.is_set():
             try:
                 event = self.signal_queue.get()
@@ -86,10 +91,6 @@ class OrderExecutionManager(CoreAdapter):
             TypeError: If `event` is not an instance of `SignalEvent`.
 
         """
-        self.logger.debug(f"OMS - {event}")
-        # if not isinstance(event, SignalEvent):
-        # raise TypeError("'event' must be SignalEvent.")
-
         trade_instructions = event.instructions
         timestamp = event.timestamp
 
@@ -137,7 +138,7 @@ class OrderExecutionManager(CoreAdapter):
         total_capital_required = 0
 
         for trade in trade_instructions:
-            self.logger.debug(trade)
+            # self.logger.debug(trade)
             symbol = self.symbols_map.map[trade.instrument]
             order = trade.to_order()
             current_price = self.order_book.retrieve(symbol.instrument_id)
@@ -160,10 +161,6 @@ class OrderExecutionManager(CoreAdapter):
 
         if total_capital_required <= self.portfolio_server.capital:
             for order in orders:
-                # if (
-                #     order["action"] in [Action.SELL, Action.COVER]
-                #     or total_capital_required <= self.portfolio_server.capital
-                # ):
                 self._set_order(
                     order["timestamp"],
                     order["trade_id"],

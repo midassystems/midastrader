@@ -12,7 +12,10 @@ from midas.utils.logger import SystemLogger
 from midas.structs.active_orders import ActiveOrder
 from midas.structs.account import Account
 from midas.structs.positions import EquityPosition
-from midas.core.portfolio import PortfolioServer, PortfolioServerManager
+from midas.core.adapters.portfolio import (
+    PortfolioServer,
+    PortfolioServerManager,
+)
 from midas.structs.symbol import (
     Equity,
     Currency,

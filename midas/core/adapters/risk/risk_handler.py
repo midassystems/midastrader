@@ -1,8 +1,8 @@
 from typing import Type
 
-from midas.core.order_book import OrderBook
-from midas.core.portfolio import PortfolioServer
-from midas.core.risk import BaseRiskModel
+# from midas.core.order_book import OrderBook
+# from midas.core.portfolio import PortfolioServer
+from .base_risk_model import BaseRiskModel
 
 
 class RiskHandler:

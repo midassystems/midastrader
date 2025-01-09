@@ -162,6 +162,7 @@ class TestIBDataAdaptor(unittest.TestCase):
         )
 
         # Test
+        self.adapter.connect = Mock()
         self.adapter.handle_order = Mock()
         threading.Thread(target=self.adapter.process, daemon=True).start()
         self.bus.publish(EventType.ORDER, event)
