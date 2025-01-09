@@ -8,7 +8,7 @@ from midas.structs.signal import SignalInstruction
 from midas.structs.trade import Trade
 from midas.structs.account import Account
 from midas.structs.events import SignalEvent
-from midas.core.performance.managers import (
+from midas.core.adapters.performance.managers import (
     TradeManager,
     SignalManager,
     EquityManager,

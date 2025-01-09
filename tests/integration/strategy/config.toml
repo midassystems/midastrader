@@ -11,22 +11,23 @@ output_path = "tests/integration/backtest/output/"
 [vendor.historical]
 url = "http://192.53.120.167:8080" #"http://127.0.0.1:8080"
 key = "your_database_key"
-data_file= "tests/integration/he_zc_2024-09-01_2024-12-10_ohlcv-1h.bin" 
+# data_file= "tests/integration/primer.bin" 
+data_file="tests/integration/he_zc_2024-09-01_2024-12-10_ohlcv-1h.bin"
 
 # [vendor.interactive_brokers]
+# tick_interval = 5 # only matters for tick data
+# data_type = "BAR"
 # host="127.0.0.1"
 # port="7497" #7496 for real account
 # account_id="U4976268"
 # client_id=1
-# tick_interval = 5 # only matters for tick data
-# data_type = "BAR"
-
-# Executors 
-[executor.interactive_brokers]
-host="127.0.0.1"
-port="7497" # 7496 for real account
-account_id="U4976268"
-client_id=0
+#
+# # Executors 
+# [executor.interactive_brokers]
+# host="127.0.0.1"
+# port="7497" # 7496 for real account
+# account_id="U4976268"
+# client_id=0
 
 # Strategy
 [strategy.logic]
@@ -68,7 +69,7 @@ contract_units= "POUNDS"
 tick_size= 0.00025
 min_price_fluctuation= 10.0
 continuous= true
-lastTradeDateOrContractMonth= "202412"
+lastTradeDateOrContractMonth= "202502"
 slippage_factor= 0
 trading_sessions = { day_open = "09:30", day_close = "14:05" }
 expr_months = ["G", "J", "K", "M", "N", "Q", "V", "Z"]
@@ -96,7 +97,7 @@ contract_units= "BUSHELS"
 tick_size= 0.0025
 min_price_fluctuation= 12.50
 continuous= true
-lastTradeDateOrContractMonth= "202412"
+lastTradeDateOrContractMonth= "202503"
 slippage_factor= 0
 trading_sessions = { day_open = "09:30", day_close = "14:20" , night_open = "20:00", night_close = "08:45" }
 expr_months = ["H", "K", "N", "U", "Z"]

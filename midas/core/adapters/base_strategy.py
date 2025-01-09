@@ -1,4 +1,5 @@
 import queue
+import threading
 import pandas as pd
 import importlib.util
 from typing import Type
@@ -9,9 +10,9 @@ from midas.structs.symbol import SymbolMap
 from midas.structs.signal import SignalInstruction
 from midas.message_bus import MessageBus, EventType
 from midas.structs.events import SignalEvent, MarketEvent
-from midas.core.order_book import OrderBook
-from midas.core.portfolio import PortfolioServer
-from midas.core.base import CoreAdapter
+from midas.core.adapters.order_book import OrderBook
+from midas.core.adapters.portfolio import PortfolioServer
+from midas.core.adapters.base import CoreAdapter
 
 
 class BaseStrategy(CoreAdapter):
@@ -45,6 +46,7 @@ class BaseStrategy(CoreAdapter):
         self.order_book = OrderBook.get_instance()
         self.portfolio_server = PortfolioServer.get_instance()
         self.historical_data = None
+        self.running = threading.Event()
 
         # Subscribe to orderbook updates
         self.orderbook_queue = self.bus.subscribe(EventType.ORDER_BOOK)
@@ -58,10 +60,12 @@ class BaseStrategy(CoreAdapter):
             event_type (EventType): The type of the event (e.g., `MARKET_DATA`).
             event (MarketEvent): The market event containing data to process.
         """
+        self.logger.info("Strategy running ...")
+        self.running.set()
+
         while not self.shutdown_event.is_set():
             try:
                 event = self.orderbook_queue.get()
-                self.logger.info(f"strategy event {event}")
                 self.handle_event(event)
             except queue.Empty:
                 continue
@@ -101,13 +105,11 @@ class BaseStrategy(CoreAdapter):
             RuntimeError: If signal creation fails due to invalid input or unexpected errors.
         """
         try:
-            self.logger.info(f"Signal {trade_instructions}")
             if len(trade_instructions) > 0:
                 signal_event = SignalEvent(timestamp, trade_instructions)
                 self.bus.publish(EventType.SIGNAL, signal_event)
                 self.bus.publish(EventType.SIGNAL_UPDATE, signal_event)
             else:
-                self.logger.info("Toggling system updated.")
                 self.bus.publish(EventType.UPDATE_SYSTEM, False)
 
         except (ValueError, TypeError) as e:

@@ -5,11 +5,10 @@ import threading
 from mbn import OhlcvMsg
 from unittest.mock import Mock, patch, MagicMock
 
-from midas.structs.signal import SignalInstruction
-from midas.structs.orders import Action, OrderType
+from midas.structs import SignalInstruction, Action, OrderType
 from midas.structs.events import SignalEvent, MarketEvent
 from midas.utils.logger import SystemLogger
-from midas.core.base_strategy import BaseStrategy, load_strategy_class
+from midas.core.adapters.base_strategy import BaseStrategy, load_strategy_class
 from midas.message_bus import MessageBus, EventType
 
 

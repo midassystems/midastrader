@@ -11,7 +11,10 @@ class DataAdapter(ABC):
         self.bus = bus
         self.symbols_map = symbols_map
         self.logger = SystemLogger.get_logger()
+
+        # Threadin  events
         self.shutdown_event = threading.Event()  # Flag to signal shutdown
+        self.running = threading.Event()
 
     @abstractmethod
     def process(self) -> None:

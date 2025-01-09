@@ -10,8 +10,8 @@ from midas.structs.active_orders import ActiveOrder
 from midas.utils.logger import SystemLogger
 from midas.structs.symbol import SymbolMap
 from midas.message_bus import MessageBus, EventType
+from midas.core.adapters.base import CoreAdapter
 from .managers import AccountManager, OrderManager, PositionManager
-from midas.core.base import CoreAdapter
 
 
 class PortfolioServer:
@@ -124,6 +124,7 @@ class PortfolioServerManager(CoreAdapter):
         super().__init__(symbols_map, bus)
         self.server = PortfolioServer.get_instance()
         self.threads = []
+        self.running = threading.Event()
 
         # Subscribe to events
         self.order_queue = self.bus.subscribe(EventType.ORDER_UPDATE)
@@ -145,6 +146,9 @@ class PortfolioServerManager(CoreAdapter):
 
             for thread in self.threads:
                 thread.start()
+
+            self.logger.info("Porfolioserver running ...")
+            self.running.set()
 
             for thread in self.threads:
                 thread.join()
@@ -196,42 +200,3 @@ class PortfolioServerManager(CoreAdapter):
                 self.server.account_manager.update_account_details(item)
             except queue.Empty:
                 continue
-
-    # def handle_event(
-    #     self,
-    #     event_type: EventType,
-    #     *args,
-    #     **kwargs,
-    # ) -> None:
-    #     """
-    #     Handles events and updates the portfolio state accordingly.
-    #
-    #     Parameters:
-    #         subject (Subject): The source of the event.
-    #         event_type (EventType): The type of event (e.g., POSITION_UPDATE, ACCOUNT_UPDATE, ORDER_UPDATE).
-    #         *args: Positional arguments required for the specific event type.
-    #         **kwargs: Additional keyword arguments for handling the event.
-    #
-    #     Raises:
-    #         ValueError: If required arguments for an event type are missing or the event type is unhandled.
-    #     """
-    #     if event_type == EventType.POSITION_UPDATE:
-    #         if len(args) == 2:
-    #             self.server.position_manager.update_positions(args[0], args[1])
-    #         else:
-    #             raise ValueError(
-    #                 "Missing required arguments for POSITION_UPDATE"
-    #             )
-    #     elif event_type == EventType.ACCOUNT_UPDATE:
-    #         if len(args) == 1:
-    #             self.server.account_manager.update_account_details(args[0])
-    #         else:
-    #         raise ValueError("Missing account details for ACCOUNT_UPDATE")
-    # elif event_type == EventType.ORDER_UPDATE:
-    #     if len(args) == 1:
-    #         self.server.order_manager.update_orders(args[0])
-    #     else:
-    #         raise ValueError("Missing order data for ORDER_UPDATE")
-    #
-    # else:
-    #     raise ValueError(f"Unhandled event type: {event_type}")

@@ -5,7 +5,7 @@ from datetime import datetime, time
 from unittest.mock import Mock, MagicMock
 from mbn import OhlcvMsg
 
-from midas.config import LiveDataType, Parameters
+from midas.config import LiveDataType, Parameters, Mode
 from midas.structs.events import EODEvent
 from midas.message_bus import MessageBus, EventType
 from midas.utils.logger import SystemLogger
@@ -218,6 +218,7 @@ class TestHistoricalAdaptor(unittest.TestCase):
         )
         self.adaptor.data.replay.return_value = record
         self.adaptor.data.metadata.mappings.get_ticker.return_value = "HE.n.0"
+        self.adaptor.mode = Mode.BACKTEST
 
         # Test
         self.adaptor._check_eod = Mock()

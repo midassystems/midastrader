@@ -7,10 +7,10 @@ from ibapi.contract import Contract
 
 from midas.structs.account import Account
 from midas.structs.signal import SignalInstruction
-from midas.core.order_manager import OrderExecutionManager
+from midas.core.adapters.order_manager import OrderExecutionManager
 from midas.utils.logger import SystemLogger
-from midas.core.portfolio import PortfolioServer
-from midas.core.order_book import OrderBook
+from midas.core.adapters.portfolio import PortfolioServer
+from midas.core.adapters.order_book import OrderBook
 from midas.structs.events import SignalEvent, OrderEvent
 from midas.structs.symbol import (
     Equity,

@@ -5,8 +5,6 @@ from midas.structs.positions import Position
 from midas.structs.active_orders import ActiveOrder
 from midas.utils.logger import SystemLogger
 
-# from midas.structs.symbol import SymbolMap
-
 
 class OrderManager:
     """

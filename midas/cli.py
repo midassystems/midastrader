@@ -1,6 +1,6 @@
 import argparse
-from midas.main_engine import EngineBuilder
 from midas.config import Mode
+from midas.engine import EngineBuilder
 
 
 def run(config_path: str, mode: str):
