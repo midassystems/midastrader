@@ -11,7 +11,7 @@ from midas.structs.orders import Action
 from midas.message_bus import MessageBus, EventType
 from midas.structs.account import Account, EquityDetails
 from midas.structs.positions import position_factory, Position
-from midas.core.order_book import OrderBook
+from midas.core.adapters.order_book import OrderBook
 
 
 class DummyBroker:
@@ -69,7 +69,7 @@ class DummyBroker:
             full_init_margin_req=0,
             unrealized_pnl=0,
         )
-        self.return_account()  # wbus.publish(EventType.ACCOUNT_UPDATE, self.account)
+        self.return_account()
 
         # Subscriptions
         self.trade_queue = self.bus.subscribe(EventType.TRADE)
@@ -247,8 +247,6 @@ class DummyBroker:
             + self.account.full_available_funds
         )
         self.account.timestamp = self.order_book.last_updated
-        # self.bus.publish(EventType.ACCOUNT_UPDATE, self.account)
-        # self.logger.info("Publishing account update.")
 
     def _update_trades(
         self,
@@ -410,113 +408,3 @@ class DummyBroker:
         self.bus.publish(EventType.EQUITY_UPDATE, self.account.equity_value())
 
         # return self.account.equity_value()
-
-    # def return_executed_trades(
-    #     self,
-    #     contract: Contract = None,
-    # ) -> Union[dict, Trade]:
-    #     """
-    #     Return details of executed trades.
-    #
-    #     Args:
-    #         contract (Contract, optional): The contract associated with the executed trade.
-    #             If provided, returns trade details for that contract only.
-    #
-    #     Returns:
-    #         Union[dict, Trade]: Dictionary or Trade object containing details of executed trades.
-    #     """
-    #     if contract:
-    #         return self.last_trades[contract]
-    #     else:
-    #         return self.last_trades
-
-    # def _set_execution(
-    #     self,
-    #     timestamp: int,
-    #     trade: Trade,
-    #     action: Action,
-    #     symbol: Symbol,
-    # ) -> None:
-    #     """
-    #     Create and queue an ExecutionEvent based on trade details.
-    #
-    #     Args:
-    #         timestamp (int): The timestamp of the execution.
-    #         trade_details (Trade): Details of the executed trade.
-    #         action (Action): The action associated with the execution (e.g., BUY, SELL).
-    #         symbol (Symbol): The symbol associated with the trade.
-    #
-    #     Raises:
-    #         RuntimeError: If an error occurs during the creation or queuing of the ExecutionEvent.
-    #     """
-    #     try:
-    #         # self.last_trade = trade_details
-    #         trade_id = f"{trade.trade_id}{trade.leg_id}{trade.action}"
-    #         execution_event = ExecutionEvent(
-    #             timestamp,
-    #             trade,
-    #             action,
-    #             symbol.contract,
-    #         )
-    #         self.bus.publish(EventType.TRADE_UPDATE, (trade_id, trade))
-    #
-    #         # self.update_positions()
-    #         # self.update_account()
-    #         # self.update_equity_value()
-    #
-    #         # self.notify(EventType.TRADE_EXECUTED, execution_event)
-    #     except (ValueError, TypeError) as e:
-    #         raise RuntimeError(
-    #             f"Failed to create or queue ExecutionEvent due to input error: {e}"
-    #         ) from e
-    #     except Exception as e:
-    #         raise RuntimeError(
-    #             f"Unexpected error when creating or queuing ExecutionEvent: {e}"
-    #         ) from e
-
-    # self._set_execution(timestamp, trade_details, action, symbol)
-
-    # def handle_trade(self, event: OrderEvent) -> None:
-    #     """
-    #     Processes and executes an order based on given details.
-    #
-    #     Args:
-    #         event (OrderEvent): The event containing order details for execution.
-    #     """
-    #
-    #     timestamp = event.timestamp
-    #     trade_id = event.trade_id
-    #     leg_id = event.leg_id
-    #     action = event.action
-    #     contract = event.contract
-    #     order = event.order
-    #
-    #     symbol = self.symbols_map.get_symbol(contract.symbol)
-    #
-    #     # Order Data
-    #     quantity = order.quantity  # +/- values
-    #     mkt_data = self.order_book.retrieve(symbol.instrument_id)
-    #     fill_price = symbol.slippage_price(mkt_data.pretty_price, action)
-    #     fees = symbol.commission_fees(quantity)
-    #
-    #     # Adjust cash by fees
-    #     self.account.full_available_funds += fees
-    #
-    #     # Update Positions
-    #     self._update_positions(symbol, action, quantity, fill_price)
-    #
-    #     # Update Account
-    #     self._update_account()
-    #
-    #     # Create Execution Events
-    #     trade_details = self._update_trades(
-    #         timestamp,
-    #         trade_id,
-    #         leg_id,
-    #         symbol,
-    #         quantity,
-    #         action,
-    #         fill_price,
-    #         fees,
-    #     )
-    #     self._set_execution(timestamp, trade_details, action, symbol)

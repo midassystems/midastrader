@@ -5,11 +5,10 @@ from enum import Enum, auto
 from typing import List, Dict, Tuple
 from mbn import OhlcvMsg
 
-from midas.structs.symbol import SymbolMap
-from midas.message_bus import MessageBus, EventType
-from midas.structs.events.market_event import MarketEvent
-from midas.core.base_strategy import BaseStrategy
-from midas.structs.signal import SignalInstruction, OrderType, Action
+from midas.message_bus import MessageBus
+from midas.structs import SymbolMap, SignalInstruction, OrderType, Action
+from midas.structs.events import MarketEvent
+from midas.core import BaseStrategy
 
 
 class Signal(Enum):
@@ -55,7 +54,9 @@ class Cointegrationzscore(BaseStrategy):
         return pd.DataFrame([initial_data])
 
     def handle_event(self, event: MarketEvent):
-        self.logger.info(f"User strategy {event}")
+        # self.logger.info(f"{len(self.data)}")
+        self.logger.info(event)
+
         if isinstance(event.data, OhlcvMsg):
             self.update_current_price(event.data)
         else:
@@ -65,7 +66,6 @@ class Cointegrationzscore(BaseStrategy):
             self.process_data(event.data.ts_event)
         else:
             # Use set_signal to handle signal dispatch and flag toggling
-            self.logger.info("Calling set signal")
             self.set_signal([], event.data.ts_event)
 
     def update_current_price(self, data: OhlcvMsg) -> None:
@@ -135,9 +135,10 @@ class Cointegrationzscore(BaseStrategy):
 
     # Generate Signals
     def generate_signals(self, ts_event: int):
-        trade_instructions = []
         current_zscore = self.zscore[-1]
         self.logger.info(f"zscore {current_zscore}")
+
+        trade_instructions = []
         if self.is_valid_for_signal_generation(ts_event):
             self.logger.info("Checking signals.")
             if not self._has_open_positions():
@@ -156,7 +157,7 @@ class Cointegrationzscore(BaseStrategy):
                     self.trade_id += 1
                     self.last_signal = None
 
-        self.logger.info("Calling set signal")
+        # self.logger.info("Calling set signal")
         self.set_signal(
             trade_instructions,
             self.order_book.last_updated,

@@ -16,7 +16,7 @@ from midas.structs.events import TradeEvent
 from midas.message_bus import MessageBus, EventType
 from midas.utils.logger import SystemLogger
 from midas.structs.positions import FuturePosition, EquityPosition
-from midas.core.order_book import OrderBook
+from midas.core.adapters.order_book import OrderBook
 from midas.structs.symbol import (
     Equity,
     Currency,

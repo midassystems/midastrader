@@ -416,8 +416,6 @@ class BrokerApp(EWrapper, EClient):
         )
         self.bus.publish(EventType.ORDER_UPDATE, order_data)
 
-        # self.notify(EventType.ORDER_UPDATE, order_data)
-
     #### Wrapper function for reqAccountSummary
     def accountSummary(
         self, reqId: int, account: str, tag: str, value: str, currency: str
@@ -511,17 +509,12 @@ class BrokerApp(EWrapper, EClient):
             commissionReport (CommissionReport): Commission report details.
         """
         self.bus.publish(
-            EventType.TRADE_COMMISSION_UPDATE,
+            EventType.TRADE_UPDATE,
             TradeCommissionEvent(
                 commissionReport.execId,
                 commissionReport.commission,
             ),
         )
-        # self.notify(
-        # EventType.TRADE_COMMISSION_UPDATE,
-        # commissionReport.execId,
-        # commissionReport.commission,
-        # )
 
 
 def datetime_to_unix_ns(datetime_str: str, timezone_str: str) -> int:

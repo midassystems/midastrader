@@ -51,6 +51,8 @@ class IBAdaptor(ExecutionAdapter):
         self.orders_queue = self.bus.subscribe(EventType.ORDER)
 
     def process(self):
+        self.connect()
+
         while not self.shutdown_event.is_set():
             try:
                 event = self.orders_queue.get()
@@ -135,6 +137,9 @@ class IBAdaptor(ExecutionAdapter):
             if not self.validate_contract(symbol.contract):
                 raise RuntimeError(f"{symbol.broker_ticker} invalid contract.")
 
+        self.logger.info("IBBrokerAdaptor running ...")
+        self.running.set()
+
     def disconnect(self) -> None:
         """
         Disconnect from the broker's API.
@@ -213,30 +218,6 @@ class IBAdaptor(ExecutionAdapter):
         return contract.symbol in self.validated_contracts
 
     # -- Orders --
-    # def handle_event(
-    #     self,
-    #     subject: Subject,
-    #     event_type: EventType,
-    #     event,
-    # ) -> None:
-    #     """
-    #     Handle new order events from the event queue and initiate order processing.
-    #
-    #     Args:
-    #         subject (Subject): The subject associated with the event.
-    #         event_type (EventType): The type of the event.
-    #         event (OrderEvent): The event containing order details for execution.
-    #
-    #     Raises:
-    #         ValueError: If the event is not of type OrderEvent.
-    #     """
-    #     if event_type == EventType.ORDER_CREATED:
-    #         if not isinstance(event, OrderEvent):
-    #             raise ValueError(
-    #                 "'event' must be of type OrderEvent instance."
-    #             )
-    #         self.handle_order(event)
-
     def handle_order(self, event: OrderEvent) -> None:
         """
         Handle placing orders.

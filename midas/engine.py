@@ -3,17 +3,18 @@ import queue
 import threading
 import signal
 from typing import Union, Optional
+
 from midas.structs.symbol import SymbolMap
 from midas.config import Parameters, Config, Mode
 from midas.utils.logger import SystemLogger
-from midas.data.engine import DataEngine
-from midas.execution.engine import ExecutionEngine
+from midas.core.adapters import OrderBook
+from midas.core.adapters.base_strategy import load_strategy_class
+from midas.data import DataEngine
+from midas.execution import ExecutionEngine
 from midas.message_bus import MessageBus
-from midas.core.engine import CoreEngine
+from midas.core import CoreEngine
 
 # from midas.core.risk.risk_handler import RiskHandler
-from midas.core.base_strategy import load_strategy_class
-from midas.core.order_book import OrderBook
 
 
 class EngineBuilder:
@@ -135,7 +136,7 @@ class EngineBuilder:
             self.mode,
             self.params,
         )
-        self.data_engine.initialize_adaptors(self.config.vendors)
+        self.data_engine.construct_adaptors(self.config.vendors)
 
         return self
 
@@ -289,12 +290,15 @@ class Engine:
         # Start engines
         core_thread = threading.Thread(target=self.core_engine.start)
         core_thread.start()
+        self.core_engine.running.wait()
 
         exeution_thread = threading.Thread(target=self.execution_engine.start)
         exeution_thread.start()
+        self.execution_engine.running.wait()
 
         data_thread = threading.Thread(target=self.data_engine.start)
         data_thread.start()
+        self.data_engine.running.wait()
 
         if self.mode == Mode.BACKTEST:
             self._backtest_loop()
@@ -326,9 +330,11 @@ class Engine:
             continue
 
         # Perform cleanup here
-        self.database_updater.delete_session()
+        # self.database_updater.delete_session()
 
         # Finalize and save to database
+        self.execution_engine.stop()
+
         self.broker_client.request_account_summary()
         time.sleep(5)  # time for final account summary request-maybe shorten
         self.performance_manager.save()

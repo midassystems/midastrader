@@ -48,6 +48,9 @@ class DummyAdaptor(ExecutionAdapter):
             for thread in self.threads:
                 thread.start()
 
+            self.logger.info("Dummybrokeradaptor running ...")
+            self.running.set()
+
             # Wait for all threads to finish
             for thread in self.threads:
                 thread.join()
