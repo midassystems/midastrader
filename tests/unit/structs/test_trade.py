@@ -1,7 +1,7 @@
 import random
 import unittest
 
-from midas.structs.trade import Trade
+from midastrader.structs.trade import Trade
 
 
 class TestTrade(unittest.TestCase):

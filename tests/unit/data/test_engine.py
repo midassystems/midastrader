@@ -1,6 +1,6 @@
 import unittest
-from midas.data.engine import Vendors
-from midas.data.adaptors import HistoricalAdaptor
+from midastrader.data.engine import Vendors
+from midastrader.data.adaptors import HistoricalAdaptor
 
 
 class TestVendors(unittest.TestCase):

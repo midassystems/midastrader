@@ -6,15 +6,15 @@ from ibapi.contract import Contract
 from ibapi.execution import Execution
 from unittest.mock import Mock
 
-from midas.structs.active_orders import ActiveOrder
-from midas.structs.account import Account
-from midas.structs.positions import EquityPosition, FuturePosition
-from midas.structs.symbol import SymbolMap
-from midas.structs.trade import Trade
-from midas.message_bus import MessageBus, EventType
-from midas.execution.adaptors.ib.wrapper import BrokerApp
-from midas.structs.events import TradeEvent
-from midas.structs.symbol import (
+from midastrader.structs.active_orders import ActiveOrder
+from midastrader.structs.account import Account
+from midastrader.structs.positions import EquityPosition, FuturePosition
+from midastrader.structs.symbol import SymbolMap
+from midastrader.structs.trade import Trade
+from midastrader.message_bus import MessageBus, EventType
+from midastrader.execution.adaptors.ib.wrapper import BrokerApp
+from midastrader.structs.events import TradeEvent
+from midastrader.structs.symbol import (
     Equity,
     Currency,
     Venue,

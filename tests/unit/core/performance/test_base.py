@@ -7,19 +7,23 @@ import threading
 from datetime import time
 from unittest.mock import Mock, MagicMock
 
-from midas.structs.symbol import SymbolMap
-from midas.utils.logger import SystemLogger
-from midas.structs.account import Account, EquityDetails
-from midas.message_bus import MessageBus, EventType
-from midas.core.adapters.performance.base import PerformanceManager
-from midas.config import Parameters, Mode, LiveDataType
-from midas.structs.trade import Trade
-from midas.structs.events import SignalEvent, TradeCommissionEvent, TradeEvent
-from midas.structs.orders import OrderType, Action
-from midas.structs.signal import SignalInstruction
-from midas.core.adapters.base_strategy import BaseStrategy
-from midas.structs.constants import PRICE_FACTOR
-from midas.structs.symbol import (
+from midastrader.structs.symbol import SymbolMap
+from midastrader.utils.logger import SystemLogger
+from midastrader.structs.account import Account, EquityDetails
+from midastrader.message_bus import MessageBus, EventType
+from midastrader.core.adapters.performance.base import PerformanceManager
+from midastrader.config import Parameters, Mode, LiveDataType
+from midastrader.structs.trade import Trade
+from midastrader.structs.events import (
+    SignalEvent,
+    TradeCommissionEvent,
+    TradeEvent,
+)
+from midastrader.structs.orders import OrderType, Action
+from midastrader.structs.signal import SignalInstruction
+from midastrader.core.adapters.base_strategy import BaseStrategy
+from midastrader.structs.constants import PRICE_FACTOR
+from midastrader.structs.symbol import (
     Equity,
     Currency,
     Venue,

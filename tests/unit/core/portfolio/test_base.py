@@ -6,17 +6,17 @@ from ibapi.contract import Contract
 from time import sleep
 from unittest.mock import Mock, MagicMock
 
-from midas.message_bus import MessageBus, EventType
-from midas.structs.symbol import SymbolMap
-from midas.utils.logger import SystemLogger
-from midas.structs.active_orders import ActiveOrder
-from midas.structs.account import Account
-from midas.structs.positions import EquityPosition
-from midas.core.adapters.portfolio import (
+from midastrader.message_bus import MessageBus, EventType
+from midastrader.structs.symbol import SymbolMap
+from midastrader.utils.logger import SystemLogger
+from midastrader.structs.active_orders import ActiveOrder
+from midastrader.structs.account import Account
+from midastrader.structs.positions import EquityPosition
+from midastrader.core.adapters.portfolio import (
     PortfolioServer,
     PortfolioServerManager,
 )
-from midas.structs.symbol import (
+from midastrader.structs.symbol import (
     Equity,
     Currency,
     Venue,

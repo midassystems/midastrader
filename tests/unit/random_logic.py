@@ -4,11 +4,11 @@ from enum import Enum, auto
 from typing import List
 from mbn import OhlcvMsg
 
-from midas.structs.symbol import SymbolMap
-from midas.structs.signal import SignalInstruction, OrderType, Action
-from midas.message_bus import MessageBus
-from midas.structs.events.market_event import MarketEvent
-from midas.core.adapters.base_strategy import BaseStrategy
+from midastrader.structs.symbol import SymbolMap
+from midastrader.structs.signal import SignalInstruction, OrderType, Action
+from midastrader.message_bus import MessageBus
+from midastrader.structs.events.market_event import MarketEvent
+from midastrader.core.adapters.base_strategy import BaseStrategy
 
 
 class Signal(Enum):

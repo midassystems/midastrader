@@ -3,8 +3,8 @@ from unittest.mock import Mock
 from mbn import OhlcvMsg, BboMsg, BidAskPair, Side
 from decimal import Decimal
 
-from midas.message_bus import MessageBus, EventType
-from midas.data.adaptors.ib.wrapper import DataApp
+from midastrader.message_bus import MessageBus, EventType
+from midastrader.data.adaptors.ib.wrapper import DataApp
 
 
 class TestDataApp(unittest.TestCase):

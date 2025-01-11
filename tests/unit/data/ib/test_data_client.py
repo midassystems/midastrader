@@ -4,11 +4,11 @@ from datetime import time
 from ibapi.contract import Contract
 from unittest.mock import Mock, patch, MagicMock
 
-from midas.message_bus import MessageBus
-from midas.data.adaptors.ib.client import IBAdaptor, LiveDataType
-from midas.utils.logger import SystemLogger
-from midas.structs.symbol import SymbolMap
-from midas.structs.symbol import (
+from midastrader.message_bus import MessageBus
+from midastrader.data.adaptors.ib.client import IBAdaptor, LiveDataType
+from midastrader.utils.logger import SystemLogger
+from midastrader.structs.symbol import SymbolMap
+from midastrader.structs.symbol import (
     Equity,
     Currency,
     Venue,

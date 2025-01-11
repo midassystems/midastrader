@@ -1,7 +1,7 @@
 import unittest
 from datetime import time
 
-from midas.structs.symbol import (
+from midastrader.structs import (
     SecurityType,
     Venue,
     Currency,
@@ -13,14 +13,12 @@ from midas.structs.symbol import (
     ContractUnits,
     TradingSession,
     FuturesMonth,
-)
-from midas.structs.positions import (
     FuturePosition,
     EquityPosition,
     OptionPosition,
-    position_factory,
     Impact,
 )
+from midastrader.structs.positions import position_factory
 
 
 class TestFuturePosition(unittest.TestCase):

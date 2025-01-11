@@ -5,12 +5,12 @@ from datetime import time
 from ibapi.contract import Contract
 from unittest.mock import Mock, patch
 
-from midas.structs.events import OrderEvent
-from midas.message_bus import MessageBus, EventType
-from midas.structs.orders import Action, MarketOrder
-from midas.structs.symbol import SymbolMap
-from midas.execution.adaptors.ib.client import IBAdaptor
-from midas.structs.symbol import (
+from midastrader.structs.events import OrderEvent
+from midastrader.message_bus import MessageBus, EventType
+from midastrader.structs.orders import Action, MarketOrder
+from midastrader.structs.symbol import SymbolMap
+from midastrader.execution.adaptors.ib.client import IBAdaptor
+from midastrader.structs.symbol import (
     Equity,
     Currency,
     Venue,

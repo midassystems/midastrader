@@ -1,6 +1,6 @@
 import unittest
-from midas.execution.engine import Executors
-from midas.execution.adaptors import IBAdaptor
+from midastrader.execution.engine import Executors
+from midastrader.execution.adaptors import IBAdaptor
 
 
 class TestVendors(unittest.TestCase):

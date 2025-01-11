@@ -1,5 +1,5 @@
 import unittest
-from midas.structs.active_orders import ActiveOrder
+from midastrader.structs.active_orders import ActiveOrder
 
 
 class ActiceOrderTest(unittest.TestCase):

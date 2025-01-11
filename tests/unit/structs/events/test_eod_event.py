@@ -1,6 +1,6 @@
 import unittest
 from datetime import datetime
-from midas.structs.events import EODEvent
+from midastrader.structs.events import EODEvent
 
 
 class TestExecutionEvent(unittest.TestCase):

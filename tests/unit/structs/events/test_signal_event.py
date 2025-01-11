@@ -1,9 +1,9 @@
 import unittest
 from datetime import datetime
 
-from midas.structs.events import SignalEvent
-from midas.structs.orders import OrderType, Action
-from midas.structs.signal import SignalInstruction
+from midastrader.structs.events import SignalEvent
+from midastrader.structs.orders import OrderType, Action
+from midastrader.structs.signal import SignalInstruction
 
 
 class TestSignalEvent(unittest.TestCase):

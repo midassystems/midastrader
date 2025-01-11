@@ -2,7 +2,7 @@ import unittest
 from datetime import datetime
 from mbn import OhlcvMsg, BboMsg, BidAskPair, Side
 
-from midas.structs.events import MarketEvent
+from midastrader.structs.events import MarketEvent
 
 
 class TestMarketEvent(unittest.TestCase):

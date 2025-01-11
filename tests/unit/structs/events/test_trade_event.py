@@ -1,8 +1,8 @@
 import unittest
 
-from midas.structs.trade import Trade
-from midas.structs.orders import Action
-from midas.structs.events import TradeCommissionEvent, TradeEvent
+from midastrader.structs.trade import Trade
+from midastrader.structs.orders import Action
+from midastrader.structs.events import TradeCommissionEvent, TradeEvent
 
 
 class TestTradeEvent(unittest.TestCase):

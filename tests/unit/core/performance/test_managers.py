@@ -3,12 +3,12 @@ import numpy as np
 import pandas as pd
 from unittest.mock import Mock
 
-from midas.structs.orders import Action, OrderType
-from midas.structs.signal import SignalInstruction
-from midas.structs.trade import Trade
-from midas.structs.account import Account
-from midas.structs.events import SignalEvent
-from midas.core.adapters.performance.managers import (
+from midastrader.structs.orders import Action, OrderType
+from midastrader.structs.signal import SignalInstruction
+from midastrader.structs.trade import Trade
+from midastrader.structs.account import Account
+from midastrader.structs.events import SignalEvent
+from midastrader.core.adapters.performance.managers import (
     TradeManager,
     SignalManager,
     EquityManager,
