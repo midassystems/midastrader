@@ -11,6 +11,7 @@ __pycache__/
 *.xlsx
 *.bin
 /output
+/dist
 
 # Django
 /db.sqlite3
