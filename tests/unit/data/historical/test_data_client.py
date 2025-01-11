@@ -5,14 +5,14 @@ from datetime import datetime, time
 from unittest.mock import Mock, MagicMock
 from mbn import OhlcvMsg
 
-from midas.config import LiveDataType, Parameters, Mode
-from midas.structs.events import EODEvent
-from midas.message_bus import MessageBus, EventType
-from midas.utils.logger import SystemLogger
-from midas.structs.symbol import SymbolMap
-from midas.utils.unix import unix_to_iso
-from midas.data.adaptors.historical import HistoricalAdaptor
-from midas.structs.symbol import (
+from midastrader.config import LiveDataType, Parameters, Mode
+from midastrader.structs.events import EODEvent
+from midastrader.message_bus import MessageBus, EventType
+from midastrader.utils.logger import SystemLogger
+from midastrader.structs.symbol import SymbolMap
+from midastrader.utils.unix import unix_to_iso
+from midastrader.data.adaptors.historical import HistoricalAdaptor
+from midastrader.structs.symbol import (
     Equity,
     Currency,
     Venue,

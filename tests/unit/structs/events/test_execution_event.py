@@ -3,9 +3,8 @@ import unittest
 from datetime import datetime
 from ibapi.contract import Contract
 
-from midas.structs.trade import Trade
-from midas.structs.orders import Action
-from midas.structs.events import ExecutionEvent
+from midastrader.structs import Trade, Action
+from midastrader.structs.events import ExecutionEvent
 
 
 class TestExecutionEvent(unittest.TestCase):

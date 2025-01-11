@@ -1,5 +1,5 @@
 import unittest
-from midas.structs.account import Account, EquityDetails
+from midastrader.structs.account import Account, EquityDetails
 
 
 class AccountTest(unittest.TestCase):

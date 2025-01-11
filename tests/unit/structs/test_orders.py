@@ -1,7 +1,7 @@
 import unittest
 from ibapi.order import Order
 
-from midas.structs.orders import (
+from midastrader.structs.orders import (
     Action,
     OrderType,
     MarketOrder,

@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, MagicMock
 
-from midas.core.adapters.risk import BaseRiskModel, load_risk_class
+from midastrader.core.adapters.risk import BaseRiskModel, load_risk_class
 
 
 class TestRiskModel(BaseRiskModel):

@@ -5,14 +5,14 @@ from datetime import time
 from unittest.mock import Mock, MagicMock
 from ibapi.contract import Contract
 
-from midas.structs.account import Account
-from midas.structs.signal import SignalInstruction
-from midas.core.adapters.order_manager import OrderExecutionManager
-from midas.utils.logger import SystemLogger
-from midas.core.adapters.portfolio import PortfolioServer
-from midas.core.adapters.order_book import OrderBook
-from midas.structs.events import SignalEvent, OrderEvent
-from midas.structs.symbol import (
+from midastrader.structs.account import Account
+from midastrader.structs.signal import SignalInstruction
+from midastrader.core.adapters.order_manager import OrderExecutionManager
+from midastrader.utils.logger import SystemLogger
+from midastrader.core.adapters.portfolio import PortfolioServer
+from midastrader.core.adapters.order_book import OrderBook
+from midastrader.structs.events import SignalEvent, OrderEvent
+from midastrader.structs.symbol import (
     Equity,
     Currency,
     Venue,
@@ -23,15 +23,15 @@ from midas.structs.symbol import (
     FuturesMonth,
     TradingSession,
 )
-from midas.structs.orders import (
+from midastrader.structs.orders import (
     MarketOrder,
     LimitOrder,
     StopLoss,
     OrderType,
     Action,
 )
-from midas.structs.symbol import SymbolMap
-from midas.message_bus import MessageBus, EventType
+from midastrader.structs.symbol import SymbolMap
+from midastrader.message_bus import MessageBus, EventType
 
 
 class TestOrderManager(unittest.TestCase):

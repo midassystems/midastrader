@@ -2,9 +2,9 @@ import random
 import unittest
 from datetime import datetime, time
 
-from midas.utils.unix import iso_to_unix
-from midas.config import Parameters, LiveDataType, Config
-from midas.structs.symbol import (
+from midastrader.utils.unix import iso_to_unix
+from midastrader.config import Parameters, LiveDataType, Config
+from midastrader.structs.symbol import (
     Future,
     Currency,
     ContractUnits,

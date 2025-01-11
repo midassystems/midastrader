@@ -1,10 +1,10 @@
 import unittest
 from unittest.mock import Mock
 
-from midas.structs.active_orders import ActiveOrder
-from midas.structs.account import Account
-from midas.structs.positions import EquityPosition
-from midas.core.adapters.portfolio.managers import (
+from midastrader.structs.active_orders import ActiveOrder
+from midastrader.structs.account import Account
+from midastrader.structs.positions import EquityPosition
+from midastrader.core.adapters.portfolio.managers import (
     AccountManager,
     PositionManager,
     OrderManager,

@@ -1,6 +1,6 @@
 import unittest
 import pandas as pd
-from midas.utils.unix import (
+from midastrader.utils.unix import (
     unix_to_iso,
     iso_to_unix,
     unix_to_date,

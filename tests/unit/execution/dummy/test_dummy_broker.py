@@ -6,18 +6,18 @@ from datetime import time
 from unittest.mock import Mock, MagicMock
 from ibapi.contract import Contract
 
-from midas.structs.trade import Trade
-from midas.structs.events import OrderEvent
-from midas.structs.account import Account
-from midas.structs.orders import Action, MarketOrder
-from midas.execution.adaptors.dummy.dummy_broker import DummyBroker
-from midas.structs.symbol import SymbolMap
-from midas.structs.events import TradeEvent
-from midas.message_bus import MessageBus, EventType
-from midas.utils.logger import SystemLogger
-from midas.structs.positions import FuturePosition, EquityPosition
-from midas.core.adapters.order_book import OrderBook
-from midas.structs.symbol import (
+from midastrader.structs.trade import Trade
+from midastrader.structs.events import OrderEvent
+from midastrader.structs.account import Account
+from midastrader.structs.orders import Action, MarketOrder
+from midastrader.execution.adaptors.dummy.dummy_broker import DummyBroker
+from midastrader.structs.symbol import SymbolMap
+from midastrader.structs.events import TradeEvent
+from midastrader.message_bus import MessageBus, EventType
+from midastrader.utils.logger import SystemLogger
+from midastrader.structs.positions import FuturePosition, EquityPosition
+from midastrader.core.adapters.order_book import OrderBook
+from midastrader.structs.symbol import (
     Equity,
     Currency,
     Venue,

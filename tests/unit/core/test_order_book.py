@@ -2,15 +2,15 @@ import unittest
 from time import sleep
 import threading
 from datetime import time
-from midas.utils.logger import SystemLogger
+from midastrader.utils.logger import SystemLogger
 from mbn import OhlcvMsg, BboMsg, Side, BidAskPair
 from unittest.mock import MagicMock
 
-from midas.config import Mode
-from midas.structs.events import MarketEvent
-from midas.core.adapters.order_book import OrderBook, OrderBookManager
-from midas.message_bus import MessageBus, EventType
-from midas.structs.symbol import (
+from midastrader.config import Mode
+from midastrader.structs.events import MarketEvent
+from midastrader.core.adapters.order_book import OrderBook, OrderBookManager
+from midastrader.message_bus import MessageBus, EventType
+from midastrader.structs.symbol import (
     Equity,
     Currency,
     Venue,
@@ -21,7 +21,7 @@ from midas.structs.symbol import (
     FuturesMonth,
     TradingSession,
 )
-from midas.structs.symbol import SymbolMap
+from midastrader.structs.symbol import SymbolMap
 
 
 class TestOrderBook(unittest.TestCase):

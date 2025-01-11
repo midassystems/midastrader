@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import MagicMock
 
-from midas.config import Mode
-from midas.engine import EngineBuilder, Engine
+from midastrader.config import Mode
+from midastrader.engine import EngineBuilder, Engine
 
 
 class TestEngineBuilder(unittest.TestCase):

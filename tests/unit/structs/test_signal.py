@@ -1,7 +1,6 @@
 import unittest
 
-from midas.structs.orders import OrderType, Action
-from midas.structs.signal import SignalInstruction
+from midastrader.structs import OrderType, Action, SignalInstruction
 
 
 class TestTradeInsructions(unittest.TestCase):

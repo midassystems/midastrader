@@ -3,8 +3,8 @@ import pandas as pd
 from datetime import time
 from ibapi.contract import Contract
 
-from midas.structs.orders import Action
-from midas.structs.symbol import (
+from midastrader.structs import (
+    Action,
     SecurityType,
     Venue,
     Equity,

@@ -2,8 +2,8 @@ import unittest
 from datetime import datetime
 from ibapi.contract import Contract
 
-from midas.structs.events import OrderEvent
-from midas.structs.orders import Action, MarketOrder
+from midastrader.structs.events import OrderEvent
+from midastrader.structs.orders import Action, MarketOrder
 
 
 class TestOrderEvent(unittest.TestCase):

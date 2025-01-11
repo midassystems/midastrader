@@ -6,13 +6,13 @@ from ibapi.contract import Contract
 from unittest.mock import MagicMock
 
 
-from midas.message_bus import MessageBus, EventType
-from midas.structs.orders import Action, MarketOrder
-from midas.structs.symbol import SymbolMap
-from midas.utils.logger import SystemLogger
-from midas.execution.adaptors.dummy.broker_client import DummyAdaptor
-from midas.structs.events import OrderEvent
-from midas.structs.symbol import (
+from midastrader.message_bus import MessageBus, EventType
+from midastrader.structs.orders import Action, MarketOrder
+from midastrader.structs.symbol import SymbolMap
+from midastrader.utils.logger import SystemLogger
+from midastrader.execution.adaptors.dummy.broker_client import DummyAdaptor
+from midastrader.structs.events import OrderEvent
+from midastrader.structs.symbol import (
     Equity,
     Currency,
     Venue,
