@@ -1,8 +1,7 @@
 # MidasTrader
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-
-## Overview
+[![pypi-version](https://img.shields.io/pypi/v/midastrader.svg)](https://pypi.org/project/midastrader/)
 
 MidasTrader is a robust trading system designed for seamless transitions between backtesting and live trading without requiring changes to user code. It integrates a flexible architecture combining a data engine, execution engine, and core components that streamline the strategy development process. The system is built with a multi-threaded design where each component communicates via a shared message bus.
 
@@ -32,23 +31,11 @@ MidasTrader is a robust trading system designed for seamless transitions between
 
 ## Installation
 
-1. Clone the repository:
+You can install `midastrader` directly from [PyPI](https://pypi.org/project/midastrader/):
 
-   ```bash
-   git clone https://github.com/midassystems/midastrader.git
-   cd midastrader
-   ```
-
-2. Install dependencies:
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. Install the package:
-   ```bash
-   python setup.py install
-   ```
+```bash
+pip install midastrader
+```
 
 ## Configuration
 
