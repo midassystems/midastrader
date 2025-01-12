@@ -5,7 +5,7 @@ import threading
 import pandas as pd
 from datetime import datetime
 from mbn import BacktestData
-from midasClient.client import DatabaseClient
+from midas_client.client import DatabaseClient
 
 from midastrader.structs.symbol import SymbolMap
 from midastrader.config import Parameters, Mode

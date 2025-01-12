@@ -1,7 +1,7 @@
 import threading
 from mbn import BufferStore, RecordMsg
-from midasClient.client import DatabaseClient
-from midasClient.historical import RetrieveParams
+from midas_client.client import DatabaseClient
+from midas_client.historical import RetrieveParams
 from datetime import datetime
 
 from midastrader.utils.unix import unix_to_iso
