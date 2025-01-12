@@ -2,7 +2,7 @@ import mbn
 import numpy as np
 import pandas as pd
 from typing import List, Dict
-from quantAnalytics.backtest.metrics import Metrics
+from quant_analytics.backtest.metrics import Metrics
 
 from midastrader.structs.trade import Trade
 from midastrader.structs.events import (
