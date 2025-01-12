@@ -7,7 +7,7 @@ TMPFILE="tmpfile.toml"
 gsed '/\[project\]/,/^\[/{/dependencies = \[/,/]/d}' "$PYPROJECT" >"$TMPFILE"
 
 # Fetch dependencies from pip freeze, excluding build-related tools
-DEPENDENCIES=$(pip freeze | grep -Ev '^(setuptools|wheel|twine)' | awk '{printf "    \"%s\",\n", $0}')
+DEPENDENCIES=$(pip freeze | grep -Ev '^(setuptools|wheel|twine|build|bump2version|ibapi[ @])' | awk '{printf "    \"%s\",\n", $0}')
 
 # Remove trailing comma from the last dependency
 DEPENDENCIES=$(echo "$DEPENDENCIES" | sed '$ s/,$//')
