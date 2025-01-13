@@ -1,5 +1,5 @@
 import unittest
-from midas.cli import run
+from midastrader.cli import run
 
 
 class MidasLiveIntegration(unittest.TestCase):
