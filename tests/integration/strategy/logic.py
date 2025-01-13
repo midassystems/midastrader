@@ -5,10 +5,10 @@ from enum import Enum, auto
 from typing import List, Dict, Tuple
 from mbn import OhlcvMsg
 
-from midas.message_bus import MessageBus
-from midas.structs import SymbolMap, SignalInstruction, OrderType, Action
-from midas.structs.events import MarketEvent
-from midas.core import BaseStrategy
+from midastrader.message_bus import MessageBus
+from midastrader.structs import SymbolMap, SignalInstruction, OrderType, Action
+from midastrader.structs.events import MarketEvent
+from midastrader.core import BaseStrategy
 
 
 class Signal(Enum):
