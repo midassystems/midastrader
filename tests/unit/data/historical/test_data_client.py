@@ -172,14 +172,14 @@ class TestHistoricalAdaptor(unittest.TestCase):
 
         # Test
         self.bus.publish = MagicMock()
-        self.adaptor._await_data_processed = MagicMock()
+        self.adaptor._await_eod_processed = MagicMock()
         self.adaptor._check_eod(bar)
 
         # Validate
         args = self.bus.publish.call_args[0]
         self.assertEqual(args[0], EventType.DATA)
         self.assertEqual(args[1], event)
-        self.assertTrue(self.adaptor._await_data_processed.called)
+        self.assertTrue(self.adaptor._await_eod_processed.called)
 
     def test_check_eod_not(self):
         bar = OhlcvMsg(

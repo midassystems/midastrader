@@ -1,5 +1,4 @@
 import queue
-import time
 from typing import Dict
 from mbn import RecordMsg
 from threading import Lock
@@ -109,7 +108,7 @@ class OrderBookManager(CoreAdapter):
 
         # Subscribe to events
         self.data_queue = self.bus.subscribe(EventType.DATA)
-        self.equity_update_flag = self.bus.subscribe(EventType.EQUITY_UPDATED)
+        # self.equity_update_flag = self.bus.subscribe(EventType.EQUITY_UPDATED)
 
     def process(self) -> None:
         """
@@ -124,7 +123,6 @@ class OrderBookManager(CoreAdapter):
         while not self.shutdown_event.is_set():
             try:
                 item = self.data_queue.get()
-                # self.logger.info(f"OB - {item}")
                 self.handle_event(item)
             except queue.Empty:
                 continue
@@ -132,6 +130,13 @@ class OrderBookManager(CoreAdapter):
         self.cleanup()
 
     def cleanup(self) -> None:
+        while True:
+            try:
+                item = self.data_queue.get()
+                self.handle_event(item)
+            except queue.Empty:
+                break
+
         self.logger.info("Shutting down orderbook manager.")
 
     def handle_event(self, event: SystemEvent) -> None:
@@ -151,6 +156,7 @@ class OrderBookManager(CoreAdapter):
 
         """
         if isinstance(event, EODEvent):
+            self.logger.debug(event)
             # Publish that EOD processing is complete
             # processed only in backtest situations
             self.bus.publish(EventType.EOD, True)
@@ -158,7 +164,7 @@ class OrderBookManager(CoreAdapter):
             while self.bus.get_flag(EventType.EOD):
                 continue
 
-            self.bus.publish(EventType.DATA_PROCESSED, True)
+            self.bus.publish(EventType.EOD_PROCESSED, True)
             return
 
         # Update the order book with the new market data
@@ -170,19 +176,23 @@ class OrderBookManager(CoreAdapter):
             data=event,
         )
 
+        self.logger.debug(market_event)
+
         # Check inital data loaded
         if not self.book.tickers_loaded:
             self.book._tickers_loaded = self.check_tickers_loaded()
 
         # Backtest only
-        if self.mode == Mode.BACKTEST:
-            self.bus.publish(EventType.UPDATE_SYSTEM, True)
-            self.bus.publish(EventType.UPDATE_EQUITY, True)
+        # if self.mode == Mode.BACKTEST:
 
         # Notify any observers about the market update
-        self.bus.publish(EventType.ORDER_BOOK, market_event)
+        # self.bus.publish(EventType.ORDER_BOOK, market_event)
+
         if self.mode == Mode.BACKTEST:
-            self.await_updates()
+            self.await_equity_updated()
+            self.await_market_data_processed(market_event)
+        else:
+            self.bus.publish(EventType.ORDER_BOOK, market_event)
 
     def check_tickers_loaded(self) -> bool:
         """
@@ -195,29 +205,33 @@ class OrderBookManager(CoreAdapter):
             self.book._book.keys()
         )
 
-    def await_updates(self):
-        """
-        Waits for the EOD_PROCESSED flag to be set.
-        """
-        self.await_equity_updated()
-        self.await_system_updated()
-        self.logger.info("Equity & System updated. Proceeding ...")
+    # def await_updates(self):
+    #     """
+    #     Waits for the EOD_PROCESSED flag to be set.
+    #     """
+    #     self.await_equity_updated()
+    #     self.await_system_updated()
 
     def await_equity_updated(self):
-        self.logger.info("Waiting for equity updated flag...")
+        """
+        Signals that the orderbook and by extensions the market has updated so the portoflio
+        should be updated to reflect these changes (would be done automatically live).
+        """
+        self.bus.publish(EventType.UPDATE_EQUITY, True)
+
         while True:
             if not self.bus.get_flag(EventType.UPDATE_EQUITY):
-                self.logger.info("Equity updated. Proceeding ...")
-                time.sleep(0.1)  # Prevent CPU-intensive looping
                 break
 
-    def await_system_updated(self):
-        self.logger.info("Waiting for system updated flag...")
+    def await_market_data_processed(self, event: MarketEvent):
+        """
+        To account for time, this passes orderbook updating until the system
+        has had the opportunity to determine if a signal and act on it,
+        needed to simulate live gaps between market data events.
+        """
+        self.bus.publish(EventType.UPDATE_SYSTEM, True)
+        self.bus.publish(EventType.ORDER_BOOK, event)
+
         while True:
-            self.logger.info(
-                f"Flag {self.bus.get_flag(EventType.UPDATE_SYSTEM)}"
-            )
             if not self.bus.get_flag(EventType.UPDATE_SYSTEM):
-                self.logger.info("System updated. Proceeding ...")
-                time.sleep(0.1)  # Prevent CPU-intensive looping
                 break

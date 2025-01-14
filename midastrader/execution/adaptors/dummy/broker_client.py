@@ -36,41 +36,61 @@ class DummyAdaptor(ExecutionAdapter):
         self.orders_queue = self.bus.subscribe(EventType.ORDER)
 
     def process(self):
-        try:
-            # Start sub-threads
-            self.threads.append(
-                threading.Thread(target=self.process_orders, daemon=True)
-            )
-            self.threads.append(
-                threading.Thread(target=self.broker.process, daemon=True)
-            )
+        # try:
+        # Start sub-threads
+        self.threads.append(
+            threading.Thread(target=self.process_orders, daemon=True)
+        )
+        self.threads.append(
+            threading.Thread(target=self.broker.process, daemon=True)
+        )
 
-            for thread in self.threads:
-                thread.start()
+        for thread in self.threads:
+            thread.start()
 
-            self.logger.info("Dummybrokeradaptor running ...")
-            self.running.set()
+        # Start a monitoring thread to check when all adapter threads are done
+        threading.Thread(target=self._monitor_threads, daemon=True).start()
+        self.logger.info("DummyBrokerAdaptor running ...")
+        self.running.set()
 
-            # Wait for all threads to finish
-            for thread in self.threads:
-                thread.join()
+        # finally:
+        #     # Always call cleanup on exit
+        #     self.cleanup()
 
-        finally:
-            # Always call cleanup on exit
-            self.cleanup()
+    def _monitor_threads(self):
+        """
+        Monitor all adapter threads and signal when all are done.
+        """
+        for thread in self.threads:
+            thread.join()  # Wait for each thread to finish
+
+        # self.logger.info("All adapter threads have completed.")
+        # self.completed.set()  # Signal that the DataEngine is done
 
     def process_orders(self) -> None:
         while not self.shutdown_event.is_set():
             try:
                 order = self.order_queue.get()
-                self.logger.info("Broker - Order received.")
+                self.logger.debug(order)
                 self.bus.publish(EventType.TRADE, order)
             except queue.Empty:
                 continue
 
+        self.cleanup()
+
     def cleanup(self) -> None:
-        self.broker.liquidate_positions()
-        self.logger.info("Liquidated positions.")
+        while True:
+            try:
+                order = self.order_queue.get()
+                self.logger.debug(order)
+                self.bus.publish(EventType.TRADE, order)
+            except queue.Empty:
+                break
+
+        self.broker.shutdown_event.set()
+
+        # self.broker.liquidate_positions()
+        # self.logger.info("Liquidated positions.")
 
     # def handle_order(self, event: OrderEvent) -> None:
     #     """

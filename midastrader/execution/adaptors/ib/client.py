@@ -66,7 +66,7 @@ class IBAdaptor(ExecutionAdapter):
         """
         Main processing loop that streams data and handles EOD synchronization.
         """
-        self.logger.info("Data Engine - stream done")
+        self.logger.info("IBAdaptor shutting down ...")
 
     # -- Helper --
     def _websocket_connection(self) -> None:

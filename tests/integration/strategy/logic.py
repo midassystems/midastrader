@@ -55,7 +55,7 @@ class Cointegrationzscore(BaseStrategy):
 
     def handle_event(self, event: MarketEvent):
         # self.logger.info(f"{len(self.data)}")
-        self.logger.info(event)
+        # self.logger.info(event)
 
         if isinstance(event.data, OhlcvMsg):
             self.update_current_price(event.data)
@@ -87,7 +87,7 @@ class Cointegrationzscore(BaseStrategy):
         return len(timestamps) == 1 and None not in timestamps
 
     def process_data(self, ts_event: int) -> None:
-        self.logger.info("Aligned timestamps. Processing data...")
+        # self.logger.info("Aligned timestamps. Processing data...")
 
         # Update historical data
         self.update_data(ts_event)
@@ -136,13 +136,13 @@ class Cointegrationzscore(BaseStrategy):
     # Generate Signals
     def generate_signals(self, ts_event: int):
         current_zscore = self.zscore[-1]
-        self.logger.info(f"zscore {current_zscore}")
+        self.logger.info(f"zscore : {current_zscore}")
 
         trade_instructions = []
         if self.is_valid_for_signal_generation(ts_event):
-            self.logger.info("Checking signals.")
+            # self.logger.info("Checking signals.")
             if not self._has_open_positions():
-                self.logger.info("No positions")
+                # self.logger.info("No positions")
                 # Check for entry signal
                 if self._entry_signal(current_zscore):
                     trade_instructions.extend(
@@ -167,10 +167,10 @@ class Cointegrationzscore(BaseStrategy):
         """
         Validate whether the current state allows for signal generation.
         """
-        not_expired = self.check_futures_expiration_window(ts_event)
+        # not_expired = self.check_futures_expiration_window(ts_event)
         return (
             self.order_book.tickers_loaded
-            and not_expired
+            # and not_expired
             and len(self.spread) > self.zscore_lookback
         )
 
@@ -241,6 +241,12 @@ class Cointegrationzscore(BaseStrategy):
         trade_instructions = []
 
         for instrument, weight in self.weights.items():
+            try:
+                self.logger.info(quantities)
+                self.logger.info(quantities[instrument])
+            except Exception as e:
+                self.logger.info(f"error here - {e}")
+
             action, quantity = self.get_action_and_quantity(
                 signal,
                 instrument,

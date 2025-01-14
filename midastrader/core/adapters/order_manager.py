@@ -63,7 +63,7 @@ class OrderExecutionManager(CoreAdapter):
         while not self.shutdown_event.is_set():
             try:
                 event = self.signal_queue.get()
-                self.logger.info(f"Signal {event}")
+                self.logger.debug(event)
                 self.handle_event(event)
             except queue.Empty:
                 continue
@@ -71,6 +71,14 @@ class OrderExecutionManager(CoreAdapter):
         self.cleanup()
 
     def cleanup(self):
+        while True:
+            try:
+                event = self.signal_queue.get()
+                self.logger.debug(event)
+                self.handle_event(event)
+            except queue.Empty:
+                break
+
         self.logger.info("Shutting down order execution manager...")
 
     def handle_event(self, event: SignalEvent) -> None:

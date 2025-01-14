@@ -74,12 +74,14 @@ class DataEngine:
 
     def start(self):
         """Start adapters in seperate threads."""
+        self.logger.info("Data-engine starting ...")
+
         if self.mode == Mode.BACKTEST:
             self.start_backtest()
         else:
             self.start_live()
 
-        self.logger.info("Data-engine running ...")
+        self.logger.info("Data-engine running ...\n")
         self.running.set()
 
     def start_backtest(self):
@@ -131,7 +133,7 @@ class DataEngine:
 
     def stop(self):
         """Start adapters in separate threads."""
-        for adapter in self.adapters:
+        for adapter in self.adapters.values():
             adapter.shutdown_event.set()
 
         self.logger.info("Shutting down DataEngine...")
