@@ -6,7 +6,7 @@ name = "testing123"
 session_id = 1001
 log_level = "INFO"
 log_output = "file"
-output_path = "output/"
+output_path = "tests/unit/output/"
 
 # Data Vendors
 [vendor.historical]

@@ -50,7 +50,7 @@ class HistoricalAdaptor(DataAdapter):
         self.eod_event = threading.Event()  # Thread-safe synchronization
 
         # Subscriptions
-        self.data_processed_flag = self.bus.subscribe(EventType.DATA_PROCESSED)
+        # self.data_processed_flag = self.bus.subscribe(EventType.EOD_PROCESSED)
 
     def process(self):
         """
@@ -70,7 +70,7 @@ class HistoricalAdaptor(DataAdapter):
         """
         Main processing loop that streams data and handles EOD synchronization.
         """
-        self.logger.info("Data Engine - stream done")
+        self.logger.info("HistoricalAdaptor - stream done")
 
     def set_mode(self, mode: Mode) -> None:
         self.mode = mode
@@ -174,21 +174,18 @@ class HistoricalAdaptor(DataAdapter):
         if not self.eod_triggered and symbol.after_day_session(
             record.ts_event
         ):
-            self.logger.debug("Data Engine - EOD triggered")
             self.eod_triggered = True
             self.bus.publish(
                 EventType.DATA,
                 EODEvent(timestamp=self.current_date),
             )
-            self._await_data_processed()
+            self._await_eod_processed()
 
-    def _await_data_processed(self):
+    def _await_eod_processed(self):
         """
         Waits for the EOD_PROCESSED flag to be set.
         """
-        self.logger.debug("Data Engine - Waiting for data processed flag...")
         while True:
-            if self.bus.get_flag(EventType.DATA_PROCESSED):
-                self.logger.debug("Data Engine - EOD processed ...")
-                self.bus.publish(EventType.DATA_PROCESSED, False)
+            if self.bus.get_flag(EventType.EOD_PROCESSED):
+                self.bus.publish(EventType.EOD_PROCESSED, False)
                 break
