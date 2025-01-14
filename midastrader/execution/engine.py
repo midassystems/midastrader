@@ -84,6 +84,8 @@ class ExecutionEngine:
 
     def start(self):
         """Start adapters in seperate threads."""
+        self.logger.info("Execution-engine starting ...")
+
         for adapter in self.adapters:
             # Start the threads for each vendor
             thread = threading.Thread(target=adapter.process, daemon=True)
@@ -93,7 +95,7 @@ class ExecutionEngine:
 
         # Start a monitoring thread to check when all adapter threads are done
         threading.Thread(target=self._monitor_threads, daemon=True).start()
-        self.logger.info("Execution-engine running ...")
+        self.logger.info("Execution-engine running ...\n")
         self.running.set()
 
     def _monitor_threads(self):
@@ -103,7 +105,7 @@ class ExecutionEngine:
         for thread in self.threads:
             thread.join()  # Wait for each thread to finish
 
-        self.logger.info(" Ex Engine -All adapter threads have completed.")
+        self.logger.info("Execution Engine threads have completed.")
         self.completed.set()  # Signal that the DataEngine is done
 
     def wait_until_complete(self):
@@ -118,4 +120,4 @@ class ExecutionEngine:
         for adapter in self.adapters:
             adapter.shutdown_event.set()
 
-        self.logger.info("Ex -Engine Shutting down DataEngine...")
+        self.logger.info("Execution-engine shutting down ...")

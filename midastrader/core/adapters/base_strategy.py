@@ -73,6 +73,13 @@ class BaseStrategy(CoreAdapter):
         self.cleanup()
 
     def cleanup(self):
+        while True:
+            try:
+                event = self.orderbook_queue.get()
+                self.handle_event(event)
+            except queue.Empty:
+                break
+
         self.logger.info("Shutting down strategy.")
 
     @abstractmethod

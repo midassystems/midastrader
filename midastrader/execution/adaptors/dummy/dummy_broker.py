@@ -53,6 +53,7 @@ class DummyBroker:
         self.order_book = OrderBook.get_instance()
         self.symbols_map = symbols_map
         self.bus = bus
+        self.shutdown_event = threading.Event()  # Flag to signal shutdown
 
         # Variables
         self.threads = []
@@ -99,7 +100,7 @@ class DummyBroker:
             self.cleanup()
 
     def process_book_update(self) -> None:
-        while True:
+        while not self.shutdown_event.is_set():
             try:
                 if self.bus.get_flag(EventType.UPDATE_EQUITY):
                     self._update_account()
@@ -109,23 +110,34 @@ class DummyBroker:
                 continue
 
     def process_eod(self) -> None:
-        while True:
+        while not self.shutdown_event.is_set():
             try:
                 if self.bus.get_flag(EventType.EOD):
                     self._update_account()
                     self.mark_to_market()
                     self.check_margin_call()
+                    self.return_account()
                     self.bus.publish(EventType.EOD, False)
             except queue.Empty:
                 continue
 
     def process_trades(self) -> None:
-        while True:
+        while not self.shutdown_event.is_set():
             try:
                 event = self.trade_queue.get()
                 self._handle_trade(event)
             except queue.Empty:
                 continue
+
+    def cleanup(self) -> None:
+        while True:
+            try:
+                event = self.trade_queue.get()
+                self._handle_trade(event)
+            except queue.Empty:
+                break
+        self.liquidate_positions()
+        self.logger.info("Shutting down DummyBroker ...")
 
     def _handle_trade(self, event: OrderEvent) -> None:
         """

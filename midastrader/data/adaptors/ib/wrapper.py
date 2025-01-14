@@ -141,7 +141,7 @@ class DataApp(EWrapper, EClient):
         with self.next_valid_order_id_lock:
             self.next_valid_order_id = orderId
 
-        self.logger.info(f"Next Valid Id {self.next_valid_order_id}")
+        self.logger.debug(f"Next Valid Id {self.next_valid_order_id}")
         self.valid_id_event.set()
 
     def contractDetails(
