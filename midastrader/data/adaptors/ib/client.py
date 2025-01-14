@@ -111,9 +111,10 @@ class IBAdaptor(DataAdapter):
         """
         Main processing loop that streams data and handles EOD synchronization.
         """
-        self.logger.info("Data Engine - stream done")
+        self.logger.info("IBDataAdaptor shutting down ...")
 
     # -- Connection --
+    # Old
     def connect(self) -> None:
         """
         Establishes a WebSocket connection to the IB server and waits for confirmation.

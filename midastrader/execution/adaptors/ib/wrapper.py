@@ -217,7 +217,7 @@ class BrokerApp(EWrapper, EClient):
         # Updating portfolio server outside the lock to avoid deadlocks
         self.bus.publish(EventType.ACCOUNT_UPDATE, account_info_copy)
         self.bus.publish(EventType.ACCOUNT_UPDATE_LOG, account_info_copy)
-        self.logger.debug("Processed buffered account updates.")
+        # self.logger.debug("Processed buffered account updates.")
 
     #### wrapper function for reqAccountUpdates. Get position information
     def updatePortfolio(

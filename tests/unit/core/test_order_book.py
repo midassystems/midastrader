@@ -253,12 +253,12 @@ class TestOrderBookManager(unittest.TestCase):
 
         # Validate the first call
         first_call_args = calls[0][0]
-        self.assertEqual(first_call_args[0], EventType.UPDATE_SYSTEM)
+        self.assertEqual(first_call_args[0], EventType.UPDATE_EQUITY)
         self.assertEqual(first_call_args[1], True)
 
         # Validate the second call
         second_call_args = calls[1][0]
-        self.assertEqual(second_call_args[0], EventType.UPDATE_EQUITY)
+        self.assertEqual(second_call_args[0], EventType.UPDATE_SYSTEM)
         self.assertEqual(second_call_args[1], True)
 
         third_call_args = calls[2][0]
@@ -284,12 +284,12 @@ class TestOrderBookManager(unittest.TestCase):
 
         # Validate the first call
         first_call_args = calls[0][0]
-        self.assertEqual(first_call_args[0], EventType.UPDATE_SYSTEM)
+        self.assertEqual(first_call_args[0], EventType.UPDATE_EQUITY)
         self.assertEqual(first_call_args[1], True)
 
         # Validate the second call
         second_call_args = calls[1][0]
-        self.assertEqual(second_call_args[0], EventType.UPDATE_EQUITY)
+        self.assertEqual(second_call_args[0], EventType.UPDATE_SYSTEM)
         self.assertEqual(second_call_args[1], True)
 
         third_call_args = calls[2][0]

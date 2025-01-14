@@ -62,18 +62,29 @@ class OrderManager:
         # If the status is 'Cancelled' and the order is present in the dict, remove it
         if order.status == "Cancelled" and order.orderId in self.active_orders:
             del self.active_orders[order.orderId]
+            self.logger.debug(f"\nORDERS UPDATED: \n{self._ouput_orders()}")
+
         elif order.status == "Filled" and order.orderId in self.active_orders:
             self.pending_positions_update.add(order.instrument)
             del self.active_orders[order.orderId]
+            self.logger.debug(f"\nORDERS UPDATED: \n{self._ouput_orders()}")
+
         # If not cancelled, either update the existing order or add a new one
         elif order.status != "Cancelled" and order.status != "Filled":
             if order.orderId in self.active_orders:
                 self.active_orders[order.orderId].update(order)
+                self.logger.debug(
+                    f"\nORDERS UPDATED: \n{self._ouput_orders()}"
+                )
+
             else:
                 self.active_orders[order.orderId] = order
+                self.logger.debug(
+                    f"\nORDERS UPDATED: \n{self._ouput_orders()}"
+                )
 
         # self.notify(EventType.ORDER_UPDATE)  # update database
-        self.logger.debug(f"\nORDERS UPDATED: \n{self._ouput_orders()}")
+        # self.logger.debug(f"\nORDERS UPDATED: \n{self._ouput_orders()}")
 
     def _ouput_orders(self) -> str:
         """
@@ -144,15 +155,21 @@ class PositionManager:
         if position.quantity == 0:
             if instrument_id in self.positions:
                 del self.positions[instrument_id]
+                self.logger.debug(
+                    f"\nPOSITIONS UPDATED: \n{self._output_positions()}"
+                )
             else:  # Same position duplicated, no need to log or notify
                 return
         else:
             # Update the position
             self.positions[instrument_id] = position
+            self.logger.debug(
+                f"\nPOSITIONS UPDATED: \n{self._output_positions()}"
+            )
 
         # Notify listener and log
         self.pending_positions_update.discard(instrument_id)
-        self.logger.debug(f"\nPOSITIONS UPDATED: \n{self._output_positions()}")
+        # self.logger.debug(f"\nPOSITIONS UPDATED: \n{self._output_positions()}")
 
     def _output_positions(self) -> str:
         """

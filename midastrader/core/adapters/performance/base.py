@@ -127,7 +127,7 @@ class PerformanceManager(CoreAdapter):
             for thread in self.threads:
                 thread.start()
 
-            self.logger.info("Performancemanager running ...")
+            self.logger.info("PerformanceManager running ...")
             self.running.set()
 
             for thread in self.threads:
@@ -138,7 +138,7 @@ class PerformanceManager(CoreAdapter):
 
     def cleanup(self):
         self.save()
-        self.logger.info("Shutting down order execution manager...")
+        self.logger.info("Shutting down PerformanceManager...")
 
     def process_account(self) -> None:
         """
@@ -415,7 +415,6 @@ class PerformanceManager(CoreAdapter):
         )
         # Save Backtest Object
         response = self.database.trading.create_backtest(self.backtest)
-        print(response)
         self.logger.info(f"Backtest saved with response : {response}")
 
     def mbn_account_summary(self, account: dict) -> mbn.AccountSummary:

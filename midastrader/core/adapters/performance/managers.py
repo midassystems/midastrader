@@ -70,7 +70,6 @@ class TradeManager:
         self.logger.debug(
             f"\nTrade Updated:\n{event.trade.pretty_print("  ")}\n"
         )
-        self.logger.debug(self.trades)
 
     def update_trade_commission(self, event: TradeCommissionEvent) -> None:
         """
@@ -615,10 +614,11 @@ class EquityManager:
         # Remove intermediate updates before calculating returns/drawdowns
         raw_equity_df = self._remove_intermediate_updates(raw_equity_df)
 
+        # This is off
         daily_equity_curve = resample_timestamp(
             raw_equity_df.copy(),
             interval="D",
-            tz_info="EST",
+            tz_info="UTC",
         )
         self.period_stats = self._calculate_return_and_drawdown(
             raw_equity_df.copy()

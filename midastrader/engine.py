@@ -309,13 +309,15 @@ class Engine:
         """
         # Wait for DataEngine to complete
         self.data_engine.wait_until_complete()
+        self.data_engine.stop()
 
         # Shut down engines in order
-        self.logger.info("DataEngine completed. Liquidating positions...")
-        self.execution_engine.stop()
-
-        self.logger.info("Saving performance results...")
+        # self.logger.info("Saving performance results...")
         self.core_engine.stop()
+
+        # self.logger.info("Liquidating positions...")
+        self.execution_engine.stop()
+        self.core_engine.save()
 
         self.logger.info("Backtest completed.")
 
