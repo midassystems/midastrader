@@ -91,7 +91,7 @@ class DataEngine:
             thread = threading.Thread(target=adapter.process, daemon=True)
             self.threads.append(thread)  # Keep track of threads
             thread.start()
-            adapter.running.wait()
+            adapter.is_running.wait()
 
         # Start a monitoring thread to check when all adapter threads are done
         threading.Thread(target=self._monitor_threads, daemon=True).start()
@@ -110,7 +110,7 @@ class DataEngine:
                 thread = threading.Thread(target=adapter.process, daemon=True)
                 self.threads.append(thread)  # Keep track of threads
                 thread.start()
-                adapter.running.wait()
+                adapter.is_running.wait()
 
         # Start a monitoring thread to check when all adapter threads are done
         threading.Thread(target=self._monitor_threads, daemon=True).start()
@@ -122,7 +122,7 @@ class DataEngine:
         for thread in self.threads:
             thread.join()  # Wait for each thread to finish
 
-        self.logger.info("Data Engine - All adapter threads have completed.")
+        self.logger.info("DataEngine threads completed, shutting down ...")
         self.completed.set()  # Signal that the DataEngine is done
 
     def wait_until_complete(self):
@@ -135,5 +135,6 @@ class DataEngine:
         """Start adapters in separate threads."""
         for adapter in self.adapters.values():
             adapter.shutdown_event.set()
+            adapter.is_shutdown.wait()
 
-        self.logger.info("Shutting down DataEngine...")
+        # self.logger.info("Shutting down DataEngine ...")

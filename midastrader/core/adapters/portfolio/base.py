@@ -124,7 +124,7 @@ class PortfolioServerManager(CoreAdapter):
         super().__init__(symbols_map, bus)
         self.server = PortfolioServer.get_instance()
         self.threads = []
-        self.running = threading.Event()
+        # self.running = threading.Event()
 
         # Subscribe to events
         self.order_queue = self.bus.subscribe(EventType.ORDER_UPDATE)
@@ -147,8 +147,8 @@ class PortfolioServerManager(CoreAdapter):
             for thread in self.threads:
                 thread.start()
 
-            self.logger.info("Porfolioserver running ...")
-            self.running.set()
+            self.logger.info("PorfolioserverManager running ...")
+            self.is_running.set()
 
             for thread in self.threads:
                 thread.join()
@@ -157,7 +157,8 @@ class PortfolioServerManager(CoreAdapter):
             self.cleanup()
 
     def cleanup(self) -> None:
-        self.logger.info("Shutting down portfolio server manager...")
+        self.logger.info("Shutting down PortfolioserverManager...")
+        self.is_shutdown.set()
 
     def process_orders(self) -> None:
         """
@@ -168,7 +169,7 @@ class PortfolioServerManager(CoreAdapter):
         """
         while not self.shutdown_event.is_set():
             try:
-                item = self.order_queue.get()
+                item = self.order_queue.get(timeout=0.01)
                 self.server.order_manager.update_orders(item)
             except queue.Empty:
                 continue
@@ -182,7 +183,7 @@ class PortfolioServerManager(CoreAdapter):
         """
         while not self.shutdown_event.is_set():
             try:
-                item = self.position_queue.get()
+                item = self.position_queue.get(timeout=0.01)
                 self.server.position_manager.update_positions(item[0], item[1])
             except queue.Empty:
                 continue
@@ -196,7 +197,7 @@ class PortfolioServerManager(CoreAdapter):
         """
         while not self.shutdown_event.is_set():
             try:
-                item = self.account_queue.get()
+                item = self.account_queue.get(timeout=0.01)
                 self.server.account_manager.update_account_details(item)
             except queue.Empty:
                 continue

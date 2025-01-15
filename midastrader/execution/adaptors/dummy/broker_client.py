@@ -33,7 +33,7 @@ class DummyAdaptor(ExecutionAdapter):
         self.broker = DummyBroker(self.symbols_map, self.bus, capital)
 
         # Subscriptions
-        self.orders_queue = self.bus.subscribe(EventType.ORDER)
+        self.order_queue = self.bus.subscribe(EventType.ORDER)
 
     def process(self):
         # try:
@@ -48,29 +48,35 @@ class DummyAdaptor(ExecutionAdapter):
         for thread in self.threads:
             thread.start()
 
-        # Start a monitoring thread to check when all adapter threads are done
-        threading.Thread(target=self._monitor_threads, daemon=True).start()
+        self.broker.is_running.wait()
+
         self.logger.info("DummyBrokerAdaptor running ...")
-        self.running.set()
+        self.is_running.set()
+
+        for thread in self.threads:
+            thread.join()
+
+        self.logger.info("Shutting down DummyBrokerAdaptor ...")
+        self.is_shutdown.set()
 
         # finally:
         #     # Always call cleanup on exit
         #     self.cleanup()
 
-    def _monitor_threads(self):
-        """
-        Monitor all adapter threads and signal when all are done.
-        """
-        for thread in self.threads:
-            thread.join()  # Wait for each thread to finish
+    # def _monitor_threads(self):
+    #     """
+    #     Monitor all adapter threads and signal when all are done.
+    #     """
+    #     for thread in self.threads:
+    #         thread.join()  # Wait for each thread to finish
 
-        # self.logger.info("All adapter threads have completed.")
-        # self.completed.set()  # Signal that the DataEngine is done
+    # self.logger.info("All adapter threads have completed.")
+    # self.completed.set()  # Signal that the DataEngine is done
 
     def process_orders(self) -> None:
         while not self.shutdown_event.is_set():
             try:
-                order = self.order_queue.get()
+                order = self.order_queue.get(timeout=0.01)
                 self.logger.debug(order)
                 self.bus.publish(EventType.TRADE, order)
             except queue.Empty:
@@ -81,13 +87,15 @@ class DummyAdaptor(ExecutionAdapter):
     def cleanup(self) -> None:
         while True:
             try:
-                order = self.order_queue.get()
+                order = self.order_queue.get(timeout=1)
                 self.logger.debug(order)
                 self.bus.publish(EventType.TRADE, order)
             except queue.Empty:
                 break
 
         self.broker.shutdown_event.set()
+        self.broker.is_shutdown.wait()
+        # self.is_shutdown.set()
 
         # self.broker.liquidate_positions()
         # self.logger.info("Liquidated positions.")

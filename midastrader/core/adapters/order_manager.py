@@ -1,5 +1,6 @@
 import queue
-import threading
+
+# import threading
 from typing import List
 from ibapi.contract import Contract
 
@@ -34,7 +35,7 @@ class OrderExecutionManager(CoreAdapter):
         super().__init__(symbols_map, bus)
         self.order_book = OrderBook.get_instance()
         self.portfolio_server = PortfolioServer.get_instance()
-        self.running = threading.Event()
+        # self.running = threading.Event()
 
         # Subcriptions
         self.signal_queue = self.bus.subscribe(EventType.SIGNAL)
@@ -58,11 +59,11 @@ class OrderExecutionManager(CoreAdapter):
 
         """
         self.logger.info("Ordermanager running ...")
-        self.running.set()
+        self.is_running.set()
 
         while not self.shutdown_event.is_set():
             try:
-                event = self.signal_queue.get()
+                event = self.signal_queue.get(timeout=0.01)
                 self.logger.debug(event)
                 self.handle_event(event)
             except queue.Empty:
@@ -73,13 +74,14 @@ class OrderExecutionManager(CoreAdapter):
     def cleanup(self):
         while True:
             try:
-                event = self.signal_queue.get()
+                event = self.signal_queue.get(timeout=1)
                 self.logger.debug(event)
                 self.handle_event(event)
             except queue.Empty:
                 break
 
-        self.logger.info("Shutting down order execution manager...")
+        self.logger.info("Shutting down OrderManager...")
+        self.is_shutdown.set()
 
     def handle_event(self, event: SignalEvent) -> None:
         """

@@ -1,5 +1,6 @@
 import queue
-import threading
+
+# import threading
 import pandas as pd
 import importlib.util
 from typing import Type
@@ -46,7 +47,7 @@ class BaseStrategy(CoreAdapter):
         self.order_book = OrderBook.get_instance()
         self.portfolio_server = PortfolioServer.get_instance()
         self.historical_data = None
-        self.running = threading.Event()
+        # self.running = threading.Event()
 
         # Subscribe to orderbook updates
         self.orderbook_queue = self.bus.subscribe(EventType.ORDER_BOOK)
@@ -61,11 +62,11 @@ class BaseStrategy(CoreAdapter):
             event (MarketEvent): The market event containing data to process.
         """
         self.logger.info("Strategy running ...")
-        self.running.set()
+        self.is_running.set()
 
         while not self.shutdown_event.is_set():
             try:
-                event = self.orderbook_queue.get()
+                event = self.orderbook_queue.get(timeout=0.01)
                 self.handle_event(event)
             except queue.Empty:
                 continue
@@ -75,12 +76,13 @@ class BaseStrategy(CoreAdapter):
     def cleanup(self):
         while True:
             try:
-                event = self.orderbook_queue.get()
+                event = self.orderbook_queue.get(timeout=1)
                 self.handle_event(event)
             except queue.Empty:
                 break
 
-        self.logger.info("Shutting down strategy.")
+        self.logger.info("Shutting down Strategy ...")
+        self.is_shutdown.set()
 
     @abstractmethod
     def handle_event(self, event: MarketEvent) -> None:

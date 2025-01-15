@@ -263,7 +263,7 @@ class Engine:
         Raises:
             RuntimeError: If the system fails to load required components.
         """
-        self.logger.info(f"Initializing system with mode: {self.mode.value}")
+        # self.logger.info(f"Initializing system with mode: {self.mode.value}")
 
         # Risk Model
         if self.config.risk_class:
@@ -277,13 +277,13 @@ class Engine:
 
         self.core_engine.set_strategy(strategy_class)
 
-        self.logger.info("Trading system initialized successfully.")
+        # self.logger.info("Trading system initialized successfully.")
 
     def start(self):
         """
         Start the main event loop of the trading system.
         """
-        self.logger.info(f"<< Starting in {self.mode.value} mode. >>")
+        self.logger.info(f"<< Starting in {self.mode.value} mode. >>\n")
 
         # Start engines
         core_thread = threading.Thread(target=self.core_engine.start)
@@ -303,6 +303,11 @@ class Engine:
         else:
             self._live_loop()
 
+        for thread in self.threads:
+            thread.join()  # Wait for each thread to finish
+
+        self.logger.info(f"\n<< Ending {self.mode.value} >>")
+
     def _backtest_loop(self):
         """
         Event loop for backtesting.
@@ -318,8 +323,9 @@ class Engine:
         # self.logger.info("Liquidating positions...")
         self.execution_engine.stop()
         self.core_engine.save()
+        self.core_engine.wait_until_complete()
 
-        self.logger.info("Backtest completed.")
+        self.logger.info("Backtest completed ...")
 
     def _live_loop(self):
         """Event loop for live trading."""
