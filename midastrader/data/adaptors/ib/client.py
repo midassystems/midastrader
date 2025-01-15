@@ -100,7 +100,7 @@ class IBAdaptor(DataAdapter):
         self._load_live_data()
 
         self.logger.info("IBDataAdaptor running ...")
-        self.running.set()
+        self.is_running.set()
 
         while not self.shutdown_event.is_set():
             continue
@@ -112,6 +112,7 @@ class IBAdaptor(DataAdapter):
         Main processing loop that streams data and handles EOD synchronization.
         """
         self.logger.info("IBDataAdaptor shutting down ...")
+        self.is_shutdown.set()
 
     # -- Connection --
     # Old

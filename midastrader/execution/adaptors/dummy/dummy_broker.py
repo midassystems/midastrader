@@ -53,7 +53,11 @@ class DummyBroker:
         self.order_book = OrderBook.get_instance()
         self.symbols_map = symbols_map
         self.bus = bus
-        self.shutdown_event = threading.Event()  # Flag to signal shutdown
+
+        # Thread events
+        self.shutdown_event = threading.Event()
+        self.is_running = threading.Event()
+        self.is_shutdown = threading.Event()
 
         # Variables
         self.threads = []
@@ -93,6 +97,9 @@ class DummyBroker:
             for thread in self.threads:
                 thread.start()
 
+            self.logger.info("DummyBroker running ...")
+            self.is_running.set()
+
             for thread in self.threads:
                 thread.join()
 
@@ -124,7 +131,7 @@ class DummyBroker:
     def process_trades(self) -> None:
         while not self.shutdown_event.is_set():
             try:
-                event = self.trade_queue.get()
+                event = self.trade_queue.get(timeout=0.01)
                 self._handle_trade(event)
             except queue.Empty:
                 continue
@@ -132,12 +139,14 @@ class DummyBroker:
     def cleanup(self) -> None:
         while True:
             try:
-                event = self.trade_queue.get()
+                event = self.trade_queue.get(timeout=1)
                 self._handle_trade(event)
             except queue.Empty:
                 break
+
         self.liquidate_positions()
         self.logger.info("Shutting down DummyBroker ...")
+        self.is_shutdown.set()
 
     def _handle_trade(self, event: OrderEvent) -> None:
         """
@@ -336,42 +345,48 @@ class DummyBroker:
         Notes:
             This method handles the closing of all positions and logs the liquidation details.
         """
-        for contract, position in list(self.positions.items()):
-            symbol = self.symbols_map.get_symbol(contract.symbol)
-            mkt_data = self.order_book.retrieve(symbol.instrument_id)
-            current_price = mkt_data.pretty_price
-            position.market_price = current_price
-            position.calculate_liquidation_value()
+        if len(self.positions) == 0:
+            self.logger.info("No positions held at completion.")
+        else:
+            self.logger.info("Liquidating Positions held at completion.")
+            for contract, position in list(self.positions.items()):
+                symbol = self.symbols_map.get_symbol(contract.symbol)
+                mkt_data = self.order_book.retrieve(symbol.instrument_id)
+                current_price = mkt_data.pretty_price
+                position.market_price = current_price
+                position.calculate_liquidation_value()
 
-            trade = Trade(
-                timestamp=self.order_book.last_updated,
-                trade_id=self.last_trades[contract].trade_id,
-                leg_id=self.last_trades[contract].leg_id,
-                instrument=symbol.instrument_id,
-                quantity=round(position.quantity * -1, 4),
-                avg_price=current_price * symbol.price_multiplier,
-                trade_value=round(
-                    symbol.value(position.quantity, current_price), 2
-                ),
-                trade_cost=symbol.cost(position.quantity * -1, current_price),
-                action=(
-                    Action.SELL.value
-                    if position.action == "BUY"
-                    else Action.COVER.value
-                ),
-                fees=0.0,  # because not actually a trade
-            )
+                trade = Trade(
+                    timestamp=self.order_book.last_updated,
+                    trade_id=self.last_trades[contract].trade_id,
+                    leg_id=self.last_trades[contract].leg_id,
+                    instrument=symbol.instrument_id,
+                    quantity=round(position.quantity * -1, 4),
+                    avg_price=current_price * symbol.price_multiplier,
+                    trade_value=round(
+                        symbol.value(position.quantity, current_price), 2
+                    ),
+                    trade_cost=symbol.cost(
+                        position.quantity * -1, current_price
+                    ),
+                    action=(
+                        Action.SELL.value
+                        if position.action == "BUY"
+                        else Action.COVER.value
+                    ),
+                    fees=0.0,  # because not actually a trade
+                )
 
-            # self.last_trades[contract] = trade
-            id = f"{trade.trade_id}{trade.leg_id}{trade.action}"
-            self.bus.publish(EventType.TRADE_UPDATE, TradeEvent(id, trade))
+                # self.last_trades[contract] = trade
+                id = f"{trade.trade_id}{trade.leg_id}{trade.action}"
+                self.bus.publish(EventType.TRADE_UPDATE, TradeEvent(id, trade))
 
-        # Output liquidation
-        string = "Positions liquidate:"
-        for contract, trade in self.last_trades.items():
-            string += f"\n  {contract} : {trade}"
-
-        self.logger.info(f"\n{string}")
+            # # Output liquidation
+            # string = "Positions liquidate:"
+            # for contract, trade in self.last_trades.items():
+            #     string += f"\n  {contract} : {trade}"
+            #
+            # self.logger.info(f"\n{string}")
 
     def return_positions(self) -> dict:
         """

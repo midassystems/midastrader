@@ -57,7 +57,7 @@ class HistoricalAdaptor(DataAdapter):
         Main processing loop that streams data and handles EOD synchronization.
         """
         self.logger.info("HistoricalAdaptor running ...")
-        self.running.set()
+        self.is_running.set()
 
         while self.data_stream():
             if self.shutdown_event.is_set():
@@ -70,7 +70,8 @@ class HistoricalAdaptor(DataAdapter):
         """
         Main processing loop that streams data and handles EOD synchronization.
         """
-        self.logger.info("HistoricalAdaptor - stream done")
+        self.logger.info("HistoricalAdaptor shutting down ...")
+        self.is_shutdown.set()
 
     def set_mode(self, mode: Mode) -> None:
         self.mode = mode
@@ -120,7 +121,6 @@ class HistoricalAdaptor(DataAdapter):
         record = self.data.replay()
 
         if record is None:
-            self.logger.info("No more records in historical stream.")
             return None
 
         # Adjust instrument id

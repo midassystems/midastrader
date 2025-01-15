@@ -1309,6 +1309,21 @@ class SymbolMap:
         # Associate the instrument ID with the symbol
         self.map[symbol.instrument_id] = symbol
 
+    def get_symbol_by_id(self, id: int) -> Symbol:
+        """
+        Retrieve the Symbol object associated with a given ticker.
+
+        Args:
+            ticker (str): The ticker (broker, data, or midas) to look up.
+
+        Returns:
+            Symbol: The associated Symbol object, or None if not found.
+
+        Example:
+            >>> symbol = symbol_map.get_symbol("AAPL")
+        """
+        return self.map.get(id)
+
     def get_symbol(self, ticker: str) -> Symbol:
         """
         Retrieve the Symbol object associated with a given ticker.
