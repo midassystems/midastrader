@@ -3,7 +3,8 @@ from typing import Dict
 from mbn import RecordMsg
 from threading import Lock
 from typing import Optional
-import threading
+
+# import threading
 
 from midastrader.config import Mode
 from midastrader.structs.symbol import SymbolMap
@@ -104,7 +105,7 @@ class OrderBookManager(CoreAdapter):
         super().__init__(symbols_map, bus)
         self.mode = mode
         self.book = OrderBook.get_instance()
-        self.running = threading.Event()
+        # self.running = threading.Event()
 
         # Subscribe to events
         self.data_queue = self.bus.subscribe(EventType.DATA)
@@ -117,12 +118,12 @@ class OrderBookManager(CoreAdapter):
         This function runs as the main loop for the `OrderBook` to handle
         incoming market data messages from the `MessageBus`.
         """
-        self.logger.info("Orderbook running ...")
-        self.running.set()
+        self.logger.info("OrderbookManager running ...")
+        self.is_running.set()
 
         while not self.shutdown_event.is_set():
             try:
-                item = self.data_queue.get()
+                item = self.data_queue.get(timeout=0.01)
                 self.handle_event(item)
             except queue.Empty:
                 continue
@@ -132,12 +133,13 @@ class OrderBookManager(CoreAdapter):
     def cleanup(self) -> None:
         while True:
             try:
-                item = self.data_queue.get()
+                item = self.data_queue.get(timeout=1)
                 self.handle_event(item)
             except queue.Empty:
                 break
 
-        self.logger.info("Shutting down orderbook manager.")
+        self.logger.info("Shutting down OrderbookManager ...")
+        self.is_shutdown.set()
 
     def handle_event(self, event: SystemEvent) -> None:
         """

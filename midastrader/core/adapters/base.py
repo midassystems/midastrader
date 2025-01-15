@@ -12,8 +12,10 @@ class CoreAdapter(ABC):
         self.symbols_map = symbols_map
         self.logger = SystemLogger.get_logger()
 
-        # Flag to signal shutdown
+        # Thread events
         self.shutdown_event = threading.Event()
+        self.is_running = threading.Event()
+        self.is_shutdown = threading.Event()
 
     @abstractmethod
     def process(self) -> None:

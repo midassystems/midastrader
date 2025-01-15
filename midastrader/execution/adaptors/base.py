@@ -1,7 +1,7 @@
 import threading
 from abc import ABC, abstractmethod
 
-from midastrader.message_bus import MessageBus, EventType
+from midastrader.message_bus import MessageBus
 from midastrader.structs.symbol import SymbolMap
 from midastrader.utils.logger import SystemLogger
 
@@ -11,10 +11,13 @@ class ExecutionAdapter(ABC):
         self.bus = bus
         self.symbols_map = symbols_map
         self.logger = SystemLogger.get_logger()
-        self.shutdown_event = threading.Event()  # Flag to signal shutdown
-        self.running = threading.Event()
 
-        self.order_queue = self.bus.subscribe(EventType.ORDER)
+        # Thread events
+        self.shutdown_event = threading.Event()
+        self.is_running = threading.Event()
+        self.is_shutdown = threading.Event()
+
+        # self.order_queue = self.bus.subscribe(EventType.ORDER)
 
     @abstractmethod
     def process(self) -> None:
