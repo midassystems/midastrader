@@ -36,7 +36,9 @@ class CoreEngine:
         self.performance_manager = None
         self.order_manager = None
         self.threads = []
+
         self.running = threading.Event()
+        self.completed = threading.Event()
 
     def initialize(self):
         """
@@ -116,7 +118,7 @@ class CoreEngine:
             thread = threading.Thread(target=adapter.process, daemon=True)
             self.threads.append(thread)  # Keep track of threads
             thread.start()
-            adapter.running.wait()
+            adapter.is_running.wait()
 
         # Start a monitoring thread to check when all adapter threads are done
         threading.Thread(target=self._monitor_threads, daemon=True).start()
@@ -130,7 +132,7 @@ class CoreEngine:
         for thread in self.threads:
             thread.join()  # Wait for each thread to finish
 
-        self.logger.info("All adapter threads have completed.")
+        self.logger.info("CoreEngine threads completed, shutting down ...")
         self.completed.set()  # Signal that the DataEngine is done
 
     def wait_until_complete(self):
@@ -141,17 +143,36 @@ class CoreEngine:
 
     def stop(self):
         """Start adapters in separate threads."""
-        self.logger.info("Core Engine -  Shutting down DataEngine...")
-        self.adapters["order_book"].shutdown_event.set()
-        self.adapters["strategy"].shutdown_event.set()
-        self.adapters["order_manager"].shutdown_event.set()
 
+        # Shutdown OrderBookManager
+        self.adapters["order_book"].shutdown_event.set()
+        self.adapters["order_book"].is_shutdown.wait()
+
+        # Shutdown strategy
+        # self.adapters["strategy"].shutdown_event.set()
+        # self.adapters["strategy"].is_shutdown.wait()
+
+        # Shutdown OrderExecutionManager
+        self.adapters["order_manager"].shutdown_event.set()
+        self.adapters["order_manager"].is_shutdown.wait()
+
+        # self.logger.info("Shutting down CoreEngine main components ...")
         # self.adapters["performance_manager"].save()
         # self.adapters["portfolio_server"].shutdown_event.set()
         # self.adapters["performance_manager"].shutdown_event.set()
 
     def save(self):
         """Start adapters in separate threads."""
-        self.adapters["performance_manager"].save()
-        self.adapters["portfolio_server"].shutdown_event.set()
+        # Shutdown performance manaer
+        # self.adapters["performance_manager"].save()
         self.adapters["performance_manager"].shutdown_event.set()
+        self.adapters["performance_manager"].is_shutdown.wait()
+
+        # Shutdown portfolio server
+        self.adapters["portfolio_server"].shutdown_event.set()
+        self.adapters["portfolio_server"].is_shutdown.wait()
+
+        self.adapters["strategy"].shutdown_event.set()
+        self.adapters["strategy"].is_shutdown.wait()
+
+        # self.logger.info("Shutting down CoreEngine components ...")

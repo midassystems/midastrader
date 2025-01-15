@@ -55,7 +55,7 @@ class IBAdaptor(ExecutionAdapter):
 
         while not self.shutdown_event.is_set():
             try:
-                event = self.orders_queue.get()
+                event = self.orders_queue.get(timeout=0.1)
                 self.handle_order(event)
             except queue.Empty:
                 continue
@@ -67,6 +67,7 @@ class IBAdaptor(ExecutionAdapter):
         Main processing loop that streams data and handles EOD synchronization.
         """
         self.logger.info("IBAdaptor shutting down ...")
+        self.is_shutdown.set()
 
     # -- Helper --
     def _websocket_connection(self) -> None:
@@ -138,7 +139,7 @@ class IBAdaptor(ExecutionAdapter):
                 raise RuntimeError(f"{symbol.broker_ticker} invalid contract.")
 
         self.logger.info("IBBrokerAdaptor running ...")
-        self.running.set()
+        self.is_running.set()
 
     def disconnect(self) -> None:
         """

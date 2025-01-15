@@ -88,7 +88,7 @@ class PerformanceManager(CoreAdapter):
         self.output_dir = output_dir
         self.strategy: BaseStrategy = None
         self.threads = []
-        self.running = threading.Event()
+        # self.running = threading.Event()
 
         # Subscribe to events
         self.account_queue = self.bus.subscribe(EventType.ACCOUNT_UPDATE_LOG)
@@ -128,7 +128,7 @@ class PerformanceManager(CoreAdapter):
                 thread.start()
 
             self.logger.info("PerformanceManager running ...")
-            self.running.set()
+            self.is_running.set()
 
             for thread in self.threads:
                 thread.join()
@@ -139,6 +139,7 @@ class PerformanceManager(CoreAdapter):
     def cleanup(self):
         self.save()
         self.logger.info("Shutting down PerformanceManager...")
+        self.is_shutdown.set()
 
     def process_account(self) -> None:
         """
@@ -149,7 +150,7 @@ class PerformanceManager(CoreAdapter):
         """
         while not self.shutdown_event.is_set():
             try:
-                item = self.account_queue.get()
+                item = self.account_queue.get(timeout=0.01)
                 self.account_manager.update_account_log(item)
             except queue.Empty:
                 continue
@@ -164,7 +165,7 @@ class PerformanceManager(CoreAdapter):
         while not self.shutdown_event.is_set():
             try:
 
-                item = self.trade_queue.get()
+                item = self.trade_queue.get(timeout=0.01)
                 if isinstance(item, TradeEvent):
                     self.trade_manager.update_trades(item)
 
@@ -183,7 +184,7 @@ class PerformanceManager(CoreAdapter):
         """
         while not self.shutdown_event.is_set():
             try:
-                item = self.equity_queue.get()
+                item = self.equity_queue.get(timeout=0.01)
                 self.equity_manager.update_equity(item)
             except queue.Empty:
                 continue
@@ -197,7 +198,7 @@ class PerformanceManager(CoreAdapter):
         """
         while not self.shutdown_event.is_set():
             try:
-                item = self.signal_queue.get()
+                item = self.signal_queue.get(timeout=0.01)
                 self.signal_manager.update_signals(item)
             except queue.Empty:
                 continue
