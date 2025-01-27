@@ -252,6 +252,7 @@ class IBAdaptor(DataAdapter):
             bbo_obj = BboMsg(
                 instrument_id=instrument_id,
                 ts_event=0,
+                rollover_flag=0,
                 price=0,
                 size=0,
                 side=Side.NONE,
