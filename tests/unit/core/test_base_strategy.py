@@ -51,6 +51,7 @@ class TestTestStrategy(unittest.TestCase):
         self.bar = OhlcvMsg(
             instrument_id=1,
             ts_event=self.timestamp,
+            rollover_flag=0,
             open=int(80.90 * 1e9),
             close=int(9000.90 * 1e9),
             high=int(75.90 * 1e9),
@@ -85,6 +86,7 @@ class TestTestStrategy(unittest.TestCase):
         self.timestamp = 1707221160000000000
         self.bar = OhlcvMsg(
             instrument_id=1,
+            rollover_flag=0,
             ts_event=self.timestamp,
             open=int(80.90 * 1e9),
             close=int(9000.90 * 1e9),

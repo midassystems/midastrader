@@ -103,6 +103,7 @@ class TestDataApp(unittest.TestCase):
         bbo_obj = BboMsg(
             instrument_id=1,
             ts_event=0,
+            rollover_flag=0,
             price=0,
             size=0,
             side=Side.NONE,
@@ -152,6 +153,7 @@ class TestDataApp(unittest.TestCase):
         bbo_obj = BboMsg(
             instrument_id=1,
             ts_event=0,
+            rollover_flag=0,
             price=0,
             size=0,
             side=Side.NONE,
@@ -199,6 +201,7 @@ class TestDataApp(unittest.TestCase):
         bbo_obj = BboMsg(
             instrument_id=1,
             ts_event=0,
+            rollover_flag=0,
             price=0,
             size=0,
             side=Side.NONE,
@@ -233,6 +236,7 @@ class TestDataApp(unittest.TestCase):
         bbo_obj = BboMsg(
             instrument_id=1,
             ts_event=0,
+            rollover_flag=0,
             price=0,
             size=0,
             side=Side.NONE,
