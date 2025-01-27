@@ -31,6 +31,7 @@ class TestOrderBook(unittest.TestCase):
         self.timestamp = 1707221160000000000
         self.bar = OhlcvMsg(
             instrument_id=1,
+            rollover_flag=0,
             ts_event=self.timestamp,
             open=int(80.90 * 1e9),
             close=int(9000.90 * 1e9),
@@ -41,6 +42,7 @@ class TestOrderBook(unittest.TestCase):
 
         self.bar2 = OhlcvMsg(
             instrument_id=1,
+            rollover_flag=0,
             ts_event=self.timestamp,
             open=int(90.90 * 1e9),
             close=int(9000.90 * 1e9),
@@ -51,6 +53,7 @@ class TestOrderBook(unittest.TestCase):
 
         self.tick = BboMsg(
             instrument_id=2,
+            rollover_flag=0,
             ts_event=self.timestamp,
             price=int(12 * 1e9),
             size=12345,
@@ -193,6 +196,7 @@ class TestOrderBookManager(unittest.TestCase):
         self.timestamp = 1707221160000000000
         self.bar = OhlcvMsg(
             instrument_id=1,
+            rollover_flag=0,
             ts_event=self.timestamp,
             open=int(80.90 * 1e9),
             close=int(9000.90 * 1e9),
@@ -204,6 +208,7 @@ class TestOrderBookManager(unittest.TestCase):
         self.tick = BboMsg(
             instrument_id=2,
             ts_event=self.timestamp,
+            rollover_flag=0,
             price=int(12 * 1e9),
             size=12345,
             side=Side.NONE,

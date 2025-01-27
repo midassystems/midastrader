@@ -105,6 +105,8 @@ class HistoricalAdaptor(DataAdapter):
                 parameters.start,
                 parameters.end,
                 parameters.schema,
+                parameters.dataset,
+                parameters.stype,
             )
             data = self.database_client.historical.get_records(params)
 

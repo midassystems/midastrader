@@ -12,6 +12,7 @@ class TestMarketEvent(unittest.TestCase):
         self.bar = OhlcvMsg(
             instrument_id=1,
             ts_event=self.timestamp,
+            rollover_flag=0,
             open=int(80.90 * 1e9),
             close=int(9000.90 * 1e9),
             high=int(75.90 * 1e9),
@@ -21,6 +22,7 @@ class TestMarketEvent(unittest.TestCase):
         self.tick = BboMsg(
             instrument_id=1,
             ts_event=self.timestamp,
+            rollover_flag=0,
             price=int(12 * 1e9),
             size=12345,
             side=Side.NONE,

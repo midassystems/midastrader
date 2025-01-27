@@ -110,6 +110,8 @@ class TestPerformanceManager(unittest.TestCase):
 
         # Parameters
         self.schema = "Ohlcv-1s"
+        self.stype = "continuous"
+        self.dataset = "futures"
         self.strategy_name = "Testing"
         self.capital = 1000000
         self.data_type = random.choice([LiveDataType.BAR, LiveDataType.TICK])
@@ -126,6 +128,8 @@ class TestPerformanceManager(unittest.TestCase):
             data_type=self.data_type,
             start=self.start,
             end=self.end,
+            stype="continuous",
+            dataset="futures",
             # test_start=self.test_start,
             # test_end=self.test_end,
             risk_free_rate=0.9,
