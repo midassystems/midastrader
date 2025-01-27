@@ -247,6 +247,7 @@ class TestDummyClient(unittest.TestCase):
             return_value=OhlcvMsg(
                 instrument_id=1,
                 ts_event=1777700000000000,
+                rollover_flag=0,
                 open=int(80.90 * 1e9),
                 close=int(90 * 1e9),
                 high=int(75.90 * 1e9),
@@ -442,6 +443,7 @@ class TestDummyClient(unittest.TestCase):
             return_value=OhlcvMsg(
                 instrument_id=1,
                 ts_event=1777700000000000,
+                rollover_flag=0,
                 open=int(80.90 * 1e9),
                 close=int(90 * 1e9),
                 high=int(75.90 * 1e9),

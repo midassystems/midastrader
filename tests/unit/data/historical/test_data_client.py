@@ -3,7 +3,7 @@ import threading
 from time import sleep
 from datetime import datetime, time
 from unittest.mock import Mock, MagicMock
-from mbn import OhlcvMsg
+from mbn import Dataset, OhlcvMsg, Schema, Stype
 
 from midastrader.config import LiveDataType, Parameters, Mode
 from midastrader.structs.events import EODEvent
@@ -90,8 +90,9 @@ class TestHistoricalAdaptor(unittest.TestCase):
 
         # Dataclient instance
         self.bus = MessageBus()
-
-        kwargs = {"data_file": "tests/unit/hogs_corn_ohlcv1h.bin"}
+        kwargs = {
+            "data_file": "tests/unit/test_HE.c.0_ZC.c.0__ohlcv-1h_2024-09-01_2024-12-31.bin"
+        }
         self.adaptor = HistoricalAdaptor(
             self.symbols_map,
             self.bus,
@@ -104,7 +105,9 @@ class TestHistoricalAdaptor(unittest.TestCase):
         params = Parameters(
             strategy_name="Testing",
             capital=10000000,
-            schema="Ohlcv-1d",
+            schema=Schema.OHLCV1_D,
+            dataset=Dataset.FUTURES,
+            stype=Stype.CONTINUOUS,
             data_type=LiveDataType.BAR,
             start="2024-10-01",
             end="2024-10-05",
@@ -112,7 +115,9 @@ class TestHistoricalAdaptor(unittest.TestCase):
             symbols=self.symbols,
         )
 
-        kwargs = {"data_file": "tests/unit/hogs_corn_ohlcv1h.bin"}
+        kwargs = {
+            "data_file": "tests/unit/test_HE.c.0_ZC.c.0__ohlcv-1h_2024-09-01_2024-12-31.bin"
+        }
         adaptor = HistoricalAdaptor(self.symbols_map, self.bus, **kwargs)
 
         # Test
@@ -127,7 +132,9 @@ class TestHistoricalAdaptor(unittest.TestCase):
         params = Parameters(
             strategy_name="Testing",
             capital=10000000,
-            schema="Ohlcv-1d",
+            schema=Schema.OHLCV1_D,
+            dataset=Dataset.FUTURES,
+            stype=Stype.CONTINUOUS,
             data_type=LiveDataType.BAR,
             start="2024-10-01",
             end="2024-10-05",
@@ -161,6 +168,7 @@ class TestHistoricalAdaptor(unittest.TestCase):
         bar = OhlcvMsg(
             instrument_id=1,
             ts_event=1727916834000000000,
+            rollover_flag=0,
             open=int(80.90 * 1e9),
             close=int(9000.90 * 1e9),
             high=int(75.90 * 1e9),
@@ -185,6 +193,7 @@ class TestHistoricalAdaptor(unittest.TestCase):
         bar = OhlcvMsg(
             instrument_id=1,
             ts_event=1727888034000000000,
+            rollover_flag=0,
             open=int(80.90 * 1e9),
             close=int(9000.90 * 1e9),
             high=int(75.90 * 1e9),
@@ -210,6 +219,7 @@ class TestHistoricalAdaptor(unittest.TestCase):
         record = OhlcvMsg(
             instrument_id=1,
             ts_event=1707221160000000000,
+            rollover_flag=0,
             open=int(80.90 * 1e9),
             close=int(9000.90 * 1e9),
             high=int(75.90 * 1e9),

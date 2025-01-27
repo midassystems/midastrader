@@ -2,7 +2,7 @@ import toml
 from enum import Enum
 from typing import List
 from dataclasses import dataclass, field
-from mbn import Schema, Parameters as MbnParameters
+from mbn import Dataset, Schema, Parameters as MbnParameters, Stype
 
 from midastrader.utils import iso_to_unix
 from midastrader.structs import Symbol, SymbolFactory
@@ -128,6 +128,8 @@ class Parameters:
     strategy_name: str
     capital: int
     schema: Schema
+    dataset: Dataset
+    stype: Stype
     data_type: LiveDataType
     start: str
     end: str
@@ -238,5 +240,7 @@ class Parameters:
             end=data["end"],
             symbols=symbols,
             schema=data["schema"],
+            dataset=data["dataset"],
+            stype=data["stype"],
             risk_free_rate=data["risk_free_rate"],
         )

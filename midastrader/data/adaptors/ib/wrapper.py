@@ -209,6 +209,7 @@ class DataApp(EWrapper, EClient):
         bar = OhlcvMsg(
             instrument_id=instrument_id,
             ts_event=int(time * 1e9),
+            rollover_flag=0,
             open=int(open_ * 1e9),
             high=int(high * 1e9),
             low=int(low * 1e9),

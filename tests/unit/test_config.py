@@ -2,6 +2,8 @@ import random
 import unittest
 from datetime import datetime, time
 
+from mbn import Dataset, Stype
+
 from midastrader.utils.unix import iso_to_unix
 from midastrader.config import Parameters, LiveDataType, Config
 from midastrader.structs.symbol import (
@@ -37,6 +39,8 @@ class TestParameters(unittest.TestCase):
         # Test parameter data
         self.schema = "Ohlcv-1s"
         self.strategy_name = "Testing"
+        self.dataset = Dataset.FUTURES
+        self.stype = Stype.CONTINUOUS
         self.capital = 1000000
         self.data_type = random.choice([LiveDataType.BAR, LiveDataType.TICK])
         self.strategy_allocation = 1.0
@@ -110,6 +114,8 @@ class TestParameters(unittest.TestCase):
             strategy_name=self.strategy_name,
             capital=self.capital,
             schema=self.schema,
+            dataset=self.dataset,
+            stype=self.stype,
             data_type=self.data_type,
             start=self.start,
             end=self.end,
@@ -130,6 +136,8 @@ class TestParameters(unittest.TestCase):
             strategy_name=self.strategy_name,
             capital=self.capital,
             schema=self.schema,
+            dataset=self.dataset,
+            stype=self.stype,
             data_type=self.data_type,
             start=self.start,
             end=self.end,
@@ -153,6 +161,8 @@ class TestParameters(unittest.TestCase):
         mock_dict = {
             "strategy_name": "TestStrategy",
             "schema": "Ohlcv-1s",
+            "stype": "continuous",
+            "dataset": "Futures",
             "start": "2020-01-01",
             "end": "2023-01-01",
             "capital": 1000000,
@@ -252,6 +262,8 @@ class TestParameters(unittest.TestCase):
             Parameters(
                 schema=self.schema,
                 strategy_name=123,
+                dataset=self.dataset,
+                stype=self.stype,
                 capital=self.capital,
                 data_type=self.data_type,
                 start=self.start,
@@ -265,6 +277,8 @@ class TestParameters(unittest.TestCase):
             Parameters(
                 schema=self.schema,
                 strategy_name=self.strategy_name,
+                dataset=self.dataset,
+                stype=self.stype,
                 capital="1000",
                 data_type=self.data_type,
                 start=self.start,
@@ -279,6 +293,8 @@ class TestParameters(unittest.TestCase):
             Parameters(
                 schema=self.schema,
                 strategy_name=self.strategy_name,
+                dataset=self.dataset,
+                stype=self.stype,
                 capital=self.capital,
                 data_type="BAR",
                 start=self.start,
@@ -291,6 +307,8 @@ class TestParameters(unittest.TestCase):
                 schema=self.schema,
                 strategy_name=self.strategy_name,
                 capital=self.capital,
+                dataset=self.dataset,
+                stype=self.stype,
                 data_type=self.data_type,
                 start=datetime(2020, 10, 10),
                 end=self.end,
@@ -301,6 +319,8 @@ class TestParameters(unittest.TestCase):
             Parameters(
                 schema=self.schema,
                 strategy_name=self.strategy_name,
+                dataset=self.dataset,
+                stype=self.stype,
                 capital=self.capital,
                 data_type=self.data_type,
                 start=self.start,
@@ -314,6 +334,8 @@ class TestParameters(unittest.TestCase):
             Parameters(
                 schema=self.schema,
                 strategy_name=self.strategy_name,
+                dataset=self.dataset,
+                stype=self.stype,
                 capital=self.capital,
                 data_type=self.data_type,
                 start=self.start,
@@ -330,6 +352,8 @@ class TestParameters(unittest.TestCase):
                 strategy_name=self.strategy_name,
                 capital=self.capital,
                 data_type=self.data_type,
+                dataset=self.dataset,
+                stype=self.stype,
                 start=self.start,
                 end=self.end,
                 symbols=["appl", "tsla"],
@@ -345,6 +369,8 @@ class TestParameters(unittest.TestCase):
                 strategy_name=self.strategy_name,
                 capital=-1,
                 data_type=self.data_type,
+                dataset=self.dataset,
+                stype=self.stype,
                 start=self.start,
                 end=self.end,
                 symbols=self.symbols,
