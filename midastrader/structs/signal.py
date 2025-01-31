@@ -1,6 +1,6 @@
 import mbn
 from dataclasses import dataclass
-from typing import Union, Optional
+from typing import Optional
 
 from midastrader.structs.constants import PRICE_FACTOR
 from midastrader.structs.orders import (
@@ -34,12 +34,12 @@ class SignalInstruction:
     instrument: int
     order_type: OrderType
     action: Action
-    trade_id: int
-    leg_id: int
-    weight: float
-    quantity: Union[int, float]
-    limit_price: Optional[float] = None
-    aux_price: Optional[float] = None
+    trade_id: int = 0
+    leg_id: int = 0
+    weight: float = 0.0
+    quantity: float = 0.0
+    limit_price: Optional[float] = 0.0
+    aux_price: Optional[float] = 0.0
 
     def __post_init__(self):
         """
@@ -62,19 +62,19 @@ class SignalInstruction:
             raise TypeError("'trade_id' field must of type int.")
         if not isinstance(self.leg_id, int):
             raise TypeError("'leg_id' field must be of type int.")
-        if not isinstance(self.quantity, (int, float)):
-            raise TypeError("'quantity' field must be of type int or float.")
+        if not isinstance(self.quantity, float):
+            raise TypeError("'quantity' field must be of type float.")
         if self.order_type == OrderType.LIMIT and not isinstance(
-            self.limit_price, (int, float)
+            self.limit_price, float
         ):
             raise TypeError(
-                "'limit_price' field must be int or float for OrderType.LIMIT."
+                "'limit_price' field must be float for OrderType.LIMIT."
             )
         if self.order_type == OrderType.STOPLOSS and not isinstance(
-            self.aux_price, (int, float)
+            self.aux_price, float
         ):
             raise TypeError(
-                "'aux_price' field must be int or float for OrderType.STOPLOSS."
+                "'aux_price' field must be float for OrderType.STOPLOSS."
             )
 
         # Value Constraint
@@ -121,6 +121,7 @@ class SignalInstruction:
         Returns:
             mbn.SignalInstructions: The binary-compatible signal structure.
         """
+
         return mbn.SignalInstructions(
             ticker=ticker,
             order_type=self.order_type.value,
@@ -128,12 +129,12 @@ class SignalInstruction:
             trade_id=self.trade_id,
             leg_id=self.leg_id,
             weight=int(self.weight * PRICE_FACTOR),
-            quantity=self.quantity,
-            limit_price=(self.limit_price if self.limit_price else ""),
-            aux_price=self.aux_price if self.aux_price else "",
+            quantity=int(self.quantity * PRICE_FACTOR),
+            limit_price=str(self.limit_price) if self.limit_price else "",
+            aux_price=str(self.aux_price) if self.aux_price else "",
         )
 
-    def to_order(self) -> BaseOrder:
+    def to_order(self) -> Optional[BaseOrder]:
         """
         Converts the signal into its corresponding order object.
 
@@ -144,17 +145,19 @@ class SignalInstruction:
         if self.order_type == OrderType.MARKET:
             return MarketOrder(action=self.action, quantity=self.quantity)
         elif self.order_type == OrderType.LIMIT:
-            return LimitOrder(
-                action=self.action,
-                quantity=self.quantity,
-                limit_price=self.limit_price,
-            )
+            if self.limit_price:
+                return LimitOrder(
+                    action=self.action,
+                    quantity=self.quantity,
+                    limit_price=self.limit_price,
+                )
         elif self.order_type == OrderType.STOPLOSS:
-            return StopLoss(
-                action=self.action,
-                quantity=self.quantity,
-                aux_price=self.aux_price,
-            )
+            if self.aux_price:
+                return StopLoss(
+                    action=self.action,
+                    quantity=self.quantity,
+                    aux_price=self.aux_price,
+                )
 
     def __str__(self) -> str:
         """

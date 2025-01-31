@@ -6,10 +6,10 @@ from ibapi.contract import Contract
 from midastrader.structs.trade import Trade
 from midastrader.structs.symbol import Symbol, SymbolMap
 from midastrader.utils.logger import SystemLogger
-from midastrader.structs.events import OrderEvent, TradeEvent
+from midastrader.structs.events import OrderEvent, TradeEvent, RolloverEvent
 from midastrader.structs.orders import Action
 from midastrader.message_bus import MessageBus, EventType
-from midastrader.structs.account import Account, EquityDetails
+from midastrader.structs.account import Account
 from midastrader.structs.positions import position_factory, Position
 from midastrader.core.adapters.order_book import OrderBook
 
@@ -68,7 +68,7 @@ class DummyBroker:
         self.last_trades: Dict[Contract, Trade] = {}
         # self.last_trade: Union[Trade, None] = None
         self.account = Account(
-            timestamp=None,
+            timestamp=0,
             full_available_funds=capital,
             net_liquidation=capital,
             full_init_margin_req=0,
@@ -78,6 +78,7 @@ class DummyBroker:
 
         # Subscriptions
         self.trade_queue = self.bus.subscribe(EventType.TRADE)
+        self.rollover_queue = self.bus.subscribe(EventType.ROLLOVER)
         self.equity_flag = self.bus.subscribe(EventType.UPDATE_EQUITY)
         self.eod_flag = self.bus.subscribe(EventType.EOD)
 
@@ -86,6 +87,9 @@ class DummyBroker:
             # Start sub-threads
             self.threads.append(
                 threading.Thread(target=self.process_book_update, daemon=True)
+            )
+            self.threads.append(
+                threading.Thread(target=self.process_rollover, daemon=True)
             )
             self.threads.append(
                 threading.Thread(target=self.process_trades, daemon=True)
@@ -136,6 +140,14 @@ class DummyBroker:
             except queue.Empty:
                 continue
 
+    def process_rollover(self) -> None:
+        while not self.shutdown_event.is_set():
+            try:
+                event = self.rollover_queue.get(timeout=0.01)
+                self._handle_rollover(event)
+            except queue.Empty:
+                continue
+
     def cleanup(self) -> None:
         while True:
             try:
@@ -147,6 +159,102 @@ class DummyBroker:
         self.liquidate_positions()
         self.logger.info("Shutting down DummyBroker ...")
         self.is_shutdown.set()
+
+    def _handle_rollover(self, event: RolloverEvent) -> None:
+        """
+        Processes and executes an order based on given details.
+
+        Args:
+            event (OrderEvent): The event containing order details for execution.
+        """
+        symbol = event.symbol
+        contract = symbol.contract
+        position = self.positions.get(symbol.contract)
+
+        if position:
+            quantity = position.quantity
+            action = position.action
+            exit_record = event.exit_record
+            entry_record = event.entry_record
+            exit_price = exit_record.pretty_price
+            entry_price = entry_record.pretty_price
+
+            exit_action = (
+                Action.SELL if position.action == "BUY" else Action.COVER
+            )
+            exit_fill_price = symbol.slippage_price(exit_price, exit_action)
+            exit_fees = symbol.commission_fees(quantity)
+
+            # Adjust cash by fees
+            self.account.full_available_funds += exit_fees
+
+            # Update Positions
+            self._update_positions(
+                symbol,
+                exit_action,
+                quantity * -1,
+                exit_fill_price,
+            )
+
+            # Update Account
+            self._update_account()
+
+            # Create Execution Events
+            self._update_trades(
+                event.timestamp,
+                self.last_trades[contract].trade_id,
+                self.last_trades[contract].leg_id,
+                symbol,
+                quantity * -1,
+                exit_action,
+                exit_fill_price,
+                exit_fees,
+            )
+
+            # Return updates
+            self.return_positions()
+            self.return_account()
+            self.return_equity_value()
+
+            # Entry
+            entry_action = Action.from_string(action)
+            entry_fill_price = symbol.slippage_price(entry_price, entry_action)
+            entry_fees = symbol.commission_fees(quantity)
+
+            # Adjust cash by fees
+            self.account.full_available_funds += entry_fees
+
+            # Update Positions
+            self._update_positions(
+                symbol,
+                entry_action,
+                quantity,
+                exit_fill_price,
+            )
+
+            # Update Account
+            self._update_account()
+
+            # Create Execution Events
+            self._update_trades(
+                event.timestamp,
+                self.last_trades[contract].trade_id,
+                self.last_trades[contract].leg_id,
+                symbol,
+                quantity,
+                entry_action,
+                entry_fill_price,
+                entry_fees,
+            )
+
+            # Return updates
+            self.return_positions()
+            self.return_account()
+            self.return_equity_value()
+
+            # self.bus.publish(EventType.UPDATE_SYSTEM, False)
+        self.logger.debug(f"{contract.symbol} position rolled over.")
+        self.bus.publish(EventType.ROLLED_OVER, True)
 
     def _handle_trade(self, event: OrderEvent) -> None:
         """
@@ -165,37 +273,38 @@ class DummyBroker:
 
         symbol = self.symbols_map.get_symbol(contract.symbol)
 
-        # Order Data
-        quantity = order.quantity  # +/- values
-        mkt_data = self.order_book.retrieve(symbol.instrument_id)
-        fill_price = symbol.slippage_price(mkt_data.pretty_price, action)
-        fees = symbol.commission_fees(quantity)
+        if symbol:
+            # Order Data
+            quantity = float(order.quantity)  # +/- values
+            mkt_data = self.order_book.retrieve(symbol.instrument_id)
+            fill_price = symbol.slippage_price(mkt_data.pretty_price, action)
+            fees = symbol.commission_fees(quantity)
 
-        # Adjust cash by fees
-        self.account.full_available_funds += fees
+            # Adjust cash by fees
+            self.account.full_available_funds += fees
 
-        # Update Positions
-        self._update_positions(symbol, action, quantity, fill_price)
+            # Update Positions
+            self._update_positions(symbol, action, quantity, fill_price)
 
-        # Update Account
-        self._update_account()
+            # Update Account
+            self._update_account()
 
-        # Create Execution Events
-        self._update_trades(
-            timestamp,
-            trade_id,
-            leg_id,
-            symbol,
-            quantity,
-            action,
-            fill_price,
-            fees,
-        )
+            # Create Execution Events
+            self._update_trades(
+                timestamp,
+                trade_id,
+                leg_id,
+                symbol,
+                quantity,
+                action,
+                fill_price,
+                fees,
+            )
 
-        # Return updates
-        self.return_positions()
-        self.return_account()
-        self.return_equity_value()
+            # Return updates
+            self.return_positions()
+            self.return_account()
+            self.return_equity_value()
         self.bus.publish(EventType.UPDATE_SYSTEM, False)
 
     def _update_positions(
@@ -226,12 +335,17 @@ class DummyBroker:
                 "market_price": fill_price,
             }
             self.positions[symbol.contract] = position_factory(
-                asset_type=symbol.security_type, symbol=symbol, **details
+                asset_type=symbol.security_type,
+                symbol=symbol,
+                **details,
             )
             impact = self.positions[symbol.contract].position_impact()
         else:
             impact = self.positions[symbol.contract].update(
-                quantity, fill_price, fill_price, action
+                quantity,
+                fill_price,
+                fill_price,
+                action.to_broker_standard(),
             )
 
         # Update cash impact of position trade
@@ -247,24 +361,27 @@ class DummyBroker:
         """
         for contract, position in self.positions.items():
             symbol = self.symbols_map.get_symbol(contract.symbol)
-            mkt_data = self.order_book.retrieve(symbol.instrument_id)
-            position.market_price = mkt_data.pretty_price
-            impact = position.position_impact()
+            if symbol:
+                mkt_data = self.order_book.retrieve(symbol.instrument_id)
+                position.market_price = mkt_data.pretty_price
+                impact = position.position_impact()
 
-            # Update postion specific account values
-            self.unrealized_pnl[contract] = impact.unrealized_pnl
-            self.margin_required[contract] = impact.margin_required
-            self.liquidation_value[contract] = impact.liquidation_value
+                # Update postion specific account values
+                self.unrealized_pnl[contract.symbol] = impact.unrealized_pnl
+                self.margin_required[contract.symbol] = impact.margin_required
+                self.liquidation_value[contract.symbol] = (
+                    impact.liquidation_value
+                )
 
         # Update Account values
         self.account.unrealized_pnl = sum(
-            value for key, value in self.unrealized_pnl.items()
+            value for value in self.unrealized_pnl.values()
         )
         self.account.full_init_margin_req = sum(
-            value for key, value in self.margin_required.items()
+            value for value in self.margin_required.values()
         )
         self.account.net_liquidation = (
-            sum(value for key, value in self.liquidation_value.items())
+            sum(value for value in self.liquidation_value.values())
             + self.account.full_available_funds
         )
         self.account.timestamp = self.order_book.last_updated
@@ -314,8 +431,11 @@ class DummyBroker:
         # Keep for liquidation if needed at the end
         self.last_trades[symbol.contract] = trade
 
-        trade_id = f"{trade_id}{leg_id}{action}"
-        self.bus.publish(EventType.TRADE_UPDATE, TradeEvent(trade_id, trade))
+        trade_id_str = f"{trade_id}{leg_id}{action}"
+        self.bus.publish(
+            EventType.TRADE_UPDATE,
+            TradeEvent(trade_id_str, trade),
+        )
 
     def mark_to_market(self) -> None:
         """
@@ -351,35 +471,38 @@ class DummyBroker:
             self.logger.info("Liquidating Positions held at completion.")
             for contract, position in list(self.positions.items()):
                 symbol = self.symbols_map.get_symbol(contract.symbol)
-                mkt_data = self.order_book.retrieve(symbol.instrument_id)
-                current_price = mkt_data.pretty_price
-                position.market_price = current_price
-                position.calculate_liquidation_value()
+                if symbol:
+                    mkt_data = self.order_book.retrieve(symbol.instrument_id)
+                    current_price = mkt_data.pretty_price
+                    position.market_price = current_price
+                    position.calculate_liquidation_value()
 
-                trade = Trade(
-                    timestamp=self.order_book.last_updated,
-                    trade_id=self.last_trades[contract].trade_id,
-                    leg_id=self.last_trades[contract].leg_id,
-                    instrument=symbol.instrument_id,
-                    quantity=round(position.quantity * -1, 4),
-                    avg_price=current_price * symbol.price_multiplier,
-                    trade_value=round(
-                        symbol.value(position.quantity, current_price), 2
-                    ),
-                    trade_cost=symbol.cost(
-                        position.quantity * -1, current_price
-                    ),
-                    action=(
-                        Action.SELL.value
-                        if position.action == "BUY"
-                        else Action.COVER.value
-                    ),
-                    fees=0.0,  # because not actually a trade
-                )
+                    trade = Trade(
+                        timestamp=self.order_book.last_updated,
+                        trade_id=self.last_trades[contract].trade_id,
+                        leg_id=self.last_trades[contract].leg_id,
+                        instrument=symbol.instrument_id,
+                        quantity=round(position.quantity * -1, 4),
+                        avg_price=current_price * symbol.price_multiplier,
+                        trade_value=round(
+                            symbol.value(position.quantity, current_price), 2
+                        ),
+                        trade_cost=symbol.cost(
+                            position.quantity * -1, current_price
+                        ),
+                        action=(
+                            Action.SELL.value
+                            if position.action == "BUY"
+                            else Action.COVER.value
+                        ),
+                        fees=0.0,  # because not actually a trade
+                    )
 
-                # self.last_trades[contract] = trade
-                id = f"{trade.trade_id}{trade.leg_id}{trade.action}"
-                self.bus.publish(EventType.TRADE_UPDATE, TradeEvent(id, trade))
+                    # self.last_trades[contract] = trade
+                    id = f"{trade.trade_id}{trade.leg_id}{trade.action}"
+                    self.bus.publish(
+                        EventType.TRADE_UPDATE, TradeEvent(id, trade)
+                    )
 
             # # Output liquidation
             # string = "Positions liquidate:"
@@ -388,7 +511,7 @@ class DummyBroker:
             #
             # self.logger.info(f"\n{string}")
 
-    def return_positions(self) -> dict:
+    def return_positions(self) -> None:
         """
         Return the current positions held by the broker.
 
@@ -425,7 +548,7 @@ class DummyBroker:
         self.bus.publish(EventType.ACCOUNT_UPDATE, self.account)
         self.bus.publish(EventType.ACCOUNT_UPDATE_LOG, self.account)
 
-    def return_equity_value(self) -> EquityDetails:
+    def return_equity_value(self) -> None:
         """
         Return details of the broker's equity value.
 

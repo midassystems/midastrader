@@ -16,11 +16,11 @@ from midastrader.message_bus import MessageBus, EventType
 
 
 class TestStrategy(BaseStrategy):
-    def handle_event(self):
+    def handle_event(self, event: MarketEvent) -> None:
         pass
 
     def get_strategy_data(self) -> pd.DataFrame:
-        pass
+        return pd.DataFrame()
 
 
 class TestTestStrategy(unittest.TestCase):
@@ -68,7 +68,7 @@ class TestTestStrategy(unittest.TestCase):
             trade_id=2,
             leg_id=5,
             weight=0.5,
-            quantity=2,
+            quantity=2.0,
         )
         self.trade2 = SignalInstruction(
             instrument=2,
@@ -77,7 +77,7 @@ class TestTestStrategy(unittest.TestCase):
             trade_id=2,
             leg_id=6,
             weight=0.5,
-            quantity=2,
+            quantity=2.0,
         )
         self.trade_instructions = [self.trade1, self.trade2]
 

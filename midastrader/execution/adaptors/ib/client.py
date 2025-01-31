@@ -1,6 +1,7 @@
 # client.py
 import threading
 import queue
+import time
 from ibapi.contract import Contract
 
 from midastrader.structs.events import OrderEvent
@@ -66,6 +67,8 @@ class IBAdaptor(ExecutionAdapter):
         """
         Main processing loop that streams data and handles EOD synchronization.
         """
+        self.request_account_summary()
+        time.sleep(5)  # time for final account summary request-maybe shorten
         self.logger.info("IBAdaptor shutting down ...")
         self.is_shutdown.set()
 
@@ -155,7 +158,7 @@ class IBAdaptor(ExecutionAdapter):
         Returns:
             bool: True if connected, False otherwise.
         """
-        return self.app.isConnected()
+        return bool(self.app.isConnected())
 
     # -- Validate Contracts --
     def validate_contract(self, contract: Contract) -> bool:
@@ -204,7 +207,7 @@ class IBAdaptor(ExecutionAdapter):
                 f"Contract {contract.symbol} validation failed."
             )
 
-        return self.app.is_valid_contract
+        return bool(self.app.is_valid_contract)
 
     def _is_contract_validated(self, contract: Contract) -> bool:
         """
@@ -243,7 +246,7 @@ class IBAdaptor(ExecutionAdapter):
         Args:
             orderId (int): The ID of the order to be canceled.
         """
-        self.app.cancelOrder(orderId=orderId)
+        self.app.cancelOrder(orderId=orderId, manualCancelOrderTime="")
 
     # -- Account request --
     def request_account_summary(self) -> None:

@@ -11,10 +11,10 @@ class TestTrade(unittest.TestCase):
         self.leg_id = 2
         self.timetamp = 16555000000000000
         self.instrument = 1
-        self.quantity = 10
+        self.quantity = 10.0
         self.avg_price = 85.98
         self.trade_value = 900.90
-        self.trade_cost = 400
+        self.trade_cost = 400.0
         self.action = random.choice(["BUY", "SELL"])
         self.fees = 9.87
 
@@ -65,7 +65,7 @@ class TestTrade(unittest.TestCase):
             TypeError, "'trade_id' field must be of type int."
         ):
             Trade(
-                trade_id="1",
+                trade_id="1",  # pyright: ignore
                 leg_id=self.leg_id,
                 timestamp=self.timetamp,
                 instrument=self.instrument,
@@ -82,7 +82,7 @@ class TestTrade(unittest.TestCase):
         ):
             Trade(
                 trade_id=self.trade_id,
-                leg_id="2",
+                leg_id="2",  # pyright: ignore
                 timestamp=self.timetamp,
                 instrument=self.instrument,
                 quantity=self.quantity,
@@ -99,7 +99,7 @@ class TestTrade(unittest.TestCase):
             Trade(
                 trade_id=self.trade_id,
                 leg_id=self.leg_id,
-                timestamp="2022-08-08",
+                timestamp="2022-08-08",  # pyright: ignore
                 instrument=self.instrument,
                 quantity=self.quantity,
                 avg_price=self.avg_price,
@@ -116,7 +116,7 @@ class TestTrade(unittest.TestCase):
                 trade_id=self.trade_id,
                 leg_id=self.leg_id,
                 timestamp=self.timetamp,
-                instrument="1",
+                instrument="1",  # pyright: ignore
                 quantity=self.quantity,
                 avg_price=self.avg_price,
                 trade_value=self.trade_value,
@@ -126,14 +126,14 @@ class TestTrade(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'quantity' field must be of type float or int."
+            TypeError, "'quantity' field must be of type float."
         ):
             Trade(
                 trade_id=self.trade_id,
                 leg_id=self.leg_id,
                 timestamp=self.timetamp,
                 instrument=self.instrument,
-                quantity="1234",
+                quantity="1234",  # pyright: ignore
                 avg_price=self.avg_price,
                 trade_value=self.trade_value,
                 trade_cost=self.trade_cost,
@@ -142,7 +142,7 @@ class TestTrade(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'avg_price' field must be of type float or int."
+            TypeError, "'avg_price' field must be of type float."
         ):
             Trade(
                 trade_id=self.trade_id,
@@ -150,7 +150,7 @@ class TestTrade(unittest.TestCase):
                 timestamp=self.timetamp,
                 instrument=self.instrument,
                 quantity=self.quantity,
-                avg_price="90.9",
+                avg_price="90.9",  # pyright: ignore
                 trade_value=self.trade_value,
                 trade_cost=self.trade_cost,
                 action=self.action,
@@ -158,7 +158,7 @@ class TestTrade(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'trade_value' field must be of type float or int."
+            TypeError, "'trade_value' field must be of type float."
         ):
             Trade(
                 trade_id=self.trade_id,
@@ -167,14 +167,14 @@ class TestTrade(unittest.TestCase):
                 instrument=self.instrument,
                 quantity=self.quantity,
                 avg_price=self.avg_price,
-                trade_value="12345",
+                trade_value="12345",  # pyright: ignore
                 trade_cost=self.trade_cost,
                 action=self.action,
                 fees=self.fees,
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'trade_cost' field must be of type float or int."
+            TypeError, "'trade_cost' field must be of type float."
         ):
             Trade(
                 trade_id=self.trade_id,
@@ -183,8 +183,8 @@ class TestTrade(unittest.TestCase):
                 instrument=self.instrument,
                 quantity=self.quantity,
                 avg_price=self.avg_price,
-                trade_value=12345,
-                trade_cost="1234",
+                trade_value=self.trade_value,
+                trade_cost="1234",  # pyright: ignore
                 action=self.action,
                 fees=self.fees,
             )
@@ -201,12 +201,12 @@ class TestTrade(unittest.TestCase):
                 avg_price=self.avg_price,
                 trade_value=self.trade_value,
                 trade_cost=self.trade_cost,
-                action=12234,
+                action=12234,  # pyright: ignore
                 fees=self.fees,
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'fees' field must be of type float or int."
+            TypeError, "'fees' field must be of type float."
         ):
             Trade(
                 trade_id=self.trade_id,
@@ -218,7 +218,7 @@ class TestTrade(unittest.TestCase):
                 trade_value=self.trade_value,
                 trade_cost=self.trade_cost,
                 action=self.action,
-                fees="90.99",
+                fees="90.99",  # pyright: ignore
             )
 
     # Value validation

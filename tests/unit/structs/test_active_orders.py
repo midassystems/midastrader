@@ -21,7 +21,7 @@ class ActiceOrderTest(unittest.TestCase):
             lmtPrice=0.0,
             auxPrice=0.0,
             status="Submitted",
-            filled="9",
+            filled=9.0,
             remaining=10,
             avgFillPrice=100,
             lastFillPrice=100,

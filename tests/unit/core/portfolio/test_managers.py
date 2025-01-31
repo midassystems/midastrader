@@ -13,7 +13,7 @@ from midastrader.core.adapters.portfolio.managers import (
 
 class TestPositionManager(unittest.TestCase):
     def setUp(self):
-        self.manager = PositionManager(Mock())
+        self.manager = PositionManager()
 
     def test_update_positions_new_valid(self):
         self.manager.pending_positions_update.add(70)
@@ -101,6 +101,7 @@ class TestPositionManager(unittest.TestCase):
         )
 
         # Test
+        self.manager.logger.debug = Mock()
         self.manager.update_positions(instrument_id, position)
 
         # Validation
@@ -109,7 +110,7 @@ class TestPositionManager(unittest.TestCase):
 
 class TestOrderManager(unittest.TestCase):
     def setUp(self):
-        self.manager = OrderManager(Mock())
+        self.manager = OrderManager()
 
     def test_get_active_order_tickers(self):
         self.manager.pending_positions_update.add(1)
@@ -308,6 +309,7 @@ class TestOrderManager(unittest.TestCase):
         )
 
         # Tests
+        self.manager.logger.debug = Mock()
         self.manager.update_orders(active_order)
 
         # Validation
@@ -326,7 +328,7 @@ class TestAccountManager(unittest.TestCase):
             full_maint_margin_req=100000.0,
             currency="USD",
         )
-        self.account_manager = AccountManager(Mock())
+        self.account_manager = AccountManager()
 
     def test_update_account_details(self):
         # Test

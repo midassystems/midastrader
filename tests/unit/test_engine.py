@@ -8,17 +8,7 @@ from midastrader.engine import EngineBuilder, Engine
 class TestEngineBuilder(unittest.TestCase):
     def test_construction(self):
         # Test
-        engine = (
-            EngineBuilder("tests/unit/config.toml", Mode.BACKTEST)
-            .create_logger()
-            .create_messagebus()
-            .create_parameters()  # Load and parse the parameters
-            .create_symbols_map()  # Create the map for the trading symbols
-            .create_data_engine()  # Initialize logging
-            .create_execution_engine()
-            .create_core_engine()
-            .build()
-        )
+        engine = EngineBuilder("tests/unit/config.toml", Mode.BACKTEST).build()
 
         # Validate
         self.assertIsInstance(engine, Engine)
@@ -26,17 +16,9 @@ class TestEngineBuilder(unittest.TestCase):
 
 class TestEngineBacktest(unittest.TestCase):
     def setUp(self) -> None:
-        self.engine = (
-            EngineBuilder("tests/unit/config.toml", Mode.BACKTEST)
-            .create_logger()
-            .create_messagebus()
-            .create_parameters()  # Load and parse the parameters
-            .create_symbols_map()  # Create the map for the trading symbols
-            .create_data_engine()  # Initialize logging
-            .create_execution_engine()
-            .create_core_engine()
-            .build()
-        )
+        self.engine = EngineBuilder(
+            "tests/unit/config.toml", Mode.BACKTEST
+        ).build()
 
     def test_initialize_backtest(self):
         self.engine.core_engine.set_strategy = MagicMock()
@@ -70,17 +52,9 @@ class TestEngineBacktest(unittest.TestCase):
 
 class TestEngineLive(unittest.TestCase):
     def setUp(self) -> None:
-        self.engine = (
-            EngineBuilder("tests/unit/config.toml", Mode.LIVE)
-            .create_logger()
-            .create_messagebus()
-            .create_parameters()  # Load and parse the parameters
-            .create_symbols_map()  # Create the map for the trading symbols
-            .create_data_engine()  # Initialize logging
-            .create_execution_engine()
-            .create_core_engine()
-            .build()
-        )
+        self.engine = EngineBuilder(
+            "tests/unit/config.toml", Mode.LIVE
+        ).build()
 
     def test_initialize_live(self):
         self.engine.core_engine.set_strategy = MagicMock()

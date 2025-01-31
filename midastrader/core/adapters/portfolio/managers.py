@@ -20,10 +20,10 @@ class OrderManager:
         logger (SystemLogger): A logger instance for recording system events.
     """
 
-    def __init__(self, logger: SystemLogger):
+    def __init__(self):
+        self.logger = SystemLogger.get_logger()
         self.active_orders: Dict[int, ActiveOrder] = {}
         self.pending_positions_update = set()
-        self.logger = logger
 
     def get_active_order_tickers(self) -> list:
         """
@@ -35,7 +35,7 @@ class OrderManager:
             List[str]: List of tickers associated with active orders or pending updates.
         """
         active_order_tickers = [
-            order.instrument for id, order in self.active_orders.items()
+            order.instrument for _, order in self.active_orders.items()
         ]
 
         # Combine with pending position updates and remove duplicates
@@ -113,15 +113,15 @@ class PositionManager:
         pending_positions_update (set): A set of instrument IDs requiring position updates.
     """
 
-    def __init__(self, logger: SystemLogger):
+    def __init__(self):
         """
         Initializes the PositionManager with a logging system.
 
         Args:
             logger (SystemLogger): Logger instance for recording events and updates.
         """
+        self.logger = SystemLogger.get_logger()
         self.positions: Dict[int, Position] = {}
-        self.logger = logger
         self.pending_positions_update = set()
 
     @property
@@ -196,15 +196,15 @@ class AccountManager:
         logger (SystemLogger): A logger instance for recording account updates.
     """
 
-    def __init__(self, logger: SystemLogger):
+    def __init__(self):
         """
         Initializes the AccountManager with a logging system.
 
         Args:
             logger (SystemLogger): Logger instance for recording events and updates.
         """
-        self.account: Account = None
-        self.logger = logger
+        self.logger = SystemLogger.get_logger()
+        self.account: Account = Account(0, 0, 0, 0, 0, 0, 0, "", 0, 0, 0)
 
     @property
     def get_capital(self) -> float:

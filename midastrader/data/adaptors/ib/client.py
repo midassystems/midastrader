@@ -148,7 +148,7 @@ class IBAdaptor(DataAdapter):
         Returns:
             bool: True if connected, False otherwise.
         """
-        return self.app.isConnected()
+        return bool(self.app.isConnected())
 
     # -- Data --
     def _load_live_data(self):
@@ -158,14 +158,21 @@ class IBAdaptor(DataAdapter):
         Raises:
             ValueError: If live data fails to load for any symbol.
         """
+        symbol = None  # stops unbound error
+
         try:
+            if not self.symbols_map.symbols:
+                raise ValueError("No symbols available to load live data.")
+
             for symbol in self.symbols_map.symbols:
                 self.get_data(
-                    data_type=self.data_type,
-                    contract=symbol.contract,
+                    data_type=self.data_type, contract=symbol.contract
                 )
+
         except ValueError:
-            raise ValueError(f"Error loading live data for {symbol.ticker}.")
+            raise ValueError(
+                f"Error loading live data for {symbol.data_ticker if symbol else 'Unknown Symbol'}."
+            )
 
     def get_data(self, data_type: LiveDataType, contract: Contract) -> None:
         """
@@ -235,6 +242,11 @@ class IBAdaptor(DataAdapter):
         """
         reqId = self._get_valid_id()
         instrument_id = self.symbols_map.get_id(contract.symbol)
+
+        if not instrument_id:
+            raise RuntimeError(
+                f"instrument_id not found for contract : {contract}"
+            )
 
         if (
             reqId not in self.app.reqId_to_instrument.keys()
@@ -342,7 +354,7 @@ class IBAdaptor(DataAdapter):
                 f"Contract {contract.symbol} validation failed."
             )
 
-        return self.app.is_valid_contract
+        return bool(self.app.is_valid_contract)
 
     def _is_contract_validated(self, contract: Contract) -> bool:
         """

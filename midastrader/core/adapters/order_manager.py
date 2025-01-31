@@ -151,8 +151,24 @@ class OrderExecutionManager(CoreAdapter):
             # self.logger.debug(trade)
             symbol = self.symbols_map.map[trade.instrument]
             order = trade.to_order()
+
+            if not order:
+                self.logger.warning(
+                    f"Skipping trade {trade.trade_id}: error creating order."
+                )
+                return
+
             current_price = self.order_book.retrieve(symbol.instrument_id)
-            order_cost = symbol.cost(order.quantity, current_price)
+
+            if current_price is None:
+                self.logger.warning(
+                    f"Skipping trade {trade.trade_id}: No current price for {symbol.instrument_id}"
+                )
+                return
+
+            order_cost = symbol.cost(
+                float(order.quantity), current_price.pretty_price
+            )
 
             order_details = {
                 "timestamp": timestamp,

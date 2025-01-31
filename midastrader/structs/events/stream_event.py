@@ -1,4 +1,3 @@
-from datetime import date
 from dataclasses import dataclass, field
 
 from midastrader.structs.events.base import SystemEvent

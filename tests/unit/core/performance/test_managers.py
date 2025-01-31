@@ -1,7 +1,6 @@
 import unittest
 import numpy as np
 import pandas as pd
-from unittest.mock import Mock
 
 from midastrader.structs.orders import Action, OrderType
 from midastrader.structs.signal import SignalInstruction
@@ -18,14 +17,14 @@ from midastrader.core.adapters.performance.managers import (
 
 class TestTradeManager(unittest.TestCase):
     def setUp(self):
-        self.manager = TradeManager(Mock())
+        self.manager = TradeManager()
         self.manager.trades = {
             "1234": Trade(
                 timestamp=1712066400000000000,
                 trade_id=13,
                 leg_id=1,
                 instrument=43,
-                quantity=-63,
+                quantity=-63.0,
                 avg_price=104.425,
                 trade_value=-2631510.0,
                 trade_cost=354511.71,
@@ -37,7 +36,7 @@ class TestTradeManager(unittest.TestCase):
                 trade_id=13,
                 leg_id=2,
                 instrument=70,
-                quantity=114,
+                quantity=114.0,
                 avg_price=431.5,
                 trade_value=2459550.0,
                 trade_cost=236591.04,
@@ -49,7 +48,7 @@ class TestTradeManager(unittest.TestCase):
                 trade_id=13,
                 leg_id=1,
                 instrument=43,
-                quantity=63,
+                quantity=63.0,
                 avg_price=104.55,
                 trade_value=2634660.0,
                 trade_cost=354511.71,
@@ -61,7 +60,7 @@ class TestTradeManager(unittest.TestCase):
                 trade_id=13,
                 leg_id=2,
                 instrument=70,
-                quantity=-114,
+                quantity=-114.0,
                 avg_price=433.0,
                 trade_value=-2468100.0,
                 trade_cost=236591.04,
@@ -73,7 +72,7 @@ class TestTradeManager(unittest.TestCase):
                 trade_id=14,
                 leg_id=1,
                 instrument=43,
-                quantity=-63,
+                quantity=-63.0,
                 avg_price=107.925,
                 trade_value=-2719710.0,
                 trade_cost=354511.71,
@@ -85,7 +84,7 @@ class TestTradeManager(unittest.TestCase):
                 trade_id=14,
                 leg_id=2,
                 instrument=70,
-                quantity=114,
+                quantity=114.0,
                 avg_price=433.25,
                 trade_value=2469525.0,
                 trade_cost=236591.04,
@@ -97,7 +96,7 @@ class TestTradeManager(unittest.TestCase):
                 trade_id=14,
                 leg_id=1,
                 instrument=43,
-                quantity=63,
+                quantity=63.0,
                 avg_price=107.875,
                 trade_value=2718450.0,
                 trade_cost=354511.71,
@@ -109,7 +108,7 @@ class TestTradeManager(unittest.TestCase):
                 trade_id=14,
                 leg_id=2,
                 instrument=70,
-                quantity=-114,
+                quantity=-114.0,
                 avg_price=433.5,
                 trade_value=-2470950.0,
                 trade_cost=236591.04,
@@ -121,7 +120,7 @@ class TestTradeManager(unittest.TestCase):
                 trade_id=15,
                 leg_id=1,
                 instrument=43,
-                quantity=63,
+                quantity=63.0,
                 avg_price=105.25,
                 trade_value=2652300.0,
                 trade_cost=354511.71,
@@ -133,7 +132,7 @@ class TestTradeManager(unittest.TestCase):
                 trade_id=15,
                 leg_id=2,
                 instrument=70,
-                quantity=-115,
+                quantity=-115.0,
                 avg_price=446.25,
                 trade_value=-2565937.5,
                 trade_cost=238666.4,
@@ -145,7 +144,7 @@ class TestTradeManager(unittest.TestCase):
                 trade_id=15,
                 leg_id=1,
                 instrument=43,
-                quantity=-63,
+                quantity=-63.0,
                 avg_price=102.775,
                 trade_value=-2589930.0,
                 trade_cost=354511.71,
@@ -157,7 +156,7 @@ class TestTradeManager(unittest.TestCase):
                 trade_id=15,
                 leg_id=2,
                 instrument=70,
-                quantity=115,
+                quantity=115.0,
                 avg_price=441.75,
                 trade_value=2540062.5,
                 trade_cost=238666.4,
@@ -337,7 +336,7 @@ class TestTradeManager(unittest.TestCase):
 
 class TestEquityManager(unittest.TestCase):
     def setUp(self):
-        self.manager = EquityManager(Mock())
+        self.manager = EquityManager()
         self.manager.equity_value = [
             {"timestamp": 1713888000000000000, "equity_value": 1189792.75},
             {"timestamp": 1713891600000000000, "equity_value": 1193107.75},
@@ -477,7 +476,7 @@ class TestEquityManager(unittest.TestCase):
 
 class TestAccountManager(unittest.TestCase):
     def setUp(self):
-        self.manager = AccountManager(Mock())
+        self.manager = AccountManager()
 
     def test_account_log(self):
         account_info = Account(
@@ -499,7 +498,7 @@ class TestAccountManager(unittest.TestCase):
 
 class TestSignalManager(unittest.TestCase):
     def setUp(self):
-        self.manager = SignalManager(Mock())
+        self.manager = SignalManager()
 
         # Signal data
         self.timestamp = 1651500000
@@ -510,7 +509,7 @@ class TestSignalManager(unittest.TestCase):
             trade_id=2,
             leg_id=5,
             weight=0.5,
-            quantity=10,
+            quantity=10.0,
         )
         self.trade2 = SignalInstruction(
             instrument=2,
@@ -519,7 +518,7 @@ class TestSignalManager(unittest.TestCase):
             trade_id=2,
             leg_id=6,
             weight=0.5,
-            quantity=10,
+            quantity=10.0,
         )
         self.trade_instructions = [self.trade1, self.trade2]
         self.event = SignalEvent(self.timestamp, self.trade_instructions)
@@ -535,7 +534,7 @@ class TestSignalManager(unittest.TestCase):
                 "trade_id": 2,
                 "leg_id": 5,
                 "weight": 0.5,
-                "quantity": 10,
+                "quantity": 10.0,
                 "limit_price": "",
                 "aux_price": "",
             },
@@ -547,7 +546,7 @@ class TestSignalManager(unittest.TestCase):
                 "trade_id": 2,
                 "leg_id": 6,
                 "weight": 0.5,
-                "quantity": 10,
+                "quantity": 10.0,
                 "limit_price": "",
                 "aux_price": "",
             },

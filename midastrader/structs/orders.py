@@ -1,4 +1,5 @@
 from abc import ABC
+from decimal import Decimal
 from enum import Enum
 from ibapi.order import Order
 
@@ -20,6 +21,18 @@ class Action(Enum):
     COVER = "COVER"
     SHORT = "SHORT"
     SELL = "SELL"
+    DEFAULT = "DEFAULT"
+
+    @classmethod
+    def from_string(cls, action_str: str) -> "Action":
+        """Convert a string to a Action enum, ensuring case-insensitivity."""
+        try:
+            if action_str == "BUY":
+                return Action.LONG
+            else:
+                return cls[action_str.upper()]
+        except KeyError:
+            raise ValueError(f"Invalid action: {action_str}.")
 
     def to_broker_standard(self):
         """
@@ -53,6 +66,15 @@ class OrderType(Enum):
     MARKET = "MKT"
     LIMIT = "LMT"
     STOPLOSS = "STP"
+    DEFAULT = "DEFAULT"
+
+    @classmethod
+    def from_string(cls, order_str: str) -> "OrderType":
+        """Convert a string to a OrderType enum, ensuring case-insensitivity."""
+        try:
+            return cls[order_str.upper()]
+        except KeyError:
+            raise ValueError(f"Invalid OrderType:  {order_str}.")
 
 
 class BaseOrder(ABC):
@@ -99,17 +121,17 @@ class BaseOrder(ABC):
         self.order = Order()
         self.order.action = broker_action
         self.order.orderType = order_type.value
-        self.order.totalQuantity = abs(quantity)
+        self.order.totalQuantity = Decimal(abs(quantity))
 
     @property
-    def quantity(self):
+    def quantity(self) -> float:
         """
         Returns the signed quantity of the order.
 
         Returns:
             float: Positive quantity for 'BUY', negative for 'SELL'.
         """
-        return (
+        return float(
             self.order.totalQuantity
             if self.order.action == "BUY"
             else -self.order.totalQuantity

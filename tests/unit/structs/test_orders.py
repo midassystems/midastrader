@@ -99,12 +99,18 @@ class TestMarketOrder(unittest.TestCase):
         with self.assertRaisesRegex(
             TypeError, "'action' field must be type Action enum."
         ):
-            MarketOrder(action="self.action,", quantity=self.quantity)
+            MarketOrder(
+                action="self.action,",  # pyright: ignore
+                quantity=self.quantity,
+            )
 
         with self.assertRaisesRegex(
             TypeError, "'quantity' field must be type float or int."
         ):
-            MarketOrder(action=self.action, quantity="self.quantity")
+            MarketOrder(
+                action=self.action,
+                quantity="self.quantity",  # pyright: ignore
+            )
 
     # Constraint Check
     def test_value_constraint(self):
@@ -170,7 +176,7 @@ class TestLimitOrder(unittest.TestCase):
             TypeError, "'action' field must be type Action enum."
         ):
             LimitOrder(
-                action="self.action,",
+                action="self.action,",  # pyright: ignore
                 quantity=self.quantity,
                 limit_price=self.limit_price,
             )
@@ -180,7 +186,7 @@ class TestLimitOrder(unittest.TestCase):
         ):
             LimitOrder(
                 action=self.action,
-                quantity="self.quantity",
+                quantity="self.quantity",  # pyright: ignore
                 limit_price=self.limit_price,
             )
 
@@ -190,7 +196,7 @@ class TestLimitOrder(unittest.TestCase):
             LimitOrder(
                 action=self.action,
                 quantity=self.quantity,
-                limit_price="self.limit_price",
+                limit_price="self.limit_price",  # pyright: ignore
             )
 
     # Constraint Check
@@ -265,7 +271,7 @@ class TestStopLoss(unittest.TestCase):
             TypeError, "'action' field must be type Action enum."
         ):
             StopLoss(
-                action="self.action,",
+                action="self.action,",  # pyright: ignore
                 quantity=self.quantity,
                 aux_price=self.aux_price,
             )
@@ -275,7 +281,7 @@ class TestStopLoss(unittest.TestCase):
         ):
             StopLoss(
                 action=self.action,
-                quantity="self.quantity",
+                quantity="self.quantity",  # pyright: ignore
                 aux_price=self.aux_price,
             )
 
@@ -285,7 +291,7 @@ class TestStopLoss(unittest.TestCase):
             StopLoss(
                 action=self.action,
                 quantity=self.quantity,
-                aux_price="self.aux_price",
+                aux_price="self.aux_price",  # pyright: ignore
             )
 
     # Constraint Check

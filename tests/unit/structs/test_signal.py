@@ -12,9 +12,9 @@ class TestTradeInsructions(unittest.TestCase):
         self.trade_id = 2
         self.leg_id = 5
         self.weight = 0.483938
-        self.quantity = -10
-        self.limit_price = 100
-        self.aux_price = 10
+        self.quantity = -10.0
+        self.limit_price = 100.0
+        self.aux_price = 10.0
 
     # Basic Validation
     def test_construction_market_order(self):
@@ -170,7 +170,7 @@ class TestTradeInsructions(unittest.TestCase):
             TypeError, "'instrument' field must be of type int."
         ):
             SignalInstruction(
-                instrument="1234",
+                instrument="1234",  # pyright: ignore
                 order_type=self.order_type,
                 action=self.action,
                 trade_id=self.trade_id,
@@ -184,7 +184,7 @@ class TestTradeInsructions(unittest.TestCase):
         ):
             SignalInstruction(
                 instrument=self.instrument,
-                order_type="MKT",
+                order_type="MKT",  # pyright: ignore
                 action=self.action,
                 trade_id=self.trade_id,
                 leg_id=self.leg_id,
@@ -198,7 +198,7 @@ class TestTradeInsructions(unittest.TestCase):
             SignalInstruction(
                 instrument=self.instrument,
                 order_type=self.order_type,
-                action="LONG",
+                action="LONG",  # pyright: ignore
                 trade_id=self.trade_id,
                 leg_id=self.leg_id,
                 weight=self.weight,
@@ -212,7 +212,7 @@ class TestTradeInsructions(unittest.TestCase):
                 instrument=self.instrument,
                 order_type=self.order_type,
                 action=self.action,
-                trade_id="2",
+                trade_id="2",  # pyright: ignore
                 leg_id=self.leg_id,
                 weight=self.weight,
                 quantity=self.quantity,
@@ -226,13 +226,13 @@ class TestTradeInsructions(unittest.TestCase):
                 order_type=self.order_type,
                 action=self.action,
                 trade_id=self.trade_id,
-                leg_id="2",
+                leg_id="2",  # pyright: ignore
                 weight=self.weight,
                 quantity=self.quantity,
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'quantity' field must be of type int or float."
+            TypeError, "'quantity' field must be of type float."
         ):
             SignalInstruction(
                 instrument=self.instrument,
@@ -241,12 +241,12 @@ class TestTradeInsructions(unittest.TestCase):
                 trade_id=self.trade_id,
                 leg_id=2,
                 weight=self.weight,
-                quantity="123",
+                quantity="123",  # pyright: ignore
             )
 
         with self.assertRaisesRegex(
             TypeError,
-            "'limit_price' field must be int or float for OrderType.LIMIT.",
+            "'limit_price' field must be float for OrderType.LIMIT.",
         ):
             SignalInstruction(
                 instrument=self.instrument,
@@ -256,11 +256,12 @@ class TestTradeInsructions(unittest.TestCase):
                 leg_id=self.leg_id,
                 weight=self.weight,
                 quantity=self.quantity,
+                limit_price=0,
             )
 
         with self.assertRaisesRegex(
             TypeError,
-            "'aux_price' field must be int or float for OrderType.STOPLOSS.",
+            "'aux_price' field must be float for OrderType.STOPLOSS.",
         ):
             SignalInstruction(
                 instrument=self.instrument,
@@ -270,6 +271,7 @@ class TestTradeInsructions(unittest.TestCase):
                 leg_id=self.leg_id,
                 weight=self.weight,
                 quantity=self.quantity,
+                aux_price=0,
             )
 
     # Constraint Check
@@ -311,7 +313,7 @@ class TestTradeInsructions(unittest.TestCase):
                 leg_id=self.leg_id,
                 weight=self.weight,
                 quantity=self.quantity,
-                limit_price=-1,
+                limit_price=-1.0,
             )
 
         with self.assertRaisesRegex(
@@ -325,7 +327,7 @@ class TestTradeInsructions(unittest.TestCase):
                 leg_id=self.leg_id,
                 weight=self.weight,
                 quantity=self.quantity,
-                aux_price=-1,
+                aux_price=-1.0,
             )
 
 

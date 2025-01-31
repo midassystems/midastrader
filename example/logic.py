@@ -4,11 +4,11 @@ from enum import Enum, auto
 from typing import List
 from mbn import OhlcvMsg
 
-from midas.structs.symbol import SymbolMap
-from midas.core.base_strategy import BaseStrategy
-from midas.structs.signal import SignalInstruction, OrderType, Action
-from midas.message_bus import MessageBus
-from midas.structs.events.market_event import MarketEvent
+from midastrader.structs.symbol import SymbolMap
+from midastrader.core.adapters.base_strategy import BaseStrategy
+from midastrader.structs.signal import SignalInstruction, OrderType, Action
+from midastrader.message_bus import MessageBus
+from midastrader.structs.events.market_event import MarketEvent
 
 
 class Signal(Enum):
@@ -30,9 +30,6 @@ class RandomSignalStrategy(BaseStrategy):
         self.last_signal = None
         self.bars_to_wait = 10  # Wait 10 bars before generating signals
         self.bars_processed = 0  # Track how many bars have been processed
-
-    def prepare(self, historical_data: pd.DataFrame) -> None:
-        pass
 
     def handle_event(self, event: MarketEvent):
         """
@@ -63,12 +60,12 @@ class RandomSignalStrategy(BaseStrategy):
 
             # Only generate entry signals if there's no current position
             if action_choice in [Signal.Long, Signal.Short]:
-                if not self.portfolio_server.get_positions:
+                if not self.portfolio_server.positions:
                     self.last_signal = action_choice
                 else:
                     return
             else:
-                if self.portfolio_server.get_positions:
+                if self.portfolio_server.positions:
                     self.last_signal = action_choice
                 else:
                     return
@@ -88,8 +85,8 @@ class RandomSignalStrategy(BaseStrategy):
                 )
                 self.trade_id += 1
 
-    def get_strategy_data(self):
-        pass
+    def get_strategy_data(self) -> pd.DataFrame:
+        return pd.DataFrame()
 
     def generate_trade_instructions(
         self,
@@ -101,13 +98,13 @@ class RandomSignalStrategy(BaseStrategy):
         """
         quantities = {
             ticker: 1  # Just a simple fixed quantity for testing purposes
-            for ticker in self.symbols_map.tickers
+            for ticker in self.symbols_map.data_tickers
         }
 
         trade_instructions = []
         leg_id = 1
 
-        for ticker in self.symbols_map.tickers:
+        for ticker in self.symbols_map.data_tickers:
             if signal == Signal.Long:
                 action = Action.LONG
             elif signal == Signal.Short:
@@ -119,7 +116,7 @@ class RandomSignalStrategy(BaseStrategy):
 
             trade_instructions.append(
                 SignalInstruction(
-                    ticker=ticker,
+                    instrument=ticker,  # pyright: ignore
                     order_type=OrderType.MARKET,
                     action=action,
                     trade_id=self.trade_id,

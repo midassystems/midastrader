@@ -1,3 +1,4 @@
+from typing import Optional
 import mbn
 import math
 import queue
@@ -78,15 +79,15 @@ class PerformanceManager(CoreAdapter):
             symbols_map (SymbolMap): Mapping of instrument symbols to `Symbol` objects.
         """
         super().__init__(symbols_map, bus)
-        self.trade_manager = TradeManager(self.logger)
-        self.equity_manager = EquityManager(self.logger)
-        self.signal_manager = SignalManager(self.logger)
-        self.account_manager = AccountManager(self.logger)
+        self.trade_manager = TradeManager()
+        self.equity_manager = EquityManager()
+        self.signal_manager = SignalManager()
+        self.account_manager = AccountManager()
         self.database = DatabaseClient()
         self.params = params
         self.mode = mode
         self.output_dir = output_dir
-        self.strategy: BaseStrategy = None
+        self._strategy: Optional[BaseStrategy] = None
         self.threads = []
         # self.running = threading.Event()
 
@@ -99,14 +100,10 @@ class PerformanceManager(CoreAdapter):
             EventType.TRADE_COMMISSION_UPDATE
         )
 
-    def set_strategy(self, strategy: BaseStrategy) -> None:
-        """
-        Sets the strategy for performance tracking.
-
-        Args:
-            strategy (BaseStrategy): The trading strategy to track performance for.
-        """
-        self.strategy = strategy
+    def set_strategy(self, value: BaseStrategy) -> None:
+        if not isinstance(value, BaseStrategy):
+            raise TypeError("Strategy must be an instance of BaseStrategy")
+        self._strategy = value
 
     def process(self):
         try:
@@ -255,9 +252,12 @@ class PerformanceManager(CoreAdapter):
         _convert_timestamp(signals_df, "timestamp")
 
         # Strategy
-        strategy_data = self.strategy.get_strategy_data()
-        if len(strategy_data) > 0:
-            _convert_timestamp(strategy_data, "timestamp")
+        strategy_data = pd.DataFrame()  # ensure its defined
+
+        if self._strategy:
+            strategy_data = self._strategy.get_strategy_data()
+            if len(strategy_data) > 0:
+                _convert_timestamp(strategy_data, "timestamp")
 
         with pd.ExcelWriter(
             output_path + "output.xlsx", engine="xlsxwriter"
@@ -288,7 +288,7 @@ class PerformanceManager(CoreAdapter):
         if self.mode == Mode.BACKTEST:
             self._save_backtest(self.output_dir)
         elif self.mode == Mode.LIVE:
-            self._save_live(self.output_dir)
+            self._save_live()
 
     def mbn_static_stats(self, static_stats: dict) -> mbn.StaticStats:
         """
@@ -487,7 +487,7 @@ class PerformanceManager(CoreAdapter):
             ),
         )
 
-    def _save_live(self, output_path: str = ""):
+    def _save_live(self):
         """
         Processes and saves data from a live trading session into the database.
 
@@ -513,6 +513,7 @@ class PerformanceManager(CoreAdapter):
 
         # Create Live Summary Object
         self.live_summary = mbn.LiveData(
+            live_id=None,
             parameters=self.params.to_mbn(),
             trades=self.trade_manager.to_mbn(self.symbols_map),
             signals=self.signal_manager.to_mbn(self.symbols_map),

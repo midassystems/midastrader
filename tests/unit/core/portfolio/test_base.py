@@ -1,3 +1,4 @@
+from decimal import Decimal
 import unittest
 import threading
 from datetime import time
@@ -113,7 +114,7 @@ class TestPortfolioServerManager(unittest.TestCase):
         order.account = "account_name"
         order.action = "BUY"
         order.orderType = "MKT"
-        order.totalQuantity = 100
+        order.totalQuantity = Decimal(100)
         order.cashQty = 100909
         order.lmtPrice = 0
         order.auxPrice = 0
@@ -132,7 +133,7 @@ class TestPortfolioServerManager(unittest.TestCase):
             exchange=contract.exchange,
             action=order.action,
             orderType=order.orderType,
-            totalQty=order.totalQuantity,
+            totalQty=float(order.totalQuantity),
             cashQty=order.cashQty,
             lmtPrice=order.lmtPrice,
             auxPrice=order.auxPrice,

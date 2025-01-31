@@ -114,7 +114,7 @@ class TestIBDataAdaptor(unittest.TestCase):
 
     def test_is_connected(self):
         # Test
-        self.adapter.app.isConnected.return_value = True
+        self.adapter.app.isConnected = Mock(return_value=True)
 
         # Validate
         self.assertTrue(self.adapter.is_connected())
@@ -128,6 +128,9 @@ class TestIBDataAdaptor(unittest.TestCase):
         with patch(
             "threading.Thread.start", return_value=None
         ) as mock_thread_start:
+            self.adapter.app.connected_event.wait = Mock()
+            self.adapter.app.valid_id_event.wait = Mock()
+
             # Test
             self.adapter.connect()
 
@@ -137,6 +140,8 @@ class TestIBDataAdaptor(unittest.TestCase):
             self.adapter.app.valid_id_event.wait.assert_called_once()
 
     def test_disconnect(self):
+        self.adapter.app.disconnect = Mock()
+
         # Test
         self.adapter.disconnect()
 
@@ -307,7 +312,7 @@ class TestIBDataAdaptor(unittest.TestCase):
         with self.assertRaisesRegex(
             ValueError, "'contract' must be of type Contract instance."
         ):
-            self.adapter.validate_contract(contract)
+            self.adapter.validate_contract(contract)  # pyright: ignore
 
 
 if __name__ == "__main__":

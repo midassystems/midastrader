@@ -1,6 +1,6 @@
-from typing import Optional, Dict
+from typing import Dict
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from midastrader.structs.symbol import SecurityType, Symbol, Right
 
@@ -48,18 +48,17 @@ class Position(ABC):
     """
 
     action: str
-    quantity: int
+    quantity: float
     avg_price: float
     market_price: float
-    price_multiplier: int
+    price_multiplier: float
     quantity_multiplier: int
-
-    initial_value: Optional[float] = field(init=False)
-    initial_cost: Optional[float] = field(init=False)
-    market_value: Optional[float] = field(init=False)
-    unrealized_pnl: Optional[float] = field(init=False)
-    margin_required: Optional[float] = field(init=False)
-    liquidation_value: Optional[float] = field(init=False)
+    initial_value: float = 0.0
+    initial_cost: float = 0.0
+    market_value: float = 0.0
+    unrealized_pnl: float = 0.0
+    margin_required: float = 0.0
+    liquidation_value: float = 0.0
 
     def __post_init__(self):
         """
@@ -74,7 +73,7 @@ class Position(ABC):
             raise TypeError("'action' must be of type str.")
         if not isinstance(self.avg_price, (int, float)):
             raise TypeError("'avg_price' must be of type int or float.")
-        if not isinstance(self.quantity, (float, int)):
+        if not isinstance(self.quantity, (int, float)):
             raise TypeError("'quantity' must be of type int or float.")
         if not isinstance(self.price_multiplier, (int, float)):
             raise TypeError("'price_multiplier' must be of type int or float.")
@@ -154,7 +153,7 @@ class Position(ABC):
     @abstractmethod
     def update(
         self,
-        quantity: int,
+        quantity: float,
         avg_price: float,
         market_price: float,
         action: str,
@@ -245,7 +244,7 @@ class FuturePosition(Position):
         initial_margin (float): The margin required per futures contract.
     """
 
-    initial_margin: float
+    initial_margin: float = 0.0
 
     def __post_init__(self):
         """
@@ -341,7 +340,7 @@ class FuturePosition(Position):
 
     def update(
         self,
-        quantity: int,
+        quantity: float,
         avg_price: float,
         market_price: float,
         action: str,
@@ -538,7 +537,7 @@ class EquityPosition(Position):
 
     def update(
         self,
-        quantity: int,
+        quantity: float,
         avg_price: float,
         market_price: float,
         action: str,
@@ -668,8 +667,8 @@ class OptionPosition(Position):
         expiration_date (str): The expiration date of the option in YYYY-MM-DD format.
     """
 
-    type: Right
-    strike_price: float
+    type: Right = Right.DEFAULT
+    strike_price: float = 0.0
     expiration_date: str = ""
 
     def __post_init__(self):
@@ -794,7 +793,13 @@ class OptionPosition(Position):
             * self.quantity_multiplier
         )
 
-    def update(self, quantity: int, price: float, action: str) -> Impact:
+    def update(
+        self,
+        quantity: float,
+        avg_price: float,
+        market_price: float,
+        action: str,
+    ) -> Impact:
         """
         Updates the options position with new quantity, price, and action. Recalculates
         all relevant metrics and returns the financial impact.
@@ -811,7 +816,7 @@ class OptionPosition(Position):
 
         # Intial Value before price change
         initial_value = self.initial_value
-        self.market_price = price
+        self.market_price = market_price
 
         # Market Value before quantity change
         self.calculate_market_value()
@@ -822,14 +827,15 @@ class OptionPosition(Position):
 
         # Update quantity/action/avg_price
         new_quantity = self.quantity + quantity
+
         if action == self.action:  # Adding to the same position
             new_avg_price = (
-                (self.avg_price * self.quantity) + (price * quantity)
+                (self.avg_price * self.quantity) + (avg_price * quantity)
             ) / new_quantity
             self.avg_price = new_avg_price
         elif abs(quantity) > abs(self.quantity):  # Flipping position
             self.action = "BUY" if new_quantity > 0 else "SELL"
-            self.avg_price = price
+            self.avg_price = avg_price
 
         self.quantity = new_quantity
 

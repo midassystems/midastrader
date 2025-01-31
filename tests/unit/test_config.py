@@ -1,8 +1,9 @@
 import random
+from typing import List
 import unittest
 from datetime import datetime, time
 
-from mbn import Dataset, Stype
+from mbn import Dataset, Schema, Stype
 
 from midastrader.utils.unix import iso_to_unix
 from midastrader.config import Parameters, LiveDataType, Config
@@ -10,6 +11,7 @@ from midastrader.structs.symbol import (
     Future,
     Currency,
     ContractUnits,
+    Symbol,
     Venue,
     FuturesMonth,
     TradingSession,
@@ -37,8 +39,8 @@ class TestConfig(unittest.TestCase):
 class TestParameters(unittest.TestCase):
     def setUp(self) -> None:
         # Test parameter data
-        self.schema = "Ohlcv-1s"
         self.strategy_name = "Testing"
+        self.schema = Schema.OHLCV1_S
         self.dataset = Dataset.FUTURES
         self.stype = Stype.CONTINUOUS
         self.capital = 1000000
@@ -46,7 +48,7 @@ class TestParameters(unittest.TestCase):
         self.strategy_allocation = 1.0
         self.start = "2020-05-18"
         self.end = "2023-12-31"
-        self.symbols = [
+        self.symbols: List[Symbol] = [
             Future(
                 instrument_id=1,
                 broker_ticker="HEJ4",
@@ -261,7 +263,7 @@ class TestParameters(unittest.TestCase):
         ):
             Parameters(
                 schema=self.schema,
-                strategy_name=123,
+                strategy_name=123,  # pyright: ignore
                 dataset=self.dataset,
                 stype=self.stype,
                 capital=self.capital,
@@ -279,7 +281,7 @@ class TestParameters(unittest.TestCase):
                 strategy_name=self.strategy_name,
                 dataset=self.dataset,
                 stype=self.stype,
-                capital="1000",
+                capital="1000",  # pyright: ignore
                 data_type=self.data_type,
                 start=self.start,
                 end=self.end,
@@ -296,7 +298,7 @@ class TestParameters(unittest.TestCase):
                 dataset=self.dataset,
                 stype=self.stype,
                 capital=self.capital,
-                data_type="BAR",
+                data_type="BAR",  # pyright: ignore
                 start=self.start,
                 end=self.end,
                 symbols=self.symbols,
@@ -310,7 +312,7 @@ class TestParameters(unittest.TestCase):
                 dataset=self.dataset,
                 stype=self.stype,
                 data_type=self.data_type,
-                start=datetime(2020, 10, 10),
+                start=datetime(2020, 10, 10),  # pyright: ignore
                 end=self.end,
                 symbols=self.symbols,
             )
@@ -324,7 +326,7 @@ class TestParameters(unittest.TestCase):
                 capital=self.capital,
                 data_type=self.data_type,
                 start=self.start,
-                end=datetime(2020, 10, 10),
+                end=datetime(2020, 10, 10),  # pyright: ignore
                 symbols=self.symbols,
             )
 
@@ -340,7 +342,7 @@ class TestParameters(unittest.TestCase):
                 data_type=self.data_type,
                 start=self.start,
                 end=self.end,
-                symbols="tests",
+                symbols="tests",  # pyright: ignore
             )
 
         with self.assertRaisesRegex(
@@ -356,7 +358,7 @@ class TestParameters(unittest.TestCase):
                 stype=self.stype,
                 start=self.start,
                 end=self.end,
-                symbols=["appl", "tsla"],
+                symbols=["appl", "tsla"],  # pyright: ignore
             )
 
     # Constraint Validation

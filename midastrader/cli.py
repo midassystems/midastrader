@@ -3,7 +3,7 @@ from midastrader.config import Mode
 from midastrader.engine import EngineBuilder
 
 
-def run(config_path: str, mode: str):
+def run(config_path: str, mode_str: str):
     """
     Initializes and runs the Midas trading engine based on the provided configuration
     file and mode.
@@ -21,22 +21,12 @@ def run(config_path: str, mode: str):
     Example:
         run("config.toml", "backtest")
     """
-    mode = Mode[mode.upper()]
+    mode = Mode.from_string(mode_str)
 
     # Build the engine using the EngineBuilder
-    engine = (
-        EngineBuilder(config_path, mode)
-        .create_logger()
-        .create_messagebus()
-        .create_parameters()  # Load and parse the parameters
-        .create_symbols_map()  # Create the map for the trading symbols
-        .create_data_engine()  # Initialize logging
-        .create_execution_engine()
-        .create_core_engine()
-        .build()  # Finalize the engine setup
-    )
+    engine = EngineBuilder(config_path, mode).build()
 
-    # # Initialize and start the engine
+    # Initialize and start the engine
     engine.initialize()
     engine.start()
 
@@ -78,5 +68,4 @@ def main():
 
 
 if __name__ == "__main__":
-    # The main entry point when this module is called with `python -m midastrader.engine.main`
     main()

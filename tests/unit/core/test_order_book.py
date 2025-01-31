@@ -229,14 +229,14 @@ class TestOrderBookManager(unittest.TestCase):
 
     # Basic Validation
     def test_process(self):
-        self.manager.handle_event = MagicMock()
+        self.manager.handle_record = MagicMock()
 
         # Test
         self.bus.publish(EventType.DATA, self.bar)
         sleep(1)
 
         # Validate
-        args = self.manager.handle_event.call_args[0]
+        args = self.manager.handle_record.call_args[0]
         self.assertEqual(self.bar, args[0])
 
     def test_handle_event_bar(self):
@@ -244,7 +244,7 @@ class TestOrderBookManager(unittest.TestCase):
         self.bus.publish = MagicMock()
 
         # Test
-        self.manager.handle_event(self.bar)
+        self.manager.handle_record(self.bar)
         sleep(1)
 
         # Validate
@@ -275,7 +275,7 @@ class TestOrderBookManager(unittest.TestCase):
         self.bus.publish = MagicMock()
 
         # Test
-        self.manager.handle_event(self.tick)
+        self.manager.handle_record(self.tick)
         sleep(1)
 
         # Validate

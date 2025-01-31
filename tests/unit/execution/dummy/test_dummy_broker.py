@@ -159,13 +159,16 @@ class TestDummyClient(unittest.TestCase):
 
     def test_update_positions_update(self):
         symbol = self.symbols_map.get_symbol("AAPL")
-        contract = symbol.contract
+        if symbol:
+            contract = symbol.contract
+        else:
+            raise Exception("Symbol not found.")
 
         # Old Position
         old_position = EquityPosition(
             action="BUY",
             avg_price=10,
-            quantity=100,
+            quantity=100.0,
             quantity_multiplier=1,
             price_multiplier=1,
             market_price=20,
@@ -174,7 +177,7 @@ class TestDummyClient(unittest.TestCase):
 
         # New order
         action = Action.SELL
-        quantity = -50
+        quantity = -50.0
         fill_price = 25
 
         # Test
@@ -197,9 +200,11 @@ class TestDummyClient(unittest.TestCase):
     def test_update_positions_new(self):
         symbol = self.symbols_map.get_symbol("AAPL")
 
+        if not symbol:
+            raise Exception("Symbol not found.")
         # New order
         action = Action.SELL
-        quantity = -50
+        quantity = -50.0
         fill_price = 25
 
         # Test
@@ -221,25 +226,37 @@ class TestDummyClient(unittest.TestCase):
         hogs_position = FuturePosition(
             action="BUY",
             avg_price=10,
-            quantity=80,
+            quantity=80.0,
             quantity_multiplier=400000,
             price_multiplier=0.01,
             market_price=10,
             initial_margin=5000,
         )
-        hogs_contract = self.symbols_map.get_symbol("HEJ4").contract
+        hogs_symbol = self.symbols_map.get_symbol("HEJ4")
+
+        if hogs_symbol:
+            hogs_contract = hogs_symbol.contract
+        else:
+            raise Exception("Symbol not found.")
+
         self.broker.positions[hogs_contract] = hogs_position
 
         # Position2
         aapl_position = EquityPosition(
             action="BUY",
             avg_price=10,
-            quantity=100,
+            quantity=100.0,
             quantity_multiplier=1,
             price_multiplier=1,
             market_price=10,
         )
-        aapl_contract = self.symbols_map.get_symbol("AAPL").contract
+        aapl_symbol = self.symbols_map.get_symbol("AAPL")
+
+        if aapl_symbol:
+            aapl_contract = aapl_symbol.contract
+        else:
+            raise Exception("Symbol not found.")
+
         self.broker.positions[aapl_contract] = aapl_position
 
         # Mock orderbook responses
@@ -299,11 +316,13 @@ class TestDummyClient(unittest.TestCase):
         trade_id = 1
         leg_id = 2
         ticker = "AAPL"
-        symbol = self.symbols_map.get_symbol(ticker)
-        quantity = -10
+        quantity = -10.0
         action = Action.LONG
         fill_price = 9.9
         fees = 90.9
+        symbol = self.symbols_map.get_symbol(ticker)
+        if not symbol:
+            raise Exception("Symbol not found.")
 
         # Exception
         id = f"{trade_id}{leg_id}{action}"
@@ -379,13 +398,19 @@ class TestDummyClient(unittest.TestCase):
         hogs_position = FuturePosition(
             action="BUY",
             avg_price=10,
-            quantity=80,
+            quantity=80.0,
             quantity_multiplier=40000,
             price_multiplier=0.01,
-            market_price=10,
+            market_price=10.0,
             initial_margin=4564.17,
         )
-        hogs_contract = self.symbols_map.get_symbol("HEJ4").contract
+        hogs_symbol = self.symbols_map.get_symbol("HEJ4")
+
+        if hogs_symbol:
+            hogs_contract = hogs_symbol.contract
+        else:
+            raise Exception("Symbol not found.")
+
         self.broker.positions[hogs_contract] = hogs_position
 
         hogs_trade = Trade(
@@ -394,7 +419,7 @@ class TestDummyClient(unittest.TestCase):
             leg_id=1,
             instrument=self.hogs.instrument_id,
             quantity=round(hogs_position.quantity, 4),
-            avg_price=hogs_position.avg_price,
+            avg_price=float(hogs_position.avg_price),
             trade_value=round(
                 hogs_position.avg_price
                 * hogs_position.price_multiplier
@@ -404,7 +429,7 @@ class TestDummyClient(unittest.TestCase):
             ),
             trade_cost=hogs_position.initial_margin * hogs_position.quantity,
             action=hogs_position.action,
-            fees=70,
+            fees=70.0,
         )
         self.broker.last_trades[hogs_contract] = hogs_trade
 
@@ -412,12 +437,18 @@ class TestDummyClient(unittest.TestCase):
         aapl_position = EquityPosition(
             action="BUY",
             avg_price=10,
-            quantity=100,
+            quantity=100.0,
             quantity_multiplier=1,
             price_multiplier=1,
-            market_price=10,
+            market_price=10.0,
         )
-        aapl_contract = self.symbols_map.get_symbol("AAPL").contract
+        aapl_symbol = self.symbols_map.get_symbol("AAPL")
+
+        if aapl_symbol:
+            aapl_contract = aapl_symbol.contract
+        else:
+            raise Exception("Symbol not found.")
+
         self.broker.positions[aapl_contract] = aapl_position
 
         aapl_trade = Trade(
@@ -426,7 +457,7 @@ class TestDummyClient(unittest.TestCase):
             leg_id=2,
             instrument=self.aapl.instrument_id,
             quantity=round(aapl_position.quantity, 4),
-            avg_price=aapl_position.avg_price,
+            avg_price=float(aapl_position.avg_price),
             trade_value=round(
                 aapl_position.avg_price * aapl_position.quantity, 2
             ),
@@ -434,7 +465,7 @@ class TestDummyClient(unittest.TestCase):
                 aapl_position.avg_price * aapl_position.quantity, 2
             ),
             action=aapl_position.action,
-            fees=70,
+            fees=70.0,
         )
         self.broker.last_trades[aapl_contract] = aapl_trade
 
@@ -464,7 +495,7 @@ class TestDummyClient(unittest.TestCase):
             leg_id=1,
             instrument=self.hogs.instrument_id,
             quantity=round(hogs_position.quantity * -1, 4),
-            avg_price=current_price * hogs_position.price_multiplier,
+            avg_price=float(current_price * hogs_position.price_multiplier),
             trade_value=round(
                 (
                     current_price
@@ -487,7 +518,7 @@ class TestDummyClient(unittest.TestCase):
             leg_id=2,
             instrument=self.aapl.instrument_id,
             quantity=round(aapl_position.quantity * -1, 4),
-            avg_price=current_price * 1,
+            avg_price=float(current_price * 1),
             trade_value=round(current_price * aapl_position.quantity, 2),
             trade_cost=round(current_price * abs(aapl_position.quantity), 2),
             action=Action.SELL.value,
@@ -517,11 +548,14 @@ class TestDummyClient(unittest.TestCase):
         # Variables
         ticker = "HEJ4"
         symbol = self.symbols_map.get_symbol(ticker)
+
+        if not symbol:
+            raise Exception("Symbol not found.")
         id = self.symbols_map.get_id(ticker)
 
         position = EquityPosition(
             action="SELL",
-            quantity=-10,
+            quantity=-10.0,
             avg_price=100,
             quantity_multiplier=symbol.quantity_multiplier,
             price_multiplier=symbol.price_multiplier,
@@ -544,9 +578,12 @@ class TestDummyClient(unittest.TestCase):
         symbol = self.symbols_map.get_symbol(ticker)
         id = self.symbols_map.get_id(ticker)
 
+        if not symbol:
+            raise Exception("Symbol not found.")
+
         position = EquityPosition(
             action="SELL",
-            quantity=0,
+            quantity=0.0,
             avg_price=100,
             quantity_multiplier=symbol.quantity_multiplier,
             price_multiplier=symbol.price_multiplier,

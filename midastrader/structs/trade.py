@@ -1,5 +1,4 @@
 import mbn
-from typing import Union
 from dataclasses import dataclass
 
 from midastrader.structs.constants import PRICE_FACTOR
@@ -15,7 +14,7 @@ class Trade:
         trade_id (int): Unique identifier for the trade.
         leg_id (int): Identifier for the leg (part of a multi-leg trades).
         instrument (int): Identifier for the traded instrument, e.g., ticker ID.
-        quantity (Union[int, float]): The amount of the instrument traded.
+        quantity (float): The amount of the instrument traded.
         avg_price (float): The average execution price of the trade. Must be > 0.
         trade_value (float): The total notional value (quantity × price) of the trade.
         trade_cost (float): The total cost associated with entering the trade. (e.g., trade_value for equities, initial margin for futures, premium for options).
@@ -27,7 +26,7 @@ class Trade:
     trade_id: int
     leg_id: int
     instrument: int
-    quantity: Union[int, float]
+    quantity: float
     avg_price: float
     trade_value: float
     trade_cost: float
@@ -51,20 +50,18 @@ class Trade:
             raise TypeError("'leg_id' field must be of type int.")
         if not isinstance(self.instrument, int):
             raise TypeError("'instrument' field must be of type int.")
-        if not isinstance(self.quantity, (float, int)):
-            raise TypeError("'quantity' field must be of type float or int.")
-        if not isinstance(self.avg_price, (float, int)):
-            raise TypeError("'avg_price' field must be of type float or int.")
-        if not isinstance(self.trade_value, (float, int)):
-            raise TypeError(
-                "'trade_value' field must be of type float or int."
-            )
-        if not isinstance(self.trade_cost, (float, int)):
-            raise TypeError("'trade_cost' field must be of type float or int.")
+        if not isinstance(self.quantity, float):
+            raise TypeError("'quantity' field must be of type float.")
+        if not isinstance(self.avg_price, float):
+            raise TypeError("'avg_price' field must be of type float.")
+        if not isinstance(self.trade_value, float):
+            raise TypeError("'trade_value' field must be of type float.")
+        if not isinstance(self.trade_cost, float):
+            raise TypeError("'trade_cost' field must be of type float.")
         if not isinstance(self.action, str):
             raise TypeError("'action' field must be of type str.")
-        if not isinstance(self.fees, (float, int)):
-            raise TypeError("'fees' field must be of type float or int.")
+        if not isinstance(self.fees, float):
+            raise TypeError("'fees' field must be of type float.")
 
         # Value Constraint
         if self.action not in ["BUY", "SELL", "LONG", "SHORT", "COVER"]:

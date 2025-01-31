@@ -132,7 +132,7 @@ class TestOrderManager(unittest.TestCase):
             trade_id=2,
             leg_id=5,
             weight=0.5,
-            quantity=2,
+            quantity=2.0,
         )
         self.trade_fut = SignalInstruction(
             instrument=1,
@@ -141,7 +141,7 @@ class TestOrderManager(unittest.TestCase):
             trade_id=2,
             leg_id=6,
             weight=0.5,
-            quantity=-2,
+            quantity=-2.0,
         )
         self.trade_instructions = [self.trade_equity, self.trade_fut]
         self.signal_event = SignalEvent(
@@ -157,7 +157,7 @@ class TestOrderManager(unittest.TestCase):
 
         # Test
         self.bus.publish(EventType.SIGNAL, self.signal_event)
-        sleep(1)
+        sleep(2)
 
         # Validate
         args = self.manager.handle_event.call_args[0]
@@ -165,7 +165,7 @@ class TestOrderManager(unittest.TestCase):
 
     def test_create_marketorder_valid(self):
         self.manager._set_order = Mock()
-        self.order_book.retrieve = Mock(return_value=150)
+        self.order_book.retrieve = Mock(return_value=Mock(pretty_price=150))
 
         # Test
         self.manager._handle_signal(self.timestamp, [self.trade_equity])
@@ -186,11 +186,11 @@ class TestOrderManager(unittest.TestCase):
             trade_id=2,
             leg_id=6,
             weight=0.5,
-            quantity=-2,
-            limit_price=90,
+            quantity=-2.0,
+            limit_price=90.0,
         )
         self.manager._set_order = Mock()
-        self.order_book.retrieve = Mock(return_value=150)
+        self.order_book.retrieve = Mock(return_value=Mock(pretty_price=150))
 
         # Test
         self.manager._handle_signal(self.timestamp, [trade_instructions])
@@ -214,11 +214,11 @@ class TestOrderManager(unittest.TestCase):
             trade_id=2,
             leg_id=6,
             weight=0.5,
-            quantity=-2,
-            aux_price=90,
+            quantity=-2.0,
+            aux_price=90.0,
         )
         self.manager._set_order = Mock()
-        self.order_book.retrieve = Mock(return_value=150)
+        self.order_book.retrieve = Mock(return_value=Mock(pretty_price=150))
 
         # Test
         self.manager._handle_signal(self.timestamp, [trade_instructions])
@@ -233,12 +233,11 @@ class TestOrderManager(unittest.TestCase):
         self.assertEqual(args[5].order.auxPrice, trade_instructions.aux_price)
 
     def test_handle_signal_sufficient_captial(self):
-        self.portfolio_server.account_manager.capital = 10000
-        self.order_book.current_price = Mock(return_value=150)
+        self.portfolio_server.account.full_available_funds = 10000
+        self.order_book.retrieve = Mock(return_value=Mock(pretty_price=150))
         self.portfolio_server.account.full_init_margin_req = 1000
         self.portfolio_server.account.full_available_funds = 50000
         self.manager._set_order = MagicMock()
-        self.order_book.retrieve = Mock(return_value=10)  # current price
 
         # Test Order Set b/c funds available
         self.manager._handle_signal(self.timestamp, self.trade_instructions)
@@ -247,12 +246,11 @@ class TestOrderManager(unittest.TestCase):
         self.assertTrue(self.manager._set_order.call_count > 0)
 
     def test_handle_signal_insufficient_capital(self):
-        self.portfolio_server.account_manager.capital = 100
-        self.order_book.current_price = Mock(return_value=150)
+        self.portfolio_server.account.full_available_funds = 100
+        self.order_book.retrieve = Mock(return_value=Mock(pretty_price=150))
         self.portfolio_server.account.full_init_margin_req = 1000
         self.portfolio_server.account.full_available_funds = 100
         self.manager._set_order = MagicMock()
-        self.order_book.retrieve = Mock(return_value=10)  # current price
 
         # Test Order set b/c no funds currently available
         self.manager._handle_signal(self.timestamp, self.trade_instructions)
@@ -287,7 +285,7 @@ class TestOrderManager(unittest.TestCase):
         action = Action.LONG
         trade_id = 2
         leg_id = 6
-        order = MarketOrder(action=action, quantity=10)
+        order = MarketOrder(action=action, quantity=10.0)
         contract = Contract()
         self.bus.publish = MagicMock()
 

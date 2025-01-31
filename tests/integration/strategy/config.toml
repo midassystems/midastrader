@@ -3,7 +3,7 @@ name = "testing123"
 # General
 [general]
 session_id = 1001
-log_level = "INFO"
+log_level = "DEBUG"
 log_output = "file"
 output_path = "tests/integration/backtest/output/"
 
@@ -13,7 +13,7 @@ url = "http://192.53.120.167:8080" #"http://127.0.0.1:8080"
 key = "your_database_key"
 # data_file= "tests/integration/primer.bin" 
 # data_file="tests/integration/test_ohlcv-1h.bin"
-data_file= "tests/integration/test_HE.c.0_ZC.c.0_ohlcv-1h_2024-09-01_2024-12-31.bin"
+data_file= "tests/integration/test_he.c.0_zc.c.0.bin"
 
 # [vendor.interactive_brokers]
 # tick_interval = 5 # only matters for tick data

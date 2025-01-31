@@ -60,7 +60,7 @@ class BrokerApp(EWrapper, EClient):
         self.bus = bus
 
         #  Data Storage
-        self.next_valid_order_id = None
+        self.next_valid_order_id = 0
         self.is_valid_contract = None
         self.account_update_timer = None
         self.account_info_keys = Account.get_account_key_mapping().keys()
@@ -89,7 +89,7 @@ class BrokerApp(EWrapper, EClient):
         reqId: int,
         errorCode: int,
         errorString: str,
-        advancedOrderRejectJson: str = None,
+        advancedOrderRejectJson: str = "",
     ) -> None:
         """
         Handles errors from the broker's API.
@@ -257,27 +257,28 @@ class BrokerApp(EWrapper, EClient):
 
         if contract.symbol in self.symbols_map.broker_tickers:
             symbol = self.symbols_map.get_symbol(contract.symbol)
-            market_price = marketPrice / symbol.price_multiplier
-            avg_price = averageCost / (
-                symbol.price_multiplier * symbol.quantity_multiplier
-            )
+            if symbol:
+                market_price = marketPrice / symbol.price_multiplier
+                avg_price = averageCost / (
+                    symbol.price_multiplier * symbol.quantity_multiplier
+                )
 
-            details = {
-                "action": "BUY" if position > 0 else "SELL",
-                "avg_price": avg_price,
-                "quantity": float(position),
-                "market_price": market_price,
-            }
+                details = {
+                    "action": "BUY" if position > 0 else "SELL",
+                    "avg_price": avg_price,
+                    "quantity": float(position),
+                    "market_price": market_price,
+                }
 
-            position = position_factory(
-                symbol.security_type,
-                symbol,
-                **details,
-            )
-            self.bus.publish(
-                EventType.POSITION_UPDATE,
-                (symbol.instrument_id, position),
-            )
+                position_obj = position_factory(
+                    symbol.security_type,
+                    symbol,
+                    **details,
+                )
+                self.bus.publish(
+                    EventType.POSITION_UPDATE,
+                    (symbol.instrument_id, position_obj),
+                )
 
     #### wrapper function for reqAccountUpdates. Signals the end of account information
     def accountDownloadEnd(self, accountName: str) -> None:
@@ -471,35 +472,35 @@ class BrokerApp(EWrapper, EClient):
         # Symbol
         if contract.symbol in self.symbols_map.broker_tickers:
             symbol = self.symbols_map.get_symbol(contract.symbol)
+            if symbol:
+                # Convert action to ["BUY", "SELL"]
+                side = "SELL" if execution.side == "SLD" else "BUY"
 
-            # Convert action to ["BUY", "SELL"]
-            side = "SELL" if execution.side == "SLD" else "BUY"
+                # get timestamp in nanoseconds UNIX
+                datetime_part, timezone_part = execution.time.rsplit(" ", 1)
+                unix_ns = datetime_to_unix_ns(datetime_part, timezone_part)
 
-            # get timestamp in nanoseconds UNIX
-            datetime_part, timezone_part = execution.time.rsplit(" ", 1)
-            unix_ns = datetime_to_unix_ns(datetime_part, timezone_part)
+                # Data
+                quantity = float(execution.shares)
+                price = execution.price
 
-            # Data
-            quantity = float(execution.shares)
-            price = execution.price
-
-            # Create Trade
-            trade = Trade(
-                timestamp=unix_ns,
-                instrument=symbol.instrument_id,
-                trade_id=execution.orderId,
-                leg_id=1,
-                quantity=quantity,  # Decimal
-                avg_price=price,
-                trade_value=round(symbol.value(quantity, price), 2),
-                trade_cost=round(symbol.cost(quantity, price), 2),
-                action=side,
-                fees=0,
-            )
-            self.bus.publish(
-                EventType.TRADE_UPDATE,
-                TradeEvent(str(execution.execId), trade),
-            )
+                # Create Trade
+                trade = Trade(
+                    timestamp=unix_ns,
+                    instrument=symbol.instrument_id,
+                    trade_id=execution.orderId,
+                    leg_id=1,
+                    quantity=quantity,  # Decimal
+                    avg_price=price,
+                    trade_value=round(symbol.value(quantity, price), 2),
+                    trade_cost=round(symbol.cost(quantity, price), 2),
+                    action=side,
+                    fees=float(0.0),
+                )
+                self.bus.publish(
+                    EventType.TRADE_UPDATE,
+                    TradeEvent(str(execution.execId), trade),
+                )
 
     def commissionReport(self, commissionReport: CommissionReport) -> None:
         """

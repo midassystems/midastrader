@@ -261,7 +261,7 @@ class Cointegrationzscore(BaseStrategy):
                     trade_id=self.trade_id,
                     leg_id=len(trade_instructions) + 1,
                     weight=weight,
-                    quantity=quantity,
+                    quantity=float(quantity),
                 )
             )
         return trade_instructions

@@ -1,16 +1,18 @@
 # noqa: C901
-import pandas as pd
-import pandas_market_calendars as mcal
+# import pandas as pd
+# import pandas_market_calendars as mcal
+# from datetime import timedelta
 from enum import Enum
 from typing import Optional, Dict, List
 from ibapi.contract import Contract
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import time, datetime
-from datetime import timedelta
+
+# from pandas_market_calendars.market_calendar import DEFAULT
 
 from midastrader.structs.orders import Action
-from midastrader.utils.unix import unix_to_date, unix_to_iso
+from midastrader.utils.unix import unix_to_iso
 
 
 # -- Symbol Details --
@@ -171,6 +173,7 @@ class Right(Enum):
 
     CALL = "CALL"
     PUT = "PUT"
+    DEFAULT = "DEFAULT"
 
 
 class FuturesMonth(Enum):
@@ -493,7 +496,7 @@ class Symbol(ABC):
         )
 
     @abstractmethod
-    def value(self, quantity: float, price: Optional[float] = None) -> float:
+    def value(self, quantity: float, price: float) -> float:
         """
         Abstract method to calculate the total value of a position.
 
@@ -507,7 +510,7 @@ class Symbol(ABC):
         pass
 
     @abstractmethod
-    def cost(self, quantity: float, price: Optional[float] = None) -> float:
+    def cost(self, quantity: float, price: float) -> float:
         """
         Abstract method to calculate the total cost of a position.
 
@@ -609,7 +612,7 @@ class Equity(Symbol):
         }
         return symbol_dict
 
-    def value(self, quantity: float, price: Optional[float] = None) -> float:
+    def value(self, quantity: float, price: float) -> float:
         """
         Calculates the total value of a position in the equity.
 
@@ -622,7 +625,7 @@ class Equity(Symbol):
         """
         return quantity * price
 
-    def cost(self, quantity: float, price: Optional[float] = None) -> float:
+    def cost(self, quantity: float, price: float) -> float:
         """
         Calculates the total cost of acquiring or holding a position in the equity.
 
@@ -778,7 +781,7 @@ class Future(Symbol):
             self.price_multiplier * price * quantity * self.quantity_multiplier
         )
 
-    def cost(self, quantity: float, price: Optional[float] = None) -> float:
+    def cost(self, quantity: float, price: float = 0.0) -> float:
         """
         Calculate the cost or margin requirement for the position.
 
@@ -791,195 +794,195 @@ class Future(Symbol):
         """
         return abs(quantity) * self.initial_margin
 
-    def in_rolling_window(
-        self,
-        ts: int,
-        window: int = 2,
-        tz_info="UTC",
-    ) -> bool:
-        """
-        Check if the given timestamp is within a rolling window near the contract's termination date.
-
-        Args:
-            ts (int): Timestamp in nanoseconds.
-            window (int): Rolling window size in days (default is 2).
-            tz_info (str): Timezone info (default is "UTC").
-
-        Returns:
-            bool: True if within the rolling window, False otherwise.
-        """
-
-        # Convert the timestamp into a datetime object
-        event_date = unix_to_date(ts, tz_info)
-        year, month = event_date.year, event_date.month
-
-        if month in [month.value for month in self.expr_months]:
-            # Get the termination date for the current contract month/year
-            termination_date = self.apply_day_rule(month, year).date()
-
-            # Calculate the rolling window period
-            window_start = termination_date - timedelta(days=window)
-            window_end = termination_date + timedelta(days=window)
-
-            # Check if the event date falls within the rolling window
-            return window_start <= event_date <= window_end
-        return False
-
-    def apply_day_rule(self, month: int, year: int) -> datetime:
-        """
-        Determine the contract expiration date based on the termination day rule.
-
-        Args:
-            month (int): Expiration month.
-            year (int): Expiration year.
-
-        Returns:
-            datetime: Expiration date as per the rule.
-
-        Raises:
-            ValueError: If the termination rule is invalid.
-        """
-        # Match "nth_business_day_10"
-        if self.term_day_rule.startswith("nth_business_day"):
-            nth_day = int(self.term_day_rule.split("_")[-1])
-            return self.get_nth_business_day(
-                month,
-                year,
-                nth_day,
-                self.market_calendar,
-            )
-        # Match "nth_last_business_day_2"
-        elif self.term_day_rule.startswith("nth_last_business_day"):
-            nth_last_day = int(self.term_day_rule.split("_")[-1])
-            return self.get_nth_last_business_day(
-                month,
-                year,
-                nth_last_day,
-                self.market_calendar,
-            )
-        # Match "nth_business_day_before_nth_day_2_15"
-        elif self.term_day_rule.startswith("nth_bday_before_nth_day"):
-            parts = self.term_day_rule.split("_")
-            nth_day = int(parts[-1])
-            target_day = int(parts[-2])
-            return self.get_nth_business_day_before(
-                month,
-                year,
-                target_day,
-                nth_day,
-                self.market_calendar,
-            )
-        else:
-            raise ValueError(f"Unknown rule: {self.term_day_rule}")
-
-    @staticmethod
-    def get_nth_business_day(
-        month: int,
-        year: int,
-        nth_day: int,
-        market_calendar: str,
-    ) -> datetime:
-        """
-        Retrieve the nth business day of a specified month and year.
-
-        Args:
-            month (int): The target month (1-12).
-            year (int): The target year.
-            nth_day (int): The business day to retrieve (e.g., 1st, 2nd, etc.).
-            market_calendar (str): The trading calendar name (e.g., 'NYSE', 'CME').
-
-        Returns:
-            datetime: The date corresponding to the nth business day.
-
-        Raises:
-            IndexError: If `nth_day` exceeds the number of business days in the month.
-            ValueError: If invalid calendar name is provided.
-        """
-        start_date = pd.Timestamp(year, month, 1)
-        year = year if month < 12 else year + 1
-        month = month if month < 12 else 0
-
-        end_date = pd.Timestamp(year, month + 1, 1) - pd.Timedelta(days=1)
-
-        # Get the valid trading days for the given month
-        calendar = mcal.get_calendar(market_calendar)
-        trading_days = calendar.valid_days(
-            start_date=start_date,
-            end_date=end_date,
-        )
-        return trading_days[nth_day - 1]  # Return the nth trading day
-
-    @staticmethod
-    def get_nth_last_business_day(
-        month: int,
-        year: int,
-        nth_last_day: int,
-        market_calendar: str,
-    ) -> datetime:
-        """
-        Retrieve the nth last business day of a specified month and year.
-
-        Args:
-            month (int): The target month (1-12).
-            year (int): The target year.
-            nth_last_day (int): The business day to retrieve, counting from the end (e.g., 1 = last).
-            market_calendar (str): The trading calendar name (e.g., 'NYSE', 'CME').
-
-        Returns:
-            datetime: The date corresponding to the nth last business day.
-
-        Raises:
-            IndexError: If `nth_last_day` exceeds the total business days in the month.
-            ValueError: If invalid calendar name is provided.
-        """
-        start_date = pd.Timestamp(year, month, 1)
-        year = year if month < 12 else year + 1
-        month = month if month < 12 else 0
-
-        end_date = pd.Timestamp(year, month + 1, 1) - pd.Timedelta(days=1)
-
-        calendar = mcal.get_calendar(market_calendar)
-        trading_days = calendar.valid_days(
-            start_date=start_date,
-            end_date=end_date,
-        )
-
-        return trading_days[-nth_last_day]
-
-    @staticmethod
-    def get_nth_business_day_before(
-        month: FuturesMonth,
-        year: int,
-        target_day: int,
-        nth_day: int,
-        market_calendar: str,
-    ) -> datetime:
-        """
-        Retrieve the nth business day before a specified target day within a given month and year.
-
-        Args:
-            month (FuturesMonth): The target month as a FuturesMonth enum.
-            year (int): The target year.
-            target_day (int): The target day of the month (e.g., 15 for the 15th day).
-            nth_day (int): The number of business days before the target day.
-            market_calendar (str): The trading calendar name (e.g., 'NYSE', 'CME').
-
-        Returns:
-            datetime: The date corresponding to the nth business day before the target day.
-
-        Raises:
-            IndexError: If the calculated business day does not exist.
-            ValueError: If invalid calendar name or parameters are provided.
-        """
-        start_date = pd.Timestamp(year, month, 1)
-        end_date = pd.Timestamp(year, month, nth_day)
-
-        calendar = mcal.get_calendar(market_calendar)
-        trading_days = calendar.valid_days(
-            start_date=start_date,
-            end_date=end_date,
-        )
-        return trading_days[-target_day]
+    # def in_rolling_window(
+    #     self,
+    #     ts: int,
+    #     window: int = 2,
+    #     tz_info="UTC",
+    # ) -> bool:
+    #     """
+    #     Check if the given timestamp is within a rolling window near the contract's termination date.
+    #
+    #     Args:
+    #         ts (int): Timestamp in nanoseconds.
+    #         window (int): Rolling window size in days (default is 2).
+    #         tz_info (str): Timezone info (default is "UTC").
+    #
+    #     Returns:
+    #         bool: True if within the rolling window, False otherwise.
+    #     """
+    #
+    #     # Convert the timestamp into a datetime object
+    #     event_date = unix_to_date(ts, tz_info)
+    #     year, month = event_date.year, event_date.month
+    #
+    #     if month in [month.value for month in self.expr_months]:
+    #         # Get the termination date for the current contract month/year
+    #         termination_date = self.apply_day_rule(month, year).date()
+    #
+    #         # Calculate the rolling window period
+    #         window_start = termination_date - timedelta(days=window)
+    #         window_end = termination_date + timedelta(days=window)
+    #
+    #         # Check if the event date falls within the rolling window
+    #         return window_start <= event_date <= window_end
+    #     return False
+    #
+    # def apply_day_rule(self, month: int, year: int) -> datetime:
+    #     """
+    #     Determine the contract expiration date based on the termination day rule.
+    #
+    #     Args:
+    #         month (int): Expiration month.
+    #         year (int): Expiration year.
+    #
+    #     Returns:
+    #         datetime: Expiration date as per the rule.
+    #
+    #     Raises:
+    #         ValueError: If the termination rule is invalid.
+    #     """
+    #     # Match "nth_business_day_10"
+    #     if self.term_day_rule.startswith("nth_business_day"):
+    #         nth_day = int(self.term_day_rule.split("_")[-1])
+    #         return self.get_nth_business_day(
+    #             month,
+    #             year,
+    #             nth_day,
+    #             self.market_calendar,
+    #         )
+    #     # Match "nth_last_business_day_2"
+    #     elif self.term_day_rule.startswith("nth_last_business_day"):
+    #         nth_last_day = int(self.term_day_rule.split("_")[-1])
+    #         return self.get_nth_last_business_day(
+    #             month,
+    #             year,
+    #             nth_last_day,
+    #             self.market_calendar,
+    #         )
+    #     # Match "nth_business_day_before_nth_day_2_15"
+    #     elif self.term_day_rule.startswith("nth_bday_before_nth_day"):
+    #         parts = self.term_day_rule.split("_")
+    #         nth_day = int(parts[-1])
+    #         target_day = int(parts[-2])
+    #         return self.get_nth_business_day_before(
+    #             month,
+    #             year,
+    #             target_day,
+    #             nth_day,
+    #             self.market_calendar,
+    #         )
+    #     else:
+    #         raise ValueError(f"Unknown rule: {self.term_day_rule}")
+    #
+    # @staticmethod
+    # def get_nth_business_day(
+    #     month: int,
+    #     year: int,
+    #     nth_day: int,
+    #     market_calendar: str,
+    # ) -> datetime:
+    #     """
+    #     Retrieve the nth business day of a specified month and year.
+    #
+    #     Args:
+    #         month (int): The target month (1-12).
+    #         year (int): The target year.
+    #         nth_day (int): The business day to retrieve (e.g., 1st, 2nd, etc.).
+    #         market_calendar (str): The trading calendar name (e.g., 'NYSE', 'CME').
+    #
+    #     Returns:
+    #         datetime: The date corresponding to the nth business day.
+    #
+    #     Raises:
+    #         IndexError: If `nth_day` exceeds the number of business days in the month.
+    #         ValueError: If invalid calendar name is provided.
+    #     """
+    #     start_date = pd.Timestamp(year, month, 1)
+    #     year = year if month < 12 else year + 1
+    #     month = month if month < 12 else 0
+    #
+    #     end_date = pd.Timestamp(year, month + 1, 1) - pd.Timedelta(days=1)
+    #
+    #     # Get the valid trading days for the given month
+    #     calendar = mcal.get_calendar(market_calendar)
+    #     trading_days = calendar.valid_days(
+    #         start_date=start_date,
+    #         end_date=end_date,
+    #     )
+    #     return trading_days[nth_day - 1]  # Return the nth trading day
+    #
+    # @staticmethod
+    # def get_nth_last_business_day(
+    #     month: int,
+    #     year: int,
+    #     nth_last_day: int,
+    #     market_calendar: str,
+    # ) -> datetime:
+    #     """
+    #     Retrieve the nth last business day of a specified month and year.
+    #
+    #     Args:
+    #         month (int): The target month (1-12).
+    #         year (int): The target year.
+    #         nth_last_day (int): The business day to retrieve, counting from the end (e.g., 1 = last).
+    #         market_calendar (str): The trading calendar name (e.g., 'NYSE', 'CME').
+    #
+    #     Returns:
+    #         datetime: The date corresponding to the nth last business day.
+    #
+    #     Raises:
+    #         IndexError: If `nth_last_day` exceeds the total business days in the month.
+    #         ValueError: If invalid calendar name is provided.
+    #     """
+    #     start_date = pd.Timestamp(year, month, 1)
+    #     year = year if month < 12 else year + 1
+    #     month = month if month < 12 else 0
+    #
+    #     end_date = pd.Timestamp(year, month + 1, 1) - pd.Timedelta(days=1)
+    #
+    #     calendar = mcal.get_calendar(market_calendar)
+    #     trading_days = calendar.valid_days(
+    #         start_date=start_date,
+    #         end_date=end_date,
+    #     )
+    #
+    #     return trading_days[-nth_last_day]
+    #
+    # @staticmethod
+    # def get_nth_business_day_before(
+    #     month: FuturesMonth,
+    #     year: int,
+    #     target_day: int,
+    #     nth_day: int,
+    #     market_calendar: str,
+    # ) -> datetime:
+    #     """
+    #     Retrieve the nth business day before a specified target day within a given month and year.
+    #
+    #     Args:
+    #         month (FuturesMonth): The target month as a FuturesMonth enum.
+    #         year (int): The target year.
+    #         target_day (int): The target day of the month (e.g., 15 for the 15th day).
+    #         nth_day (int): The number of business days before the target day.
+    #         market_calendar (str): The trading calendar name (e.g., 'NYSE', 'CME').
+    #
+    #     Returns:
+    #         datetime: The date corresponding to the nth business day before the target day.
+    #
+    #     Raises:
+    #         IndexError: If the calculated business day does not exist.
+    #         ValueError: If invalid calendar name or parameters are provided.
+    #     """
+    #     start_date = pd.Timestamp(year, month, 1)
+    #     end_date = pd.Timestamp(year, month, nth_day)
+    #
+    #     calendar = mcal.get_calendar(market_calendar)
+    #     trading_days = calendar.valid_days(
+    #         start_date=start_date,
+    #         end_date=end_date,
+    #     )
+    #     return trading_days[-target_day]
 
 
 @dataclass
@@ -1092,7 +1095,7 @@ class Option(Symbol):
         }
         return symbol_dict
 
-    def value(self, quantity: float, price: Optional[float] = None) -> float:
+    def value(self, quantity: float, price: float) -> float:
         """
         Calculate the total market value of the option position.
 
@@ -1110,7 +1113,7 @@ class Option(Symbol):
             raise ValueError("Price must be provided to calculate value.")
         return abs(quantity) * price * self.quantity_multiplier
 
-    def cost(self, quantity: float, price: Optional[float] = None) -> float:
+    def cost(self, quantity: float, price: float) -> float:
         """
         Calculate the cost to acquire or maintain the option position.
 
@@ -1309,7 +1312,7 @@ class SymbolMap:
         # Associate the instrument ID with the symbol
         self.map[symbol.instrument_id] = symbol
 
-    def get_symbol_by_id(self, id: int) -> Symbol:
+    def get_symbol_by_id(self, id: int) -> Optional[Symbol]:
         """
         Retrieve the Symbol object associated with a given ticker.
 
@@ -1324,7 +1327,7 @@ class SymbolMap:
         """
         return self.map.get(id)
 
-    def get_symbol(self, ticker: str) -> Symbol:
+    def get_symbol(self, ticker: str) -> Optional[Symbol]:
         """
         Retrieve the Symbol object associated with a given ticker.
 
@@ -1338,9 +1341,12 @@ class SymbolMap:
             >>> symbol = symbol_map.get_symbol("AAPL")
         """
         instrument_id = self.get_id(ticker)
-        return self.map.get(instrument_id)
+        if instrument_id:
+            return self.map.get(instrument_id)
+        else:
+            return None
 
-    def get_id(self, ticker: str) -> int:
+    def get_id(self, ticker: str) -> Optional[int]:
         """
         Retrieve the instrument ID associated with a given ticker.
 

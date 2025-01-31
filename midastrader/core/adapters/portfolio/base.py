@@ -45,9 +45,9 @@ class PortfolioServer:
                 "PortfolioServer is a singleton. Use get_instance() to access."
             )
         self.logger = SystemLogger.get_logger()
-        self.order_manager = OrderManager(self.logger)
-        self.position_manager = PositionManager(self.logger)
-        self.account_manager = AccountManager(self.logger)
+        self.order_manager = OrderManager()
+        self.position_manager = PositionManager()
+        self.account_manager = AccountManager()
         self._read_lock = Lock()  # Lock for thread-safe reads
 
     @staticmethod

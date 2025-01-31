@@ -25,12 +25,12 @@ class TestFuturePosition(unittest.TestCase):
     def setUp(self) -> None:
         # Postion data
         self.action = "BUY"
-        self.avg_price = 80
-        self.quantity = 5
+        self.avg_price = 80.0
+        self.quantity = 5.0
         self.quantity_multiplier = 40000
         self.price_multiplier = 0.01
-        self.initial_margin = 5000
-        self.market_price = 90
+        self.initial_margin = 5000.0
+        self.market_price = 90.0
 
         # Position object
         self.position = FuturePosition(
@@ -268,7 +268,10 @@ class TestFuturePosition(unittest.TestCase):
 
         # Test
         impact = self.position.update(
-            quantity, current_price, market_price, action
+            quantity,
+            current_price,
+            market_price,
+            action,
         )
 
         # Expected
@@ -307,7 +310,7 @@ class TestFuturePosition(unittest.TestCase):
             TypeError, "'action' must be of type str."
         ):
             FuturePosition(
-                action=1234,
+                action=1234,  # pyright: ignore
                 avg_price=self.avg_price,
                 price_multiplier=self.price_multiplier,
                 quantity=self.quantity,
@@ -321,7 +324,7 @@ class TestFuturePosition(unittest.TestCase):
         ):
             FuturePosition(
                 action="BUY",
-                avg_price="1234",
+                avg_price="1234",  # pyright: ignore
                 price_multiplier=self.price_multiplier,
                 quantity=self.quantity,
                 quantity_multiplier=self.quantity_multiplier,
@@ -336,7 +339,7 @@ class TestFuturePosition(unittest.TestCase):
                 action="BUY",
                 avg_price=self.avg_price,
                 price_multiplier=self.price_multiplier,
-                quantity="1234",
+                quantity="1234",  # pyright: ignore
                 quantity_multiplier=self.quantity_multiplier,
                 initial_margin=self.initial_margin,
                 market_price=self.market_price,
@@ -348,7 +351,7 @@ class TestFuturePosition(unittest.TestCase):
             FuturePosition(
                 action="BUY",
                 avg_price=self.avg_price,
-                price_multiplier="1234",
+                price_multiplier="1234",  # pyright: ignore
                 quantity=self.quantity,
                 quantity_multiplier=1234,
                 initial_margin=self.initial_margin,
@@ -363,7 +366,7 @@ class TestFuturePosition(unittest.TestCase):
                 avg_price=self.avg_price,
                 price_multiplier=self.price_multiplier,
                 quantity=self.quantity,
-                quantity_multiplier="1234",
+                quantity_multiplier="1234",  # pyright: ignore
                 initial_margin=self.initial_margin,
                 market_price=self.market_price,
             )
@@ -377,7 +380,7 @@ class TestFuturePosition(unittest.TestCase):
                 price_multiplier=self.price_multiplier,
                 quantity=self.quantity,
                 quantity_multiplier=self.quantity_multiplier,
-                initial_margin="1234",
+                initial_margin="1234",  # pyright: ignore
                 market_price=self.market_price,
             )
 
@@ -391,7 +394,7 @@ class TestFuturePosition(unittest.TestCase):
                 quantity=self.quantity,
                 quantity_multiplier=self.quantity_multiplier,
                 initial_margin=self.initial_margin,
-                market_price="1234",
+                market_price="1234",  # pyright: ignore
             )
 
         # with self.assertRaisesRegex(TypeError, "'unrealized_pnl' must be of type int or float."):
@@ -464,12 +467,12 @@ class TestEquityPosition(unittest.TestCase):
     def setUp(self) -> None:
         # Position data
         self.action = "BUY"
-        self.avg_price = 10
-        self.quantity = 100
+        self.avg_price = 10.0
+        self.quantity = 100.0
         self.quantity_multiplier = 1
-        self.price_multiplier = 1
-        self.initial_margin = 0
-        self.market_price = 20
+        self.price_multiplier = 1.00
+        self.initial_margin = 0.0
+        self.market_price = 20.0
 
         # Position object
         self.position = EquityPosition(
@@ -668,7 +671,7 @@ class TestEquityPosition(unittest.TestCase):
             TypeError, "'action' must be of type str."
         ):
             EquityPosition(
-                action=1234,
+                action=1234,  # pyright: ignore
                 avg_price=self.avg_price,
                 price_multiplier=self.price_multiplier,
                 quantity=self.quantity,
@@ -681,7 +684,7 @@ class TestEquityPosition(unittest.TestCase):
         ):
             EquityPosition(
                 action="BUY",
-                avg_price="1234",
+                avg_price="1234",  # pyright: ignore
                 price_multiplier=self.price_multiplier,
                 quantity=self.quantity,
                 quantity_multiplier=self.quantity_multiplier,
@@ -695,7 +698,7 @@ class TestEquityPosition(unittest.TestCase):
                 action=self.action,
                 avg_price=self.avg_price,
                 price_multiplier=self.price_multiplier,
-                quantity="1234",
+                quantity="1234",  # pyright: ignore
                 quantity_multiplier=self.quantity_multiplier,
                 market_price=self.market_price,
             )
@@ -706,7 +709,7 @@ class TestEquityPosition(unittest.TestCase):
             EquityPosition(
                 action=self.action,
                 avg_price=self.avg_price,
-                price_multiplier="1234",
+                price_multiplier="1234",  # pyright: ignore
                 quantity=self.quantity,
                 quantity_multiplier=1234,
                 market_price=self.market_price,
@@ -720,7 +723,7 @@ class TestEquityPosition(unittest.TestCase):
                 avg_price=self.avg_price,
                 price_multiplier=self.price_multiplier,
                 quantity=self.quantity,
-                quantity_multiplier="1234",
+                quantity_multiplier="1234",  # pyright: ignore
                 market_price=self.market_price,
             )
 
@@ -733,7 +736,7 @@ class TestEquityPosition(unittest.TestCase):
                 price_multiplier=self.price_multiplier,
                 quantity=self.quantity,
                 quantity_multiplier=self.quantity_multiplier,
-                market_price="1234",
+                market_price="1234",  # pyright: ignore
             )
 
     def test_value_constraints(self):
@@ -888,11 +891,17 @@ class TestOptionPosition(unittest.TestCase):
 
     def test_update_add(self):
         current_price = 25
+        market_price = 25
         quantity = self.quantity
         action = "BUY"
 
         # Test
-        impact = self.position.update(quantity, current_price, action)
+        impact = self.position.update(
+            quantity,
+            current_price,
+            market_price,
+            action,
+        )
 
         # Expected
         expected_impact = Impact(
@@ -921,11 +930,17 @@ class TestOptionPosition(unittest.TestCase):
     # TODO: Not PASSING
     def test_update_partial_exit(self):
         current_price = 25
+        market_price = 25
         quantity = -(self.quantity - 2)
         action = "SELL"
 
         # Test
-        impact = self.position.update(quantity, current_price, action)
+        impact = self.position.update(
+            quantity,
+            current_price,
+            market_price,
+            action,
+        )
 
         # Expected
         expected_impact = Impact(
@@ -954,11 +969,17 @@ class TestOptionPosition(unittest.TestCase):
     # TODO: Not PASSING
     def test_update_flip_position(self):
         current_price = 25
+        market_price = 25
         quantity = -(self.quantity + 10)
         action = "SELL"
 
         # Test
-        impact = self.position.update(quantity, current_price, action)
+        impact = self.position.update(
+            quantity,
+            current_price,
+            market_price,
+            action,
+        )
 
         # Expected
         expected_impact = Impact(
@@ -997,7 +1018,7 @@ class TestOptionPosition(unittest.TestCase):
                 market_price=self.market_price,
                 strike_price=self.strike_price,
                 expiration_date=self.expiration_date,
-                type="CALL",
+                type="CALL",  # pyright: ignore
             )
 
         with self.assertRaisesRegex(
@@ -1011,7 +1032,7 @@ class TestOptionPosition(unittest.TestCase):
                 quantity_multiplier=self.quantity_multiplier,
                 market_price=self.market_price,
                 strike_price=self.strike_price,
-                expiration_date=1234,
+                expiration_date=1234,  # pyright: ignore
                 type=self.type,
             )
 
@@ -1025,7 +1046,7 @@ class TestOptionPosition(unittest.TestCase):
                 quantity=self.quantity,
                 quantity_multiplier=self.quantity_multiplier,
                 market_price=self.market_price,
-                strike_price="186",
+                strike_price="186",  # pyright: ignore
                 expiration_date="202408",
                 type=self.type,
             )

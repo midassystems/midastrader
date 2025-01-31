@@ -14,9 +14,9 @@ class TestTradeEvent(unittest.TestCase):
             trade_id=1,
             leg_id=2,
             instrument=123,
-            quantity=-10,
+            quantity=-10.0,
             avg_price=9.9,
-            trade_value=103829083,
+            trade_value=103829083.0,
             trade_cost=9000.99,
             action=Action.LONG.value,
             fees=9.78,
@@ -39,12 +39,18 @@ class TestTradeEvent(unittest.TestCase):
         with self.assertRaisesRegex(
             TypeError, "'trade_id' must be of type str."
         ):
-            TradeEvent(1, self.trade_details)
+            TradeEvent(
+                1,  # pyright: ignore
+                self.trade_details,
+            )
 
         with self.assertRaisesRegex(
             TypeError, "'trade' must be of type Trade instance."
         ):
-            TradeEvent("1", "testing")
+            TradeEvent(
+                "1",
+                "testing",  # pyright: ignore
+            )
 
 
 class TestTradeCommissionEvent(unittest.TestCase):
@@ -67,12 +73,18 @@ class TestTradeCommissionEvent(unittest.TestCase):
         with self.assertRaisesRegex(
             TypeError, "'trade_id' must be of type str."
         ):
-            TradeCommissionEvent(1, self.commission)
+            TradeCommissionEvent(
+                1,  # pyright: ignore
+                self.commission,
+            )
 
         with self.assertRaisesRegex(
             TypeError, "'commission' must be of type float."
         ):
-            TradeCommissionEvent(self.trade_id, "testing")
+            TradeCommissionEvent(
+                self.trade_id,
+                "testing",  # pyright: ignore
+            )
 
 
 if __name__ == "__main__":

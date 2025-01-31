@@ -1,5 +1,8 @@
 from dataclasses import dataclass, field
+
+from mbn import RecordMsg
 from midastrader.structs.events.base import SystemEvent
+from midastrader.structs.symbol import Symbol
 
 
 @dataclass
@@ -17,9 +20,9 @@ class RolloverEvent(SystemEvent):
     """
 
     timestamp: int
-    instrument: int
-    old_price: float
-    new_price: float
+    symbol: Symbol
+    exit_record: RecordMsg
+    entry_record: RecordMsg
     type: str = field(init=False, default="END-STREAM")
 
     def __str__(self) -> str:

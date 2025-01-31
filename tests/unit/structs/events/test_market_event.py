@@ -56,23 +56,38 @@ class TestMarketEvent(unittest.TestCase):
         with self.assertRaisesRegex(
             TypeError, "'timestamp' must be of type int."
         ):
-            MarketEvent(data=self.bar, timestamp=datetime(2024, 1, 1))
+            MarketEvent(
+                data=self.bar,
+                timestamp=datetime(2024, 1, 1),  # pyright: ignore
+            )
         with self.assertRaisesRegex(
             TypeError, "'timestamp' must be of type int."
         ):
-            MarketEvent(data=self.bar, timestamp=None)
+            MarketEvent(
+                data=self.bar,
+                timestamp=None,  # pyright: ignore
+            )
         with self.assertRaisesRegex(
             TypeError, "'timestamp' must be of type int."
         ):
-            MarketEvent(data=self.bar, timestamp="14-10-2020")
+            MarketEvent(
+                data=self.bar,
+                timestamp="14-10-2020",  # pyright: ignore
+            )
         with self.assertRaisesRegex(
-            TypeError, "'data' must be of type OhlcvMsg or BboMsg."
+            TypeError, "'data' must be of type RecordMsg."
         ):
-            MarketEvent(data=[1, 2, 3], timestamp=self.timestamp)
+            MarketEvent(
+                data=[1, 2, 3],  # pyright: ignore
+                timestamp=self.timestamp,
+            )
         with self.assertRaisesRegex(
-            TypeError, "'data' must be of type OhlcvMsg or BboMsg."
+            TypeError, "'data' must be of type RecordMsg."
         ):
-            MarketEvent(data={1: 1, 2: 1, 3: 1}, timestamp=self.timestamp)
+            MarketEvent(
+                data={1: 1, 2: 1, 3: 1},  # pyright: ignore
+                timestamp=self.timestamp,
+            )
 
 
 if __name__ == "__main__":

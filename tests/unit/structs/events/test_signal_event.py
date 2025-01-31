@@ -18,7 +18,7 @@ class TestSignalEvent(unittest.TestCase):
             trade_id=2,
             leg_id=5,
             weight=0.5,
-            quantity=10,
+            quantity=10.0,
         )
         self.trade2 = SignalInstruction(
             instrument=2,
@@ -27,7 +27,7 @@ class TestSignalEvent(unittest.TestCase):
             trade_id=2,
             leg_id=6,
             weight=0.5,
-            quantity=10,
+            quantity=10.0,
         )
         self.instructions = [self.trade1, self.trade2]
 
@@ -85,21 +85,25 @@ class TestSignalEvent(unittest.TestCase):
             TypeError, "'timestamp' must be of type int."
         ):
             SignalEvent(
-                timestamp=datetime(2024, 1, 1),
+                timestamp=datetime(2024, 1, 1),  # pyright: ignore
                 instructions=self.instructions,
             )
 
         with self.assertRaisesRegex(
             TypeError, "'instructions' must be of type list."
         ):
-            SignalEvent(timestamp=self.timestamp, instructions=self.trade1)
+            SignalEvent(
+                timestamp=self.timestamp,
+                instructions=self.trade1,  # pyright: ignore
+            )
 
         with self.assertRaisesRegex(
             TypeError,
             "All instructions must be SignalInstruction.",
         ):
             SignalEvent(
-                timestamp=self.timestamp, instructions=["sell", "long"]
+                timestamp=self.timestamp,
+                instructions=["sell", "long"],  # pyright: ignore
             )
 
     # Constraint Check
@@ -107,7 +111,10 @@ class TestSignalEvent(unittest.TestCase):
         with self.assertRaisesRegex(
             ValueError, "'instructions' list cannot be empty."
         ):
-            SignalEvent(timestamp=self.timestamp, instructions=[])
+            SignalEvent(
+                timestamp=self.timestamp,
+                instructions=[],
+            )
 
 
 if __name__ == "__main__":

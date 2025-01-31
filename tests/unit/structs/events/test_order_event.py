@@ -41,7 +41,7 @@ class TestOrderEvent(unittest.TestCase):
             TypeError, "'timestamp' must be of type int."
         ):
             OrderEvent(
-                timestamp=datetime(2024, 1, 1),
+                timestamp=datetime(2024, 1, 1),  # pyright: ignore
                 trade_id=self.trade_id,
                 leg_id=self.leg_id,
                 action=self.action,
@@ -54,7 +54,7 @@ class TestOrderEvent(unittest.TestCase):
         ):
             OrderEvent(
                 timestamp=self.timestamp,
-                trade_id="1",
+                trade_id="1",  # pyright: ignore
                 leg_id=self.leg_id,
                 action=self.action,
                 order=self.order,
@@ -67,7 +67,7 @@ class TestOrderEvent(unittest.TestCase):
             OrderEvent(
                 timestamp=self.timestamp,
                 trade_id=self.trade_id,
-                leg_id="2",
+                leg_id="2",  # pyright: ignore
                 action=self.action,
                 order=self.order,
                 contract=self.contract,
@@ -80,7 +80,7 @@ class TestOrderEvent(unittest.TestCase):
                 timestamp=self.timestamp,
                 trade_id=self.trade_id,
                 leg_id=self.leg_id,
-                action=123,
+                action=123,  # pyright: ignore
                 order=self.order,
                 contract=self.contract,
             )
@@ -94,7 +94,7 @@ class TestOrderEvent(unittest.TestCase):
                 leg_id=self.leg_id,
                 action=self.action,
                 order=self.order,
-                contract="self.contract",
+                contract="self.contract",  # pyright: ignore
             )
 
         with self.assertRaisesRegex(
@@ -105,7 +105,7 @@ class TestOrderEvent(unittest.TestCase):
                 trade_id=self.trade_id,
                 leg_id=self.leg_id,
                 action=self.action,
-                order="self.order",
+                order="self.order",  # pyright: ignore
                 contract=self.contract,
             )
 

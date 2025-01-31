@@ -47,7 +47,7 @@ class DataApp(EWrapper, EClient):
         self.bus = message_bus
 
         #  Data Storage
-        self.next_valid_order_id = None
+        self.next_valid_order_id = 0
         self.is_valid_contract = None
         self.reqId_to_instrument = {}
         self.tick_data = {}
@@ -62,12 +62,13 @@ class DataApp(EWrapper, EClient):
 
         # Tick interval updater FOR TICK DATA
         # Seconds interval for pushing the event
-        # self.update_interval = tick_interval
-        # self.is_running = True
-        # self.timer_thread = threading.Thread(
-        #     target=self._run_timer, daemon=True
-        # )
-        # self.timer_thread.start()
+        if tick_interval:
+            self.update_interval = tick_interval
+            self.is_running = True
+            self.timer_thread = threading.Thread(
+                target=self._run_timer, daemon=True
+            )
+            self.timer_thread.start()
 
     def _run_timer(self) -> None:
         """

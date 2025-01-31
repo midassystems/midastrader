@@ -1,5 +1,5 @@
 from typing import Union
-from mbn import OhlcvMsg, BboMsg
+from mbn import OhlcvMsg, BboMsg, RecordMsg
 from dataclasses import dataclass, field
 
 from midastrader.structs.events.base import SystemEvent
@@ -21,7 +21,7 @@ class MarketEvent(SystemEvent):
     """
 
     timestamp: int
-    data: Union[OhlcvMsg, BboMsg]
+    data: RecordMsg  # Union[OhlcvMsg, BboMsg]
     type: str = field(init=False, default="MARKET_DATA")
 
     def __post_init__(self):
@@ -34,8 +34,8 @@ class MarketEvent(SystemEvent):
         # Type Check
         if not isinstance(self.timestamp, int):
             raise TypeError("'timestamp' must be of type int.")
-        if not isinstance(self.data, (OhlcvMsg, BboMsg)):
-            raise TypeError("'data' must be of type OhlcvMsg or BboMsg.")
+        if not RecordMsg.is_record(self.data):
+            raise TypeError("'data' must be of type RecordMsg.")
 
     def __str__(self) -> str:
         """
