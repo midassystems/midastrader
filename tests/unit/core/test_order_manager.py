@@ -3,7 +3,6 @@ import threading
 from time import sleep
 from datetime import time
 from unittest.mock import Mock, MagicMock
-from ibapi.contract import Contract
 
 from midastrader.structs.account import Account
 from midastrader.structs.signal import SignalInstruction
@@ -12,6 +11,8 @@ from midastrader.utils.logger import SystemLogger
 from midastrader.core.adapters.portfolio import PortfolioServer
 from midastrader.core.adapters.order_book import OrderBook
 from midastrader.structs.events import SignalEvent, OrderEvent
+from midastrader.structs.symbol import SymbolMap
+from midastrader.message_bus import MessageBus, EventType
 from midastrader.structs.symbol import (
     Equity,
     Currency,
@@ -30,15 +31,13 @@ from midastrader.structs.orders import (
     OrderType,
     Action,
 )
-from midastrader.structs.symbol import SymbolMap
-from midastrader.message_bus import MessageBus, EventType
 
 
 class TestOrderManager(unittest.TestCase):
     def setUp(self) -> None:
 
         # Test symbols
-        hogs = Future(
+        self.hogs = Future(
             instrument_id=1,
             broker_ticker="HEJ4",
             data_ticker="HE",
@@ -67,7 +66,7 @@ class TestOrderManager(unittest.TestCase):
             term_day_rule="nth_business_day_10",
             market_calendar="CMEGlobex_Lean_Hog",
         )
-        aapl = Equity(
+        self.aapl = Equity(
             instrument_id=2,
             broker_ticker="AAPL",
             data_ticker="AAPL2",
@@ -93,8 +92,8 @@ class TestOrderManager(unittest.TestCase):
         self.order_book._book = {}
         self.portfolio_server = PortfolioServer.get_instance()
         self.symbols_map = SymbolMap()
-        self.symbols_map.add_symbol(hogs)
-        self.symbols_map.add_symbol(aapl)
+        self.symbols_map.add_symbol(self.hogs)
+        self.symbols_map.add_symbol(self.aapl)
 
         # Test account
         self.portfolio_server.account_manager.account = Account(
@@ -129,8 +128,7 @@ class TestOrderManager(unittest.TestCase):
             instrument=2,
             order_type=OrderType.MARKET,
             action=Action.LONG,
-            trade_id=2,
-            leg_id=5,
+            signal_id=2,
             weight=0.5,
             quantity=2.0,
         )
@@ -138,8 +136,7 @@ class TestOrderManager(unittest.TestCase):
             instrument=1,
             order_type=OrderType.MARKET,
             action=Action.SHORT,
-            trade_id=2,
-            leg_id=6,
+            signal_id=2,
             weight=0.5,
             quantity=-2.0,
         )
@@ -172,10 +169,13 @@ class TestOrderManager(unittest.TestCase):
 
         # Validation
         args = self.manager._set_order.call_args[0]
-        self.assertEqual(type(args[5]), MarketOrder)
-        self.assertEqual(args[3], self.trade_equity.action)
+        order = args[4]
+        ib_order = order.ib_order()
+        self.assertEqual(type(order), MarketOrder)
+        self.assertEqual(args[2], self.trade_equity.action)
         self.assertEqual(
-            args[5].order.totalQuantity, abs(self.trade_equity.quantity)
+            ib_order.totalQuantity,
+            abs(self.trade_equity.quantity),
         )
 
     def test_create_limitorder_valid(self):
@@ -183,8 +183,7 @@ class TestOrderManager(unittest.TestCase):
             instrument=1,
             order_type=OrderType.LIMIT,
             action=Action.SHORT,
-            trade_id=2,
-            leg_id=6,
+            signal_id=2,
             weight=0.5,
             quantity=-2.0,
             limit_price=90.0,
@@ -197,13 +196,17 @@ class TestOrderManager(unittest.TestCase):
 
         # Validation
         args = self.manager._set_order.call_args[0]
-        self.assertEqual(type(args[5]), LimitOrder)
-        self.assertEqual(args[3], trade_instructions.action)
+        order = args[4]
+        ib_order = order.ib_order()
+        self.assertEqual(type(order), LimitOrder)
+        self.assertEqual(args[2], trade_instructions.action)
         self.assertEqual(
-            args[5].order.totalQuantity, abs(trade_instructions.quantity)
+            ib_order.totalQuantity,
+            abs(trade_instructions.quantity),
         )
         self.assertEqual(
-            args[5].order.lmtPrice, trade_instructions.limit_price
+            ib_order.lmtPrice,
+            trade_instructions.limit_price,
         )
 
     def test_create_stoplossorder_valid(self):
@@ -211,8 +214,7 @@ class TestOrderManager(unittest.TestCase):
             instrument=1,
             order_type=OrderType.STOPLOSS,
             action=Action.SHORT,
-            trade_id=2,
-            leg_id=6,
+            signal_id=2,
             weight=0.5,
             quantity=-2.0,
             aux_price=90.0,
@@ -225,12 +227,15 @@ class TestOrderManager(unittest.TestCase):
 
         # Validation
         args = self.manager._set_order.call_args[0]
-        self.assertEqual(type(args[5]), StopLoss)
-        self.assertEqual(args[3], trade_instructions.action)
+        order = args[4]
+        ib_order = order.ib_order()
+        self.assertEqual(type(order), StopLoss)
+        self.assertEqual(args[2], trade_instructions.action)
         self.assertEqual(
-            args[5].order.totalQuantity, abs(trade_instructions.quantity)
+            ib_order.totalQuantity,
+            abs(trade_instructions.quantity),
         )
-        self.assertEqual(args[5].order.auxPrice, trade_instructions.aux_price)
+        self.assertEqual(ib_order.auxPrice, trade_instructions.aux_price)
 
     def test_handle_signal_sufficient_captial(self):
         self.portfolio_server.account.full_available_funds = 10000
@@ -283,29 +288,25 @@ class TestOrderManager(unittest.TestCase):
     def test_set_order(self):
         timestamp = 1651500000
         action = Action.LONG
-        trade_id = 2
-        leg_id = 6
-        order = MarketOrder(action=action, quantity=10.0)
-        contract = Contract()
+        signal_id = 2
+        order = MarketOrder(signal_id, action=action, quantity=10.0)
         self.bus.publish = MagicMock()
 
         order_event = OrderEvent(
             timestamp,
-            trade_id=trade_id,
-            leg_id=leg_id,
+            signal_id,
             action=action,
-            contract=contract,
+            symbol=self.hogs,
             order=order,
         )
 
         # Test
         self.manager._set_order(
-            timestamp=timestamp,
-            trade_id=trade_id,
-            leg_id=leg_id,
+            timestamp,
+            signal_id,
             action=action,
             order=order,
-            contract=contract,
+            symbol=self.hogs,
         )
 
         # Validation

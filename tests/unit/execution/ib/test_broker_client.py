@@ -26,7 +26,7 @@ from midastrader.structs.symbol import (
 class TestIBDataAdaptor(unittest.TestCase):
     def setUp(self):
         # Test symbols
-        hogs = Future(
+        self.hogs = Future(
             instrument_id=1,
             broker_ticker="HEJ4",
             data_ticker="HE",
@@ -55,7 +55,7 @@ class TestIBDataAdaptor(unittest.TestCase):
             term_day_rule="nth_business_day_10",
             market_calendar="CMEGlobex_Lean_Hog",
         )
-        aapl = Equity(
+        self.aapl = Equity(
             instrument_id=2,
             broker_ticker="AAPL",
             data_ticker="AAPL2",
@@ -78,8 +78,8 @@ class TestIBDataAdaptor(unittest.TestCase):
         )
 
         self.symbols_map = SymbolMap()
-        self.symbols_map.add_symbol(hogs)
-        self.symbols_map.add_symbol(aapl)
+        self.symbols_map.add_symbol(self.hogs)
+        self.symbols_map.add_symbol(self.aapl)
 
         # Mock Config
         self.kwargs = {
@@ -153,17 +153,19 @@ class TestIBDataAdaptor(unittest.TestCase):
         self.valid_timestamp = 1651500000
         self.valid_action = Action.LONG
         self.valid_trade_id = 2
-        self.valid_leg_id = 6
-        self.valid_order = MarketOrder(action=self.valid_action, quantity=10)
-        self.valid_contract = Contract()
+        self.valid_signal_id = 2
+        self.valid_order = MarketOrder(
+            self.valid_signal_id,
+            action=self.valid_action,
+            quantity=10,
+        )
 
         event = OrderEvent(
             timestamp=self.valid_timestamp,
-            trade_id=self.valid_trade_id,
-            leg_id=self.valid_leg_id,
+            signal_id=self.valid_signal_id,
             action=self.valid_action,
             order=self.valid_order,
-            contract=self.valid_contract,
+            symbol=self.hogs,
         )
 
         # Test
@@ -182,17 +184,19 @@ class TestIBDataAdaptor(unittest.TestCase):
         self.valid_timestamp = 1651500000
         self.valid_action = Action.LONG
         self.valid_trade_id = 2
-        self.valid_leg_id = 6
-        self.valid_order = MarketOrder(action=self.valid_action, quantity=10)
-        self.valid_contract = Contract()
+        self.valid_signal_id = 2
+        self.valid_order = MarketOrder(
+            signal_id=self.valid_signal_id,
+            action=self.valid_action,
+            quantity=10,
+        )
 
         event = OrderEvent(
             timestamp=self.valid_timestamp,
-            trade_id=self.valid_trade_id,
-            leg_id=self.valid_leg_id,
+            signal_id=self.valid_signal_id,
             action=self.valid_action,
             order=self.valid_order,
-            contract=self.valid_contract,
+            symbol=self.hogs,
         )
 
         # Test

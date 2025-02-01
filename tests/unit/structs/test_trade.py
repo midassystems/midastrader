@@ -8,7 +8,7 @@ class TestTrade(unittest.TestCase):
     def setUp(self) -> None:
         # Mock trade data
         self.trade_id = 1
-        self.leg_id = 2
+        self.signal_id = 2
         self.timetamp = 16555000000000000
         self.instrument = 1
         self.quantity = 10.0
@@ -21,7 +21,7 @@ class TestTrade(unittest.TestCase):
         # Creaet trade object
         self.trade_obj = Trade(
             trade_id=self.trade_id,
-            leg_id=self.leg_id,
+            signal_id=self.signal_id,
             timestamp=self.timetamp,
             instrument=self.instrument,
             quantity=self.quantity,
@@ -37,7 +37,7 @@ class TestTrade(unittest.TestCase):
         # Test
         trade = Trade(
             trade_id=self.trade_id,
-            leg_id=self.leg_id,
+            signal_id=self.signal_id,
             timestamp=self.timetamp,
             instrument=self.instrument,
             quantity=self.quantity,
@@ -49,7 +49,7 @@ class TestTrade(unittest.TestCase):
         )
         # Validate
         self.assertEqual(trade.trade_id, self.trade_id)
-        self.assertEqual(trade.leg_id, self.leg_id)
+        self.assertEqual(trade.signal_id, self.signal_id)
         self.assertEqual(trade.timestamp, self.timetamp)
         self.assertEqual(trade.instrument, self.instrument)
         self.assertEqual(trade.quantity, self.quantity)
@@ -66,7 +66,7 @@ class TestTrade(unittest.TestCase):
         ):
             Trade(
                 trade_id="1",  # pyright: ignore
-                leg_id=self.leg_id,
+                signal_id=self.signal_id,
                 timestamp=self.timetamp,
                 instrument=self.instrument,
                 quantity=self.quantity,
@@ -78,11 +78,11 @@ class TestTrade(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'leg_id' field must be of type int."
+            TypeError, "'signal_id' field must be of type int."
         ):
             Trade(
                 trade_id=self.trade_id,
-                leg_id="2",  # pyright: ignore
+                signal_id="2",  # pyright: ignore
                 timestamp=self.timetamp,
                 instrument=self.instrument,
                 quantity=self.quantity,
@@ -98,7 +98,7 @@ class TestTrade(unittest.TestCase):
         ):
             Trade(
                 trade_id=self.trade_id,
-                leg_id=self.leg_id,
+                signal_id=self.signal_id,
                 timestamp="2022-08-08",  # pyright: ignore
                 instrument=self.instrument,
                 quantity=self.quantity,
@@ -114,7 +114,7 @@ class TestTrade(unittest.TestCase):
         ):
             Trade(
                 trade_id=self.trade_id,
-                leg_id=self.leg_id,
+                signal_id=self.signal_id,
                 timestamp=self.timetamp,
                 instrument="1",  # pyright: ignore
                 quantity=self.quantity,
@@ -130,7 +130,7 @@ class TestTrade(unittest.TestCase):
         ):
             Trade(
                 trade_id=self.trade_id,
-                leg_id=self.leg_id,
+                signal_id=self.signal_id,
                 timestamp=self.timetamp,
                 instrument=self.instrument,
                 quantity="1234",  # pyright: ignore
@@ -146,7 +146,7 @@ class TestTrade(unittest.TestCase):
         ):
             Trade(
                 trade_id=self.trade_id,
-                leg_id=self.leg_id,
+                signal_id=self.signal_id,
                 timestamp=self.timetamp,
                 instrument=self.instrument,
                 quantity=self.quantity,
@@ -162,7 +162,7 @@ class TestTrade(unittest.TestCase):
         ):
             Trade(
                 trade_id=self.trade_id,
-                leg_id=self.leg_id,
+                signal_id=self.signal_id,
                 timestamp=self.timetamp,
                 instrument=self.instrument,
                 quantity=self.quantity,
@@ -178,7 +178,7 @@ class TestTrade(unittest.TestCase):
         ):
             Trade(
                 trade_id=self.trade_id,
-                leg_id=self.leg_id,
+                signal_id=self.signal_id,
                 timestamp=self.timetamp,
                 instrument=self.instrument,
                 quantity=self.quantity,
@@ -194,7 +194,7 @@ class TestTrade(unittest.TestCase):
         ):
             Trade(
                 trade_id=self.trade_id,
-                leg_id=self.leg_id,
+                signal_id=self.signal_id,
                 timestamp=self.timetamp,
                 instrument=self.instrument,
                 quantity=self.quantity,
@@ -210,7 +210,7 @@ class TestTrade(unittest.TestCase):
         ):
             Trade(
                 trade_id=self.trade_id,
-                leg_id=self.leg_id,
+                signal_id=self.signal_id,
                 timestamp=self.timetamp,
                 instrument=self.instrument,
                 quantity=self.quantity,
@@ -226,7 +226,7 @@ class TestTrade(unittest.TestCase):
         with self.assertRaises(ValueError):
             Trade(
                 trade_id=self.trade_id,
-                leg_id=self.leg_id,
+                signal_id=self.signal_id,
                 timestamp=self.timetamp,
                 instrument=self.instrument,
                 quantity=self.quantity,
@@ -242,7 +242,7 @@ class TestTrade(unittest.TestCase):
         ):
             Trade(
                 trade_id=self.trade_id,
-                leg_id=self.leg_id,
+                signal_id=self.signal_id,
                 timestamp=self.timetamp,
                 instrument=self.instrument,
                 quantity=self.quantity,

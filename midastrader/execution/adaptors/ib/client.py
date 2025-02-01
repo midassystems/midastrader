@@ -138,7 +138,7 @@ class IBAdaptor(ExecutionAdapter):
 
         # Validate Contracts
         for symbol in self.symbols_map.symbols:
-            if not self.validate_contract(symbol.contract):
+            if not self.validate_contract(symbol.ib_contract()):
                 raise RuntimeError(f"{symbol.broker_ticker} invalid contract.")
 
         self.logger.info("IBBrokerAdaptor running ...")
@@ -230,11 +230,13 @@ class IBAdaptor(ExecutionAdapter):
             event (OrderEvent): The event containing the contract and order details.
         """
         orderId = self._get_valid_id()
+
         try:
+            ib_order = event.order.ib_order()
             self.app.placeOrder(
                 orderId=orderId,
-                contract=event.contract,
-                order=event.order.order,
+                contract=event.symbol.ib_contract(),
+                order=ib_order,
             )
         except Exception as e:
             raise e

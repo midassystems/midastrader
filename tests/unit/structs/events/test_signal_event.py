@@ -15,8 +15,7 @@ class TestSignalEvent(unittest.TestCase):
             instrument=1,
             order_type=OrderType.MARKET,
             action=Action.LONG,
-            trade_id=2,
-            leg_id=5,
+            signal_id=2,
             weight=0.5,
             quantity=10.0,
         )
@@ -24,8 +23,7 @@ class TestSignalEvent(unittest.TestCase):
             instrument=2,
             order_type=OrderType.MARKET,
             action=Action.LONG,
-            trade_id=2,
-            leg_id=6,
+            signal_id=2,
             weight=0.5,
             quantity=10.0,
         )
@@ -47,8 +45,9 @@ class TestSignalEvent(unittest.TestCase):
             signal.instructions[0].order_type, self.trade1.order_type
         )
         self.assertEqual(signal.instructions[0].action, self.trade1.action)
-        self.assertEqual(signal.instructions[0].trade_id, self.trade1.trade_id)
-        self.assertEqual(signal.instructions[0].leg_id, self.trade1.leg_id)
+        self.assertEqual(
+            signal.instructions[0].signal_id, self.trade1.signal_id
+        )
         self.assertEqual(signal.instructions[0].weight, self.trade1.weight)
 
         # Validate second set of trade instructions
@@ -59,8 +58,9 @@ class TestSignalEvent(unittest.TestCase):
             signal.instructions[1].order_type, self.trade2.order_type
         )
         self.assertEqual(signal.instructions[1].action, self.trade2.action)
-        self.assertEqual(signal.instructions[1].trade_id, self.trade2.trade_id)
-        self.assertEqual(signal.instructions[1].leg_id, self.trade2.leg_id)
+        self.assertEqual(
+            signal.instructions[1].signal_id, self.trade2.signal_id
+        )
         self.assertEqual(signal.instructions[1].weight, self.trade2.weight)
 
     def test_to_dict(self):

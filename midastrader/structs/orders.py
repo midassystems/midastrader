@@ -98,44 +98,57 @@ class BaseOrder(ABC):
 
     def __init__(
         self,
+        signal_id: int,
         action: Action,
         quantity: float,
         order_type: OrderType,
     ) -> None:
+
+        self.signal_id: int = signal_id
+        self.action: Action = action
+        self.quantity: float = quantity
+        self.order_type: OrderType = order_type
+
         # Type Check
-        if not isinstance(action, Action):
+        if not isinstance(self.signal_id, int):
+            raise TypeError("'signal_id' field must be type int.")
+        if not isinstance(self.action, Action):
             raise TypeError("'action' field must be type Action enum.")
-        if not isinstance(quantity, (float, int)):
+        if not isinstance(self.quantity, (float, int)):
             raise TypeError("'quantity' field must be type float or int.")
-        if not isinstance(order_type, OrderType):
+        if not isinstance(self.order_type, OrderType):
             raise TypeError("'order_type' field must be type OrderType enum.")
 
-        # Convert to BUY/SELL
-        broker_action = action.to_broker_standard()
-
         # Value Constraints
-        if quantity == 0:
+        if self.quantity == 0:
             raise ValueError("'quantity' field must not be zero.")
 
+    def ib_order(self) -> Order:
+
+        # Convert to BUY/SELL
+        broker_action = self.action.to_broker_standard()
+
         # Create interactive brokers Order object
-        self.order = Order()
-        self.order.action = broker_action
-        self.order.orderType = order_type.value
-        self.order.totalQuantity = Decimal(abs(quantity))
+        order = Order()
+        order.action = broker_action
+        order.orderType = self.order_type.value
+        order.totalQuantity = Decimal(abs(self.quantity))
 
-    @property
-    def quantity(self) -> float:
-        """
-        Returns the signed quantity of the order.
+        return order
 
-        Returns:
-            float: Positive quantity for 'BUY', negative for 'SELL'.
-        """
-        return float(
-            self.order.totalQuantity
-            if self.order.action == "BUY"
-            else -self.order.totalQuantity
-        )
+    # @property
+    # def quantity(self) -> float:
+    #     """
+    #     Returns the signed quantity of the order.
+    #
+    #     Returns:
+    #         float: Positive quantity for 'BUY', negative for 'SELL'.
+    #     """
+    #     return float(
+    #         self.order.totalQuantity
+    #         if self.order.action == "BUY"
+    #         else -self.order.totalQuantity
+    #     )
 
 
 class MarketOrder(BaseOrder):
@@ -150,8 +163,13 @@ class MarketOrder(BaseOrder):
         buy_order = MarketOrder(action=Action.LONG, quantity=100)
     """
 
-    def __init__(self, action: Action, quantity: float):
-        super().__init__(action, quantity, OrderType.MARKET)
+    def __init__(
+        self,
+        signal_id: int,
+        action: Action,
+        quantity: float,
+    ) -> None:
+        super().__init__(signal_id, action, quantity, OrderType.MARKET)
 
 
 class LimitOrder(BaseOrder):
@@ -171,17 +189,29 @@ class LimitOrder(BaseOrder):
         sell_order = LimitOrder(action=Action.SELL, quantity=50, limit_price=150.25)
     """
 
-    def __init__(self, action: Action, quantity: float, limit_price: float):
-        if not isinstance(limit_price, (float, int)):
+    def __init__(
+        self,
+        signal_id: int,
+        action: Action,
+        quantity: float,
+        limit_price: float,
+    ) -> None:
+        super().__init__(signal_id, action, quantity, OrderType.LIMIT)
+
+        self.limit_price: float = limit_price
+
+        if not isinstance(self.limit_price, (float, int)):
             raise TypeError(
                 "'limit_price' field must be of type float or int."
             )
 
-        if limit_price <= 0:
+        if self.limit_price <= 0:
             raise ValueError("'limit_price' field must be greater than zero.")
 
-        super().__init__(action, quantity, OrderType.LIMIT)
-        self.order.lmtPrice = limit_price
+    def ib_order(self) -> Order:
+        order = super().ib_order()
+        order.lmtPrice = self.limit_price
+        return order
 
 
 class StopLoss(BaseOrder):
@@ -202,12 +232,22 @@ class StopLoss(BaseOrder):
     """
 
     def __init__(
-        self, action: Action, quantity: float, aux_price: float
+        self,
+        signal_id: int,
+        action: Action,
+        quantity: float,
+        aux_price: float,
     ) -> None:
-        if not isinstance(aux_price, (float, int)):
+        super().__init__(signal_id, action, quantity, OrderType.STOPLOSS)
+
+        self.aux_price: float = aux_price
+
+        if not isinstance(self.aux_price, (float, int)):
             raise TypeError("'aux_price' field must be of type float or int.")
-        if aux_price <= 0:
+        if self.aux_price <= 0:
             raise ValueError("'aux_price' field must be greater than zero.")
 
-        super().__init__(action, quantity, OrderType.STOPLOSS)
-        self.order.auxPrice = aux_price
+    def ib_order(self) -> Order:
+        order = super().ib_order()
+        order.auxPrice = self.aux_price
+        return order

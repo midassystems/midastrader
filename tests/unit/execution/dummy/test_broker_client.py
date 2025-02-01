@@ -2,9 +2,7 @@ import unittest
 from time import sleep
 from datetime import time
 import threading
-from ibapi.contract import Contract
 from unittest.mock import MagicMock
-
 
 from midastrader.message_bus import MessageBus, EventType
 from midastrader.structs.orders import Action, MarketOrder
@@ -28,7 +26,7 @@ from midastrader.structs.symbol import (
 class TestDummyAdaptor(unittest.TestCase):
     def setUp(self) -> None:
         # Test symbols
-        hogs = Future(
+        self.hogs = Future(
             instrument_id=1,
             broker_ticker="HEJ4",
             data_ticker="HE",
@@ -57,7 +55,7 @@ class TestDummyAdaptor(unittest.TestCase):
             term_day_rule="nth_business_day_10",
             market_calendar="CMEGlobex_Lean_Hog",
         )
-        aapl = Equity(
+        self.aapl = Equity(
             instrument_id=2,
             broker_ticker="AAPL",
             data_ticker="AAPL2",
@@ -80,8 +78,8 @@ class TestDummyAdaptor(unittest.TestCase):
         )
 
         self.symbols_map = SymbolMap()
-        self.symbols_map.add_symbol(hogs)
-        self.symbols_map.add_symbol(aapl)
+        self.symbols_map.add_symbol(self.hogs)
+        self.symbols_map.add_symbol(self.aapl)
 
         # Mock Logger
         logger = SystemLogger()
@@ -97,18 +95,15 @@ class TestDummyAdaptor(unittest.TestCase):
         # Mock order
         timestamp = 1651500000
         action = Action.LONG
-        trade_id = 2
-        leg_id = 6
-        order = MarketOrder(action, 10)
-        contract = Contract()
+        signal_id = 2
+        order = MarketOrder(signal_id, action, 10)
 
         event = OrderEvent(
-            timestamp=timestamp,
-            trade_id=trade_id,
-            leg_id=leg_id,
+            timestamp,
+            signal_id,
             action=action,
             order=order,
-            contract=contract,
+            symbol=self.hogs,
         )
 
         # Test

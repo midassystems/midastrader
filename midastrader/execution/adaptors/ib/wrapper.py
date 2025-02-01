@@ -489,7 +489,7 @@ class BrokerApp(EWrapper, EClient):
                     timestamp=unix_ns,
                     instrument=symbol.instrument_id,
                     trade_id=execution.orderId,
-                    leg_id=1,
+                    signal_id=0,
                     quantity=quantity,  # Decimal
                     avg_price=price,
                     trade_value=round(symbol.value(quantity, price), 2),

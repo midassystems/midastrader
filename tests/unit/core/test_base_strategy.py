@@ -65,8 +65,7 @@ class TestTestStrategy(unittest.TestCase):
             instrument=1,
             order_type=OrderType.MARKET,
             action=Action.LONG,
-            trade_id=2,
-            leg_id=5,
+            signal_id=2,
             weight=0.5,
             quantity=2.0,
         )
@@ -74,8 +73,7 @@ class TestTestStrategy(unittest.TestCase):
             instrument=2,
             order_type=OrderType.MARKET,
             action=Action.LONG,
-            trade_id=2,
-            leg_id=6,
+            signal_id=2,
             weight=0.5,
             quantity=2.0,
         )

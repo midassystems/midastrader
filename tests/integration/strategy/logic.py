@@ -28,7 +28,7 @@ class Cointegrationzscore(BaseStrategy):
         super().__init__(symbols_map, bus)
 
         # Parameters
-        self.trade_id = 1
+        self.signal_id = 1
         self.zscore_lookback = 10
         self.entry_threshold = 2
         self.exit_threshold = 1
@@ -154,7 +154,7 @@ class Cointegrationzscore(BaseStrategy):
                     trade_instructions.extend(
                         self.create_trade_instructions(self.last_signal)
                     )
-                    self.trade_id += 1
+                    self.signal_id += 1
                     self.last_signal = None
 
         # self.logger.info("Calling set signal")
@@ -258,8 +258,8 @@ class Cointegrationzscore(BaseStrategy):
                     instrument=instrument,
                     order_type=OrderType.MARKET,
                     action=action,
-                    trade_id=self.trade_id,
-                    leg_id=len(trade_instructions) + 1,
+                    signal_id=self.signal_id,
+                    # leg_id=len(trade_instructions) + 1,
                     weight=weight,
                     quantity=float(quantity),
                 )

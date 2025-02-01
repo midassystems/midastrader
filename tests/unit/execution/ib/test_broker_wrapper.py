@@ -606,7 +606,7 @@ class TestBrokerApp(unittest.TestCase):
             execution_data = Trade(
                 timestamp=1713970490000000000,
                 trade_id=execution.orderId,
-                leg_id=1,
+                signal_id=0,
                 instrument=instrument,
                 quantity=float(execution.shares),
                 avg_price=float(execution.price),

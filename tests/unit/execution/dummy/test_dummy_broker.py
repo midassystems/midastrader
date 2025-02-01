@@ -4,7 +4,6 @@ from time import sleep
 from mbn import OhlcvMsg
 from datetime import time
 from unittest.mock import Mock, MagicMock
-from ibapi.contract import Contract
 
 from midastrader.structs.trade import Trade
 from midastrader.structs.events import OrderEvent
@@ -133,18 +132,15 @@ class TestDummyClient(unittest.TestCase):
         # Mock order
         timestamp = 1651500000
         action = Action.LONG
-        trade_id = 2
-        leg_id = 6
-        order = MarketOrder(action, 10)
-        contract = Contract()
+        signal_id = 2
+        order = MarketOrder(signal_id, action, 10)
 
         event = OrderEvent(
-            timestamp=timestamp,
-            trade_id=trade_id,
-            leg_id=leg_id,
+            timestamp,
+            signal_id,
             action=action,
             order=order,
-            contract=contract,
+            symbol=self.hogs,
         )
 
         # Test
@@ -159,9 +155,7 @@ class TestDummyClient(unittest.TestCase):
 
     def test_update_positions_update(self):
         symbol = self.symbols_map.get_symbol("AAPL")
-        if symbol:
-            contract = symbol.contract
-        else:
+        if not symbol:
             raise Exception("Symbol not found.")
 
         # Old Position
@@ -173,7 +167,7 @@ class TestDummyClient(unittest.TestCase):
             price_multiplier=1,
             market_price=20,
         )
-        self.broker.positions[contract] = old_position
+        self.broker.positions[symbol.instrument_id] = old_position
 
         # New order
         action = Action.SELL
@@ -234,12 +228,10 @@ class TestDummyClient(unittest.TestCase):
         )
         hogs_symbol = self.symbols_map.get_symbol("HEJ4")
 
-        if hogs_symbol:
-            hogs_contract = hogs_symbol.contract
-        else:
+        if not hogs_symbol:
             raise Exception("Symbol not found.")
 
-        self.broker.positions[hogs_contract] = hogs_position
+        self.broker.positions[hogs_symbol.instrument_id] = hogs_position
 
         # Position2
         aapl_position = EquityPosition(
@@ -252,12 +244,10 @@ class TestDummyClient(unittest.TestCase):
         )
         aapl_symbol = self.symbols_map.get_symbol("AAPL")
 
-        if aapl_symbol:
-            aapl_contract = aapl_symbol.contract
-        else:
+        if not aapl_symbol:
             raise Exception("Symbol not found.")
 
-        self.broker.positions[aapl_contract] = aapl_position
+        self.broker.positions[aapl_symbol.instrument_id] = aapl_position
 
         # Mock orderbook responses
         self.order_book.retrieve = Mock(
@@ -313,8 +303,8 @@ class TestDummyClient(unittest.TestCase):
 
     def test_update_trades(self):
         timestamp = 1651500000
-        trade_id = 1
-        leg_id = 2
+        signal_id = 1
+        trade_id = 1  # staerting trde_id
         ticker = "AAPL"
         quantity = -10.0
         action = Action.LONG
@@ -325,11 +315,11 @@ class TestDummyClient(unittest.TestCase):
             raise Exception("Symbol not found.")
 
         # Exception
-        id = f"{trade_id}{leg_id}{action}"
+        # id = f"{trade_id}{leg_id}{action}"
         expected_trade = Trade(
             timestamp=timestamp,
             trade_id=trade_id,
-            leg_id=leg_id,
+            signal_id=signal_id,
             instrument=symbol.instrument_id,
             quantity=round(quantity, 4),
             avg_price=fill_price,
@@ -343,8 +333,8 @@ class TestDummyClient(unittest.TestCase):
         self.bus.publish = Mock()
         self.broker._update_trades(
             timestamp,
-            trade_id,
-            leg_id,
+            signal_id,
+            # leg_id,
             symbol,
             quantity,
             action,
@@ -355,7 +345,7 @@ class TestDummyClient(unittest.TestCase):
         # Validate
         args = self.bus.publish.call_args[0]
         self.assertEqual(args[0], EventType.TRADE_UPDATE)
-        self.assertEqual(args[1], TradeEvent(id, expected_trade))
+        self.assertEqual(args[1], TradeEvent(str(trade_id), expected_trade))
 
     def test_mark_to_market(self):
         self.broker._update_account = Mock()
@@ -406,17 +396,15 @@ class TestDummyClient(unittest.TestCase):
         )
         hogs_symbol = self.symbols_map.get_symbol("HEJ4")
 
-        if hogs_symbol:
-            hogs_contract = hogs_symbol.contract
-        else:
+        if not hogs_symbol:
             raise Exception("Symbol not found.")
 
-        self.broker.positions[hogs_contract] = hogs_position
+        self.broker.positions[hogs_symbol.instrument_id] = hogs_position
 
         hogs_trade = Trade(
             timestamp=165000000,
             trade_id=1,
-            leg_id=1,
+            signal_id=1,
             instrument=self.hogs.instrument_id,
             quantity=round(hogs_position.quantity, 4),
             avg_price=float(hogs_position.avg_price),
@@ -431,7 +419,7 @@ class TestDummyClient(unittest.TestCase):
             action=hogs_position.action,
             fees=70.0,
         )
-        self.broker.last_trades[hogs_contract] = hogs_trade
+        self.broker.last_trades[hogs_symbol.instrument_id] = hogs_trade
 
         # Position2
         aapl_position = EquityPosition(
@@ -444,17 +432,15 @@ class TestDummyClient(unittest.TestCase):
         )
         aapl_symbol = self.symbols_map.get_symbol("AAPL")
 
-        if aapl_symbol:
-            aapl_contract = aapl_symbol.contract
-        else:
+        if not aapl_symbol:
             raise Exception("Symbol not found.")
 
-        self.broker.positions[aapl_contract] = aapl_position
+        self.broker.positions[aapl_symbol.instrument_id] = aapl_position
 
         aapl_trade = Trade(
             timestamp=165000000,
             trade_id=2,
-            leg_id=2,
+            signal_id=2,
             instrument=self.aapl.instrument_id,
             quantity=round(aapl_position.quantity, 4),
             avg_price=float(aapl_position.avg_price),
@@ -467,7 +453,7 @@ class TestDummyClient(unittest.TestCase):
             action=aapl_position.action,
             fees=70.0,
         )
-        self.broker.last_trades[aapl_contract] = aapl_trade
+        self.broker.last_trades[aapl_symbol.instrument_id] = aapl_trade
 
         # Mock order book response
         self.order_book.retrieve = Mock(
@@ -486,13 +472,14 @@ class TestDummyClient(unittest.TestCase):
         current_price = 90
 
         # Test
+        self.broker.trade_id = 2
         self.broker.liquidate_positions()
 
         # Expected
         hogs_trade_liquidated = Trade(
             timestamp=17777000000000,
-            trade_id=1,
-            leg_id=1,
+            trade_id=3,
+            signal_id=1,
             instrument=self.hogs.instrument_id,
             quantity=round(hogs_position.quantity * -1, 4),
             avg_price=float(current_price * hogs_position.price_multiplier),
@@ -509,13 +496,12 @@ class TestDummyClient(unittest.TestCase):
             action=Action.SELL.value,
             fees=0.0,
         )
-        id = f"{1}{1}{hogs_trade_liquidated.action}"
-        trade1 = TradeEvent(id, hogs_trade_liquidated)
+        trade1 = TradeEvent("3", hogs_trade_liquidated)
 
         aapl_trade_liquidated = Trade(
             timestamp=17777000000000,
-            trade_id=2,
-            leg_id=2,
+            trade_id=4,
+            signal_id=2,
             instrument=self.aapl.instrument_id,
             quantity=round(aapl_position.quantity * -1, 4),
             avg_price=float(current_price * 1),
@@ -524,8 +510,7 @@ class TestDummyClient(unittest.TestCase):
             action=Action.SELL.value,
             fees=0.0,
         )
-        id2 = f"{2}{2}{aapl_trade_liquidated.action}"
-        trade2 = TradeEvent(id2, aapl_trade_liquidated)
+        trade2 = TradeEvent("4", aapl_trade_liquidated)
 
         # Validate
         self.assertEqual(self.bus.publish.call_count, 2)
@@ -561,7 +546,7 @@ class TestDummyClient(unittest.TestCase):
             price_multiplier=symbol.price_multiplier,
             market_price=10,
         )
-        self.broker.positions[symbol.contract] = position
+        self.broker.positions[symbol.instrument_id] = position
 
         # Test
         self.bus.publish = Mock()
@@ -590,7 +575,7 @@ class TestDummyClient(unittest.TestCase):
             market_price=10,
         )
 
-        self.broker.positions[symbol.contract] = position
+        self.broker.positions[symbol.instrument_id] = position
 
         # Test
         self.bus.publish = Mock()

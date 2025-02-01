@@ -24,7 +24,7 @@ class Trade:
 
     timestamp: int
     trade_id: int
-    leg_id: int
+    signal_id: int
     instrument: int
     quantity: float
     avg_price: float
@@ -46,8 +46,8 @@ class Trade:
             raise TypeError("'timestamp' field must be of type int.")
         if not isinstance(self.trade_id, int):
             raise TypeError("'trade_id' field must be of type int.")
-        if not isinstance(self.leg_id, int):
-            raise TypeError("'leg_id' field must be of type int.")
+        if not isinstance(self.signal_id, int):
+            raise TypeError("'signal_id' field must be of type int.")
         if not isinstance(self.instrument, int):
             raise TypeError("'instrument' field must be of type int.")
         if not isinstance(self.quantity, float):
@@ -81,7 +81,7 @@ class Trade:
         return {
             "timestamp": int(self.timestamp),
             "trade_id": self.trade_id,
-            "leg_id": self.leg_id,
+            "signal_id": self.signal_id,
             "ticker": self.instrument,
             "quantity": self.quantity,
             "avg_price": self.avg_price,
@@ -103,7 +103,7 @@ class Trade:
         """
         return mbn.Trades(
             trade_id=self.trade_id,
-            leg_id=self.leg_id,
+            leg_id=self.signal_id,
             timestamp=self.timestamp,
             ticker=ticker,
             quantity=int(self.quantity * PRICE_FACTOR),
@@ -127,7 +127,7 @@ class Trade:
         return (
             f"{indent}Timestamp: {self.timestamp}\n"
             f"{indent}Trade ID: {self.trade_id}\n"
-            f"{indent}Leg ID: {self.leg_id}\n"
+            f"{indent}Leg ID: {self.signal_id}\n"
             f"{indent}Instrument: {self.instrument}\n"
             f"{indent}Quantity: {self.quantity}\n"
             f"{indent}Avg Price: {self.avg_price}\n"

@@ -1,5 +1,4 @@
 import unittest
-import pandas as pd
 from datetime import time
 from ibapi.contract import Contract
 
@@ -103,11 +102,7 @@ class TestEquity(unittest.TestCase):
         self.assertEqual(equity.market_cap, self.market_cap)
         self.assertEqual(equity.shares_outstanding, self.shares_outstanding)
         self.assertEqual(equity.slippage_factor, self.slippage_factor)
-        self.assertEqual(
-            type(equity.contract),
-            Contract,
-            "contract shoudl be an instance of Contract",
-        )
+        self.assertEqual(type(equity.ib_contract()), Contract)
 
     def test_commission_fees(self):
         # Test
@@ -732,11 +727,7 @@ class TestFuture(unittest.TestCase):
             self.lastTradeDateOrContractMonth,
         )
         self.assertEqual(future.slippage_factor, self.slippage_factor)
-        self.assertEqual(
-            type(future.contract),
-            Contract,
-            "contract shoudl be an instance of Contract",
-        )
+        self.assertEqual(type(future.ib_contract()), Contract)
 
     def test_commission_fees(self):
         quantity = 10
@@ -1310,11 +1301,7 @@ class TestOption(unittest.TestCase):
             self.lastTradeDateOrContractMonth,
         )
         self.assertEqual(option.slippage_factor, self.slippage_factor)
-        self.assertEqual(
-            type(option.contract),
-            Contract,
-            "contract shoudl be an instance of Contract",
-        )
+        self.assertEqual(type(option.ib_contract()), Contract)
 
     def test_commission_fees(self):
         quantity = 10

@@ -1,8 +1,8 @@
-from ibapi.contract import Contract
 from dataclasses import dataclass, field
 
 from midastrader.structs.orders import BaseOrder, Action
 from midastrader.structs.events.base import SystemEvent
+from midastrader.structs.symbol import Symbol
 
 
 @dataclass
@@ -25,10 +25,9 @@ class OrderEvent(SystemEvent):
     """
 
     timestamp: int
-    trade_id: int
-    leg_id: int
+    signal_id: int
     action: Action
-    contract: Contract
+    symbol: Symbol
     order: BaseOrder
     type: str = field(init=False, default="ORDER")
 
@@ -43,22 +42,18 @@ class OrderEvent(SystemEvent):
         # Type Check
         if not isinstance(self.timestamp, int):
             raise TypeError("'timestamp' must be of type int.")
-        if not isinstance(self.trade_id, int):
-            raise TypeError("'trade_id' must be of type int.")
-        if not isinstance(self.leg_id, int):
-            raise TypeError("'leg_id' must be of type int.")
+        if not isinstance(self.signal_id, int):
+            raise TypeError("'signal_id' must be of type int.")
         if not isinstance(self.action, Action):
             raise TypeError("'action' must be of type Action enum.")
-        if not isinstance(self.contract, Contract):
-            raise TypeError("'contract' must be of type Contract.")
+        if not isinstance(self.symbol, Symbol):
+            raise TypeError("'symbol' must be of type Symbol.")
         if not isinstance(self.order, BaseOrder):
             raise TypeError("'order' must be of type BaseOrder.")
 
         # Value Check
-        if self.trade_id <= 0:
-            raise ValueError("'trade_id' must be greater than zero.")
-        if self.leg_id <= 0:
-            raise ValueError("'leg_id' must be greater than zero.")
+        if self.signal_id <= 0:
+            raise ValueError("'signal_id' must be greater than zero.")
 
     def __str__(self) -> str:
         """
@@ -70,9 +65,8 @@ class OrderEvent(SystemEvent):
         return (
             f"\n{self.type} EVENT:\n"
             f"  Timestamp: {self.timestamp}\n"
-            f"  Trade ID: {self.trade_id}\n"
-            f"  Leg ID: {self.leg_id}\n"
+            f"  Signal ID: {self.signal_id}\n"
             f"  Action: {self.action}\n"
-            f"  Contract: {self.contract}\n"
+            f"  Symbol: {self.symbol.midas_ticker}\n"
             f"  Order: {self.order.__dict__}\n"
         )

@@ -1,10 +1,7 @@
 import queue
-
-# import threading
 from typing import List
-from ibapi.contract import Contract
 
-from midastrader.structs.symbol import SymbolMap
+from midastrader.structs.symbol import Symbol, SymbolMap
 from midastrader.structs.events import SignalEvent, OrderEvent
 from midastrader.message_bus import MessageBus, EventType
 from midastrader.structs.signal import SignalInstruction
@@ -147,52 +144,55 @@ class OrderExecutionManager(CoreAdapter):
         orders = []
         total_capital_required = 0
 
-        for trade in trade_instructions:
-            # self.logger.debug(trade)
-            symbol = self.symbols_map.map[trade.instrument]
-            order = trade.to_order()
+        for signal in trade_instructions:
+            try:
+                symbol = self.symbols_map.map[signal.instrument]
+                current_price = self.order_book.retrieve(symbol.instrument_id)
+                order = signal.to_order()
 
-            if not order:
-                self.logger.warning(
-                    f"Skipping trade {trade.trade_id}: error creating order."
+                if not order:
+                    self.logger.warning(
+                        f"Skipping order {signal.signal_id}: error creating order."
+                    )
+                    return
+                #
+                # if current_price is None:
+                #     self.logger.warning(
+                #         f"Skipping trade {trade.trade_id}: No current price for {symbol.instrument_id}"
+                #     )
+                #     return
+
+                order_cost = symbol.cost(
+                    float(order.quantity),
+                    current_price.pretty_price,
                 )
-                return
 
-            current_price = self.order_book.retrieve(symbol.instrument_id)
+                order_details = {
+                    "timestamp": timestamp,
+                    "signal_id": signal.signal_id,
+                    "action": signal.action,
+                    "symbol": symbol,
+                    "order": order,
+                }
 
-            if current_price is None:
+                orders.append(order_details)
+
+                # SELL/Cover are exits so available capital will be freed up
+                if signal.action not in [Action.SELL, Action.COVER]:
+                    total_capital_required += order_cost
+
+            except Exception as e:
                 self.logger.warning(
-                    f"Skipping trade {trade.trade_id}: No current price for {symbol.instrument_id}"
+                    f"Error crreating order for{signal.signal_id} : {e}"
                 )
-                return
-
-            order_cost = symbol.cost(
-                float(order.quantity), current_price.pretty_price
-            )
-
-            order_details = {
-                "timestamp": timestamp,
-                "trade_id": trade.trade_id,
-                "leg_id": trade.leg_id,
-                "action": trade.action,
-                "contract": symbol.contract,
-                "order": order,
-            }
-
-            orders.append(order_details)
-
-            # SELL/Cover are exits so available capital will be freed up
-            if trade.action not in [Action.SELL, Action.COVER]:
-                total_capital_required += order_cost
 
         if total_capital_required <= self.portfolio_server.capital:
             for order in orders:
                 self._set_order(
                     order["timestamp"],
-                    order["trade_id"],
-                    order["leg_id"],
+                    order["signal_id"],
                     order["action"],
-                    order["contract"],
+                    order["symbol"],
                     order["order"],
                 )
         else:
@@ -202,10 +202,9 @@ class OrderExecutionManager(CoreAdapter):
     def _set_order(
         self,
         timestamp: int,
-        trade_id: int,
-        leg_id: int,
+        signal_id: int,
         action: Action,
-        contract: Contract,
+        symbol: Symbol,
         order: BaseOrder,
     ) -> None:
         """
@@ -225,10 +224,9 @@ class OrderExecutionManager(CoreAdapter):
         try:
             order_event = OrderEvent(
                 timestamp=timestamp,
-                trade_id=trade_id,
-                leg_id=leg_id,
+                signal_id=signal_id,
                 action=action,
-                contract=contract,
+                symbol=symbol,
                 order=order,
             )
             self.bus.publish(EventType.ORDER, order_event)

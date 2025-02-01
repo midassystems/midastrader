@@ -86,7 +86,8 @@ class IBAdaptor(DataAdapter):
     def process(self):
         # self.connect()
         thread = threading.Thread(
-            target=self._websocket_connection, daemon=True
+            target=self._websocket_connection,
+            daemon=True,
         )
         thread.start()
 
@@ -166,7 +167,8 @@ class IBAdaptor(DataAdapter):
 
             for symbol in self.symbols_map.symbols:
                 self.get_data(
-                    data_type=self.data_type, contract=symbol.contract
+                    data_type=self.data_type,
+                    contract=symbol.ib_contract(),
                 )
 
         except ValueError:

@@ -1,7 +1,6 @@
 import queue
 import threading
 from typing import Dict
-from ibapi.contract import Contract
 
 from midastrader.structs.trade import Trade
 from midastrader.structs.symbol import Symbol, SymbolMap
@@ -60,13 +59,13 @@ class DummyBroker:
         self.is_shutdown = threading.Event()
 
         # Variables
+        self.trade_id = 0
         self.threads = []
-        self.positions: Dict[Contract, Position] = {}
+        self.positions: Dict[int, Position] = {}
         self.unrealized_pnl: Dict[str, float] = {"account": 0}
         self.margin_required: Dict[str, float] = {"account": 0}
         self.liquidation_value: Dict[str, float] = {"account": 0}
-        self.last_trades: Dict[Contract, Trade] = {}
-        # self.last_trade: Union[Trade, None] = None
+        self.last_trades: Dict[int, Trade] = {}
         self.account = Account(
             timestamp=0,
             full_available_funds=capital,
@@ -168,12 +167,10 @@ class DummyBroker:
             event (OrderEvent): The event containing order details for execution.
         """
         symbol = event.symbol
-        contract = symbol.contract
-        position = self.positions.get(symbol.contract)
+        position = self.positions.get(symbol.instrument_id)
 
         if position:
             quantity = position.quantity
-            action = position.action
             exit_record = event.exit_record
             entry_record = event.entry_record
             exit_price = exit_record.pretty_price
@@ -202,8 +199,7 @@ class DummyBroker:
             # Create Execution Events
             self._update_trades(
                 event.timestamp,
-                self.last_trades[contract].trade_id,
-                self.last_trades[contract].leg_id,
+                self.last_trades[symbol.instrument_id].signal_id,
                 symbol,
                 quantity * -1,
                 exit_action,
@@ -217,7 +213,9 @@ class DummyBroker:
             self.return_equity_value()
 
             # Entry
-            entry_action = Action.from_string(action)
+            entry_action = (
+                Action.LONG if position.action == "BUY" else Action.SHORT
+            )
             entry_fill_price = symbol.slippage_price(entry_price, entry_action)
             entry_fees = symbol.commission_fees(quantity)
 
@@ -229,7 +227,7 @@ class DummyBroker:
                 symbol,
                 entry_action,
                 quantity,
-                exit_fill_price,
+                entry_fill_price,
             )
 
             # Update Account
@@ -238,8 +236,7 @@ class DummyBroker:
             # Create Execution Events
             self._update_trades(
                 event.timestamp,
-                self.last_trades[contract].trade_id,
-                self.last_trades[contract].leg_id,
+                self.last_trades[symbol.instrument_id].signal_id,
                 symbol,
                 quantity,
                 entry_action,
@@ -252,8 +249,7 @@ class DummyBroker:
             self.return_account()
             self.return_equity_value()
 
-            # self.bus.publish(EventType.UPDATE_SYSTEM, False)
-        self.logger.debug(f"{contract.symbol} position rolled over.")
+        self.logger.debug(f"{symbol.midas_ticker} position rolled over.")
         self.bus.publish(EventType.ROLLED_OVER, True)
 
     def _handle_trade(self, event: OrderEvent) -> None:
@@ -264,47 +260,47 @@ class DummyBroker:
             event (OrderEvent): The event containing order details for execution.
         """
 
-        contract = event.contract
+        symbol = event.symbol
         action = event.action
         order = event.order
         timestamp = event.timestamp
-        trade_id = event.trade_id
-        leg_id = event.leg_id
+        signal_id = event.signal_id
+        # leg_id = event.leg_id
 
-        symbol = self.symbols_map.get_symbol(contract.symbol)
+        # symbol = self.symbols_map.get_symbol(contract.symbol)
 
-        if symbol:
-            # Order Data
-            quantity = float(order.quantity)  # +/- values
-            mkt_data = self.order_book.retrieve(symbol.instrument_id)
-            fill_price = symbol.slippage_price(mkt_data.pretty_price, action)
-            fees = symbol.commission_fees(quantity)
+        # if symbol:
+        # Order Data
+        quantity = float(order.quantity)  # +/- values
+        mkt_data = self.order_book.retrieve(symbol.instrument_id)
+        fill_price = symbol.slippage_price(mkt_data.pretty_price, action)
+        fees = symbol.commission_fees(quantity)
 
-            # Adjust cash by fees
-            self.account.full_available_funds += fees
+        # Adjust cash by fees
+        self.account.full_available_funds += fees
 
-            # Update Positions
-            self._update_positions(symbol, action, quantity, fill_price)
+        # Update Positions
+        self._update_positions(symbol, action, quantity, fill_price)
 
-            # Update Account
-            self._update_account()
+        # Update Account
+        self._update_account()
 
-            # Create Execution Events
-            self._update_trades(
-                timestamp,
-                trade_id,
-                leg_id,
-                symbol,
-                quantity,
-                action,
-                fill_price,
-                fees,
-            )
+        # Create Execution Events
+        self._update_trades(
+            timestamp,
+            # trade_id,
+            signal_id,
+            symbol,
+            quantity,
+            action,
+            fill_price,
+            fees,
+        )
 
-            # Return updates
-            self.return_positions()
-            self.return_account()
-            self.return_equity_value()
+        # Return updates
+        self.return_positions()
+        self.return_account()
+        self.return_equity_value()
         self.bus.publish(EventType.UPDATE_SYSTEM, False)
 
     def _update_positions(
@@ -327,21 +323,21 @@ class DummyBroker:
             This method updates the broker's positions, including adding new positions,
             updating existing positions, and removing positions if fully closed.
         """
-        if symbol.contract not in self.positions:
+        if symbol.instrument_id not in self.positions:
             details = {
                 "action": action.to_broker_standard(),
                 "quantity": quantity,
                 "avg_price": fill_price,
                 "market_price": fill_price,
             }
-            self.positions[symbol.contract] = position_factory(
+            self.positions[symbol.instrument_id] = position_factory(
                 asset_type=symbol.security_type,
                 symbol=symbol,
                 **details,
             )
-            impact = self.positions[symbol.contract].position_impact()
+            impact = self.positions[symbol.instrument_id].position_impact()
         else:
-            impact = self.positions[symbol.contract].update(
+            impact = self.positions[symbol.instrument_id].update(
                 quantity,
                 fill_price,
                 fill_price,
@@ -359,19 +355,19 @@ class DummyBroker:
             This method calculates and updates account metrics such as unrealized PnL,
             margin requirements, and net liquidation value.
         """
-        for contract, position in self.positions.items():
-            symbol = self.symbols_map.get_symbol(contract.symbol)
-            if symbol:
-                mkt_data = self.order_book.retrieve(symbol.instrument_id)
-                position.market_price = mkt_data.pretty_price
-                impact = position.position_impact()
+        for instrument_id, position in self.positions.items():
+            # symbol = self.symbols_map.get_symbol(contract.symbol)
+            # if symbol:
+            mkt_data = self.order_book.retrieve(instrument_id)
+            position.market_price = mkt_data.pretty_price
+            impact = position.position_impact()
 
-                # Update postion specific account values
-                self.unrealized_pnl[contract.symbol] = impact.unrealized_pnl
-                self.margin_required[contract.symbol] = impact.margin_required
-                self.liquidation_value[contract.symbol] = (
-                    impact.liquidation_value
-                )
+            # Update postion specific account values
+            self.unrealized_pnl[str(instrument_id)] = impact.unrealized_pnl
+            self.margin_required[str(instrument_id)] = impact.margin_required
+            self.liquidation_value[str(instrument_id)] = (
+                impact.liquidation_value
+            )
 
         # Update Account values
         self.account.unrealized_pnl = sum(
@@ -389,8 +385,8 @@ class DummyBroker:
     def _update_trades(
         self,
         timestamp: int,
-        trade_id: int,
-        leg_id: int,
+        signal_id: int,
+        # leg_id: int,
         symbol: Symbol,
         quantity: float,
         action: Action,
@@ -416,10 +412,12 @@ class DummyBroker:
         Notes:
             This method records the latest executed trade details for record-keeping.
         """
+        self.trade_id += 1
+
         trade = Trade(
             timestamp=timestamp,
-            trade_id=trade_id,
-            leg_id=leg_id,
+            trade_id=self.trade_id,
+            signal_id=signal_id,
             instrument=symbol.instrument_id,
             quantity=round(quantity, 4),
             avg_price=fill_price * symbol.price_multiplier,
@@ -429,12 +427,12 @@ class DummyBroker:
             fees=round(fees, 4),
         )
         # Keep for liquidation if needed at the end
-        self.last_trades[symbol.contract] = trade
+        self.last_trades[symbol.instrument_id] = trade
 
-        trade_id_str = f"{trade_id}{leg_id}{action}"
+        # trade_id_str = f"{trade_id}{leg_id}{action}"
         self.bus.publish(
             EventType.TRADE_UPDATE,
-            TradeEvent(trade_id_str, trade),
+            TradeEvent(str(self.trade_id), trade),
         )
 
     def mark_to_market(self) -> None:
@@ -469,19 +467,20 @@ class DummyBroker:
             self.logger.info("No positions held at completion.")
         else:
             self.logger.info("Liquidating Positions held at completion.")
-            for contract, position in list(self.positions.items()):
-                symbol = self.symbols_map.get_symbol(contract.symbol)
+            for instrument_id, position in list(self.positions.items()):
+                symbol = self.symbols_map.get_symbol_by_id(instrument_id)
                 if symbol:
-                    mkt_data = self.order_book.retrieve(symbol.instrument_id)
+                    mkt_data = self.order_book.retrieve(instrument_id)
                     current_price = mkt_data.pretty_price
                     position.market_price = current_price
                     position.calculate_liquidation_value()
 
+                    self.trade_id += 1
                     trade = Trade(
                         timestamp=self.order_book.last_updated,
-                        trade_id=self.last_trades[contract].trade_id,
-                        leg_id=self.last_trades[contract].leg_id,
-                        instrument=symbol.instrument_id,
+                        trade_id=self.trade_id,
+                        signal_id=self.last_trades[instrument_id].signal_id,
+                        instrument=instrument_id,
                         quantity=round(position.quantity * -1, 4),
                         avg_price=current_price * symbol.price_multiplier,
                         trade_value=round(
@@ -499,9 +498,10 @@ class DummyBroker:
                     )
 
                     # self.last_trades[contract] = trade
-                    id = f"{trade.trade_id}{trade.leg_id}{trade.action}"
+                    # id = f"{trade.trade_id}{trade.leg_id}{trade.action}"
                     self.bus.publish(
-                        EventType.TRADE_UPDATE, TradeEvent(id, trade)
+                        EventType.TRADE_UPDATE,
+                        TradeEvent(str(self.trade_id), trade),
                     )
 
             # # Output liquidation
@@ -534,9 +534,10 @@ class DummyBroker:
             del self.positions[contract]
 
         # Publish position updates
-        for contract, position_data in positions.items():
-            id = self.symbols_map.get_id(contract.symbol)
-            self.bus.publish(EventType.POSITION_UPDATE, (id, position_data))
+        for instrument_id, position_data in positions.items():
+            self.bus.publish(
+                EventType.POSITION_UPDATE, (instrument_id, position_data)
+            )
 
     def return_account(self) -> None:
         """

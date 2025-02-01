@@ -21,8 +21,8 @@ class TestTradeManager(unittest.TestCase):
         self.manager.trades = {
             "1234": Trade(
                 timestamp=1712066400000000000,
-                trade_id=13,
-                leg_id=1,
+                signal_id=13,
+                trade_id=1,
                 instrument=43,
                 quantity=-63.0,
                 avg_price=104.425,
@@ -33,8 +33,8 @@ class TestTradeManager(unittest.TestCase):
             ),
             "10928": Trade(
                 timestamp=1712066400000000000,
-                trade_id=13,
-                leg_id=2,
+                signal_id=13,
+                trade_id=2,
                 instrument=70,
                 quantity=114.0,
                 avg_price=431.5,
@@ -45,8 +45,8 @@ class TestTradeManager(unittest.TestCase):
             ),
             "2827": Trade(
                 timestamp=1712235600000000000,
-                trade_id=13,
-                leg_id=1,
+                signal_id=13,
+                trade_id=3,
                 instrument=43,
                 quantity=63.0,
                 avg_price=104.55,
@@ -57,8 +57,8 @@ class TestTradeManager(unittest.TestCase):
             ),
             "32342": Trade(
                 timestamp=1712235600000000000,
-                trade_id=13,
-                leg_id=2,
+                signal_id=13,
+                trade_id=4,
                 instrument=70,
                 quantity=-114.0,
                 avg_price=433.0,
@@ -69,8 +69,8 @@ class TestTradeManager(unittest.TestCase):
             ),
             "23232": Trade(
                 timestamp=1712336400000000000,
-                trade_id=14,
-                leg_id=1,
+                signal_id=14,
+                trade_id=5,
                 instrument=43,
                 quantity=-63.0,
                 avg_price=107.925,
@@ -81,8 +81,8 @@ class TestTradeManager(unittest.TestCase):
             ),
             "23234234": Trade(
                 timestamp=1712336400000000000,
-                trade_id=14,
-                leg_id=2,
+                signal_id=14,
+                trade_id=6,
                 instrument=70,
                 quantity=114.0,
                 avg_price=433.25,
@@ -93,8 +93,8 @@ class TestTradeManager(unittest.TestCase):
             ),
             "234342": Trade(
                 timestamp=1712754000000000000,
-                trade_id=14,
-                leg_id=1,
+                signal_id=14,
+                trade_id=7,
                 instrument=43,
                 quantity=63.0,
                 avg_price=107.875,
@@ -105,8 +105,8 @@ class TestTradeManager(unittest.TestCase):
             ),
             "9434": Trade(
                 timestamp=1712754000000000000,
-                trade_id=14,
-                leg_id=2,
+                signal_id=14,
+                trade_id=8,
                 instrument=70,
                 quantity=-114.0,
                 avg_price=433.5,
@@ -117,8 +117,8 @@ class TestTradeManager(unittest.TestCase):
             ),
             "087342": Trade(
                 timestamp=1712926800000000000,
-                trade_id=15,
-                leg_id=1,
+                signal_id=15,
+                trade_id=9,
                 instrument=43,
                 quantity=63.0,
                 avg_price=105.25,
@@ -129,8 +129,8 @@ class TestTradeManager(unittest.TestCase):
             ),
             "635209": Trade(
                 timestamp=1712926800000000000,
-                trade_id=15,
-                leg_id=2,
+                signal_id=15,
+                trade_id=10,
                 instrument=70,
                 quantity=-115.0,
                 avg_price=446.25,
@@ -141,8 +141,8 @@ class TestTradeManager(unittest.TestCase):
             ),
             "9654": Trade(
                 timestamp=1713272400000000000,
-                trade_id=15,
-                leg_id=1,
+                signal_id=15,
+                trade_id=11,
                 instrument=43,
                 quantity=-63.0,
                 avg_price=102.775,
@@ -153,8 +153,8 @@ class TestTradeManager(unittest.TestCase):
             ),
             "5498703": Trade(
                 timestamp=1713272400000000000,
-                trade_id=15,
-                leg_id=2,
+                signal_id=15,
+                trade_id=12,
                 instrument=70,
                 quantity=115.0,
                 avg_price=441.75,
@@ -192,7 +192,7 @@ class TestTradeManager(unittest.TestCase):
 
         # Expected
         data = {
-            "trade_id": [13, 14, 15],
+            "signal_id": [13, 14, 15],
             "start_date": [
                 1712066400000000000,
                 1712336400000000000,
@@ -506,8 +506,7 @@ class TestSignalManager(unittest.TestCase):
             instrument=1,
             order_type=OrderType.MARKET,
             action=Action.LONG,
-            trade_id=2,
-            leg_id=5,
+            signal_id=2,
             weight=0.5,
             quantity=10.0,
         )
@@ -515,8 +514,7 @@ class TestSignalManager(unittest.TestCase):
             instrument=2,
             order_type=OrderType.MARKET,
             action=Action.LONG,
-            trade_id=2,
-            leg_id=6,
+            signal_id=2,
             weight=0.5,
             quantity=10.0,
         )
@@ -531,8 +529,7 @@ class TestSignalManager(unittest.TestCase):
                 "ticker": 1,
                 "order_type": "MKT",
                 "action": "LONG",
-                "trade_id": 2,
-                "leg_id": 5,
+                "signal_id": 2,
                 "weight": 0.5,
                 "quantity": 10.0,
                 "limit_price": "",
@@ -543,8 +540,7 @@ class TestSignalManager(unittest.TestCase):
                 "ticker": 2,
                 "order_type": "MKT",
                 "action": "LONG",
-                "trade_id": 2,
-                "leg_id": 6,
+                "signal_id": 2,
                 "weight": 0.5,
                 "quantity": 10.0,
                 "limit_price": "",

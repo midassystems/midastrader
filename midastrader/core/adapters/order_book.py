@@ -170,9 +170,8 @@ class OrderBookManager(CoreAdapter):
         self.bus.publish(EventType.EOD_PROCESSED, True)
 
     def handle_record(self, record: RecordMsg) -> None:
-        # self.logger.info(f"{record}")
-        # if record.rollover_flag == 1:
-        #     self.handle_rollover(record)
+        if record.rollover_flag == 1:
+            self.handle_rollover(record)
 
         # Update the order book with the new market data
         self.book._update(record)

@@ -190,7 +190,7 @@ class TestPerformanceManager(unittest.TestCase):
         trade_id = "124243"
         trade_data = Trade(
             trade_id=1,
-            leg_id=2,
+            signal_id=2,
             timestamp=16555000000000000,
             instrument=1,
             quantity=10.0,
@@ -217,7 +217,7 @@ class TestPerformanceManager(unittest.TestCase):
         commission = 90.0
         trade_data = Trade(
             trade_id=1,
-            leg_id=2,
+            signal_id=2,
             timestamp=16555000000000000,
             instrument=1,
             quantity=10.0,
@@ -250,8 +250,7 @@ class TestPerformanceManager(unittest.TestCase):
             instrument=1,
             order_type=OrderType.MARKET,
             action=Action.LONG,
-            trade_id=2,
-            leg_id=5,
+            signal_id=2,
             weight=0.5,
             quantity=10.0,
         )
@@ -259,8 +258,7 @@ class TestPerformanceManager(unittest.TestCase):
             instrument=2,
             order_type=OrderType.MARKET,
             action=Action.LONG,
-            trade_id=2,
-            leg_id=6,
+            signal_id=2,
             weight=0.5,
             quantity=10.0,
         )
@@ -281,7 +279,7 @@ class TestPerformanceManager(unittest.TestCase):
             "25432": Trade(
                 timestamp=1640995200000000000,
                 trade_id=1,
-                leg_id=1,
+                signal_id=1,
                 instrument=1,
                 quantity=10.0,
                 avg_price=10.0,
@@ -292,8 +290,8 @@ class TestPerformanceManager(unittest.TestCase):
             ),
             "532": Trade(
                 timestamp=1641081600000000000,
-                trade_id=1,
-                leg_id=1,
+                trade_id=2,
+                signal_id=1,
                 instrument=1,
                 quantity=-10.0,
                 avg_price=15.0,
@@ -304,8 +302,8 @@ class TestPerformanceManager(unittest.TestCase):
             ),
             "5432": Trade(
                 timestamp=1640995200000000000,
-                trade_id=2,
-                leg_id=1,
+                trade_id=3,
+                signal_id=2,
                 instrument=1,
                 quantity=-10.0,
                 avg_price=20.0,
@@ -316,8 +314,8 @@ class TestPerformanceManager(unittest.TestCase):
             ),
             "9867": Trade(
                 timestamp=1641081600000000000,
-                trade_id=2,
-                leg_id=1,
+                trade_id=4,
+                signal_id=2,
                 instrument=1,
                 quantity=10.0,
                 avg_price=18.0,
@@ -345,8 +343,7 @@ class TestPerformanceManager(unittest.TestCase):
             instrument=1,
             order_type=OrderType.MARKET,
             action=Action.LONG,
-            trade_id=2,
-            leg_id=5,
+            signal_id=2,
             weight=0.5,
             quantity=2.0,
         )
@@ -354,8 +351,7 @@ class TestPerformanceManager(unittest.TestCase):
             instrument=2,
             order_type=OrderType.MARKET,
             action=Action.LONG,
-            trade_id=2,
-            leg_id=6,
+            signal_id=2,
             weight=0.5,
             quantity=2.0,
         )
@@ -456,8 +452,7 @@ class TestPerformanceManager(unittest.TestCase):
             instrument=1,
             order_type=OrderType.MARKET,
             action=Action.LONG,
-            trade_id=2,
-            leg_id=5,
+            signal_id=2,
             weight=0.5,
             quantity=2.0,
         )
@@ -465,8 +460,7 @@ class TestPerformanceManager(unittest.TestCase):
             instrument=2,
             order_type=OrderType.MARKET,
             action=Action.LONG,
-            trade_id=2,
-            leg_id=6,
+            signal_id=2,
             weight=0.5,
             quantity=2.0,
         )
@@ -482,8 +476,8 @@ class TestPerformanceManager(unittest.TestCase):
         trades = {
             "25432": Trade(
                 timestamp=1640995200000000000,
+                signal_id=1,
                 trade_id=1,
-                leg_id=1,
                 instrument=1,
                 quantity=10.0,
                 avg_price=10.0,
@@ -494,8 +488,8 @@ class TestPerformanceManager(unittest.TestCase):
             ),
             "532": Trade(
                 timestamp=1641081600000000000,
-                trade_id=1,
-                leg_id=1,
+                signal_id=1,
+                trade_id=2,
                 instrument=1,
                 quantity=-10.0,
                 avg_price=15.0,
@@ -506,8 +500,8 @@ class TestPerformanceManager(unittest.TestCase):
             ),
             "5432": Trade(
                 timestamp=1640995200000000000,
-                trade_id=2,
-                leg_id=1,
+                signal_id=2,
+                trade_id=3,
                 instrument=1,
                 quantity=-10.0,
                 avg_price=20.0,
@@ -518,8 +512,8 @@ class TestPerformanceManager(unittest.TestCase):
             ),
             "9867": Trade(
                 timestamp=1641081600000000000,
-                trade_id=2,
-                leg_id=1,
+                signal_id=2,
+                trade_id=4,
                 instrument=1,
                 quantity=10.0,
                 avg_price=18.0,

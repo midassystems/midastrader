@@ -120,7 +120,7 @@ class TradeManager:
         df = pd.DataFrame(self.trades.values())
 
         # Group by trade_id to calculate aggregated values
-        aggregated = df.groupby("trade_id").agg(
+        aggregated = df.groupby("signal_id").agg(
             {
                 "timestamp": ["first", "last"],
                 "trade_value": [

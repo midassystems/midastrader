@@ -110,21 +110,21 @@ class Currency(Enum):
 
 class Industry(Enum):
     """
-    Represents the industry classification for equities and commodities.
+        Represents the industry classification for equities and commodities.
 
-    Values:
-        ENERGY: Energy sector.
-        MATERIALS: Materials sector.
-        INDUSTRIALS: Industrial sector.
-        UTILITIES: Utilities sector.
-        HEALTHCARE: Healthcare sector.
-        FINANCIALS: Financial sector.
-        CONSUMER: Consumer goods sector.
-        TECHNOLOGY: Technology sector.
-        COMMUNICATION: Communication services.
-        REAL_ESTATE: Real estate sector.
-        METALS: Metals commodities.
-        AGRICULTURE: Agricultural commodities.
+        Values:
+            ENERGY: Energy sector.
+            MATERIALS: Materials sector.
+            INDUSTRIALS: Industrial sector.
+            UTILITIES: Utilities sector.
+            HEALTHCARE: Healthcare sector.
+            FINANCIALS: Financial sector.
+            CONSUMER: Consumer goods sector.
+            TECHNOLOGY: Technology sector.
+            COMMUNICATION: Communication services.
+            REAL_ESTATE: Real estate sector.
+    METALS: Metals commodities.
+            AGRICULTURE: Agricultural commodities.
     """
 
     ENERGY = "Energy"
@@ -328,7 +328,7 @@ class Symbol(ABC):
     price_multiplier: float
     trading_sessions: TradingSession
     slippage_factor: float
-    contract: Contract = field(init=False)
+    # contract: Contract = field(init=False)
 
     def __post_init__(self):  # noqa: C901
         """
@@ -374,39 +374,48 @@ class Symbol(ABC):
         if self.slippage_factor < 0:
             raise ValueError("'slippage_factor' must be greater than zero.")
 
-    def to_contract_data(self) -> dict:
-        """
-        Constructs a dictionary containing key contract details for IB API.
+    def ib_contract(self) -> Contract:
+        contract = Contract()
+        contract.symbol = self.broker_ticker
+        contract.secType = self.security_type.value
+        contract.currency = self.currency.value
+        contract.exchange = self.exchange.value
+        contract.multiplier = str(self.quantity_multiplier)
+        return contract
 
-        Returns:
-            Dict[str, str]: A dictionary with details such as symbol, security type, currency, exchange, and multiplier.
-        """
-        return {
-            "symbol": self.broker_ticker,
-            "secType": self.security_type.value,
-            "currency": self.currency.value,
-            "exchange": self.exchange.value,
-            "multiplier": self.quantity_multiplier,
-        }
-
-    def to_contract(self) -> Contract:
-        """
-        Creates an IB API `Contract` object using the symbol's details.
-
-        Returns:
-            Contract: A fully initialized `Contract` object.
-
-        Raises:
-            Exception: If an error occurs during contract creation.
-        """
-        try:
-            contract_data = self.to_contract_data()
-            contract = Contract()
-            for key, value in contract_data.items():
-                setattr(contract, key, value)
-            return contract
-        except Exception as e:
-            raise Exception(f"Unexpected error during Contract creation: {e}")
+    # def to_contract_data(self) -> dict:
+    #     """
+    #     Constructs a dictionary containing key contract details for IB API.
+    #
+    #     Returns:
+    #         Dict[str, str]: A dictionary with details such as symbol, security type, currency, exchange, and multiplier.
+    #     """
+    #     return {
+    #         "symbol": self.broker_ticker,
+    #         "secType": self.security_type.value,
+    #         "currency": self.currency.value,
+    #         "exchange": self.exchange.value,
+    #         "multiplier": self.quantity_multiplier,
+    #     }
+    #
+    # def to_contract(self) -> Contract:
+    #     """
+    #     Creates an IB API `Contract` object using the symbol's details.
+    #
+    #     Returns:
+    #         Contract: A fully initialized `Contract` object.
+    #
+    #     Raises:
+    #         Exception: If an error occurs during contract creation.
+    #     """
+    #     try:
+    #         contract_data = self.to_contract_data()
+    #         contract = Contract()
+    #         for key, value in contract_data.items():
+    #             setattr(contract, key, value)
+    #         return contract
+    #     except Exception as e:
+    #         raise Exception(f"Unexpected error during Contract creation: {e}")
 
     def to_dict(self) -> dict:
         """
@@ -580,17 +589,20 @@ class Equity(Symbol):
             raise TypeError("'shares_outstanding' must be of type int.")
 
         # Create contract object
-        self.contract = self.to_contract()
+        # self.contract = self.to_contract()
 
-    def to_contract_data(self) -> dict:
-        """
-        Constructs a dictionary containing key contract details for the equity.
+    def ib_contract(self) -> Contract:
+        return super().ib_contract()
 
-        Returns:
-            dict: Contract data including broker ticker, security type, currency, exchange, and multiplier.
-        """
-        data = super().to_contract_data()
-        return data
+    # def to_contract_data(self) -> dict:
+    #     """
+    #     Constructs a dictionary containing key contract details for the equity.
+    #
+    #     Returns:
+    #         dict: Contract data including broker ticker, security type, currency, exchange, and multiplier.
+    #     """
+    #     data = super().to_contract_data()
+    #     return data
 
     def to_dict(self) -> dict:
         """
@@ -727,20 +739,29 @@ class Future(Symbol):
             raise ValueError("'tickSize' must be greater than zero.")
 
         # Create contract object
-        self.contract = self.to_contract()
+        # self.contract = self.to_contract()
 
-    def to_contract_data(self) -> dict:
-        """
-        Generates contract data required for trading or IB API.
-
-        Returns:
-            dict: A dictionary with contract-specific attributes including last trade date.
-        """
-        data = super().to_contract_data()
-        data["lastTradeDateOrContractMonth"] = (
+    def ib_contract(self) -> Contract:
+        contract = super().ib_contract()
+        contract.lastTradeDateOrContractMonth = (
             self.lastTradeDateOrContractMonth
         )
-        return data
+
+        return contract
+
+    #
+    # def to_contract_data(self) -> dict:
+    #     """
+    #     Generates contract data required for trading or IB API.
+    #
+    #     Returns:
+    #         dict: A dictionary with contract-specific attributes including last trade date.
+    #     """
+    #     data = super().to_contract_data()
+    #     data["lastTradeDateOrContractMonth"] = (
+    #         self.lastTradeDateOrContractMonth
+    #     )
+    #     return data
 
     def to_dict(self) -> dict:
         """
@@ -1057,23 +1078,34 @@ class Option(Symbol):
             raise ValueError("'strike' must be greater than zero.")
 
         # Create contract object
-        self.contract = self.to_contract()
+        # self.contract = self.to_contract()
 
-    def to_contract_data(self) -> dict:
-        """
-        Constructs a dictionary representation for creating an IBKR Contract object.
-
-        Returns:
-            dict: A dictionary containing option-specific contract details such as strike price,
-                  expiration date, and option type, in addition to base contract details.
-        """
-        data = super().to_contract_data()
-        data["lastTradeDateOrContractMonth"] = (
+    def ib_contract(self) -> Contract:
+        contract = super().ib_contract()
+        contract.lastTradeDateOrContractMonth = (
             self.lastTradeDateOrContractMonth
         )
-        data["right"] = self.option_type.value
-        data["strike"] = self.strike_price
-        return data
+        contract.right = self.option_type.value
+        contract.strike = self.strike_price
+        #     data["strike"] = self.strike_price
+
+        return contract
+
+    # def to_contract_data(self) -> dict:
+    #     """
+    #     Constructs a dictionary representation for creating an IBKR Contract object.
+    #
+    #     Returns:
+    #         dict: A dictionary containing option-specific contract details such as strike price,
+    #               expiration date, and option type, in addition to base contract details.
+    #     """
+    #     data = super().to_contract_data()
+    #     data["lastTradeDateOrContractMonth"] = (
+    #         self.lastTradeDateOrContractMonth
+    #     )
+    #     data["right"] = self.option_type.value
+    #     data["strike"] = self.strike_price
+    #     return data
 
     def to_dict(self) -> dict:
         """

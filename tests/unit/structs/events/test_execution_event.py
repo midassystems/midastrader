@@ -14,7 +14,7 @@ class TestExecutionEvent(unittest.TestCase):
         self.trade_details = Trade(
             timestamp=1651500000,
             trade_id=1,
-            leg_id=2,
+            signal_id=2,
             instrument=123,
             quantity=-10.0,
             avg_price=9.9,
