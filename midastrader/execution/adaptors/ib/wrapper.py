@@ -490,12 +490,14 @@ class BrokerApp(EWrapper, EClient):
                     instrument=symbol.instrument_id,
                     trade_id=execution.orderId,
                     signal_id=0,
+                    security_type=symbol.security_type,
                     quantity=quantity,  # Decimal
                     avg_price=price,
                     trade_value=round(symbol.value(quantity, price), 2),
                     trade_cost=round(symbol.cost(quantity, price), 2),
                     action=side,
                     fees=float(0.0),
+                    is_rollover=False,
                 )
                 self.bus.publish(
                     EventType.TRADE_UPDATE,

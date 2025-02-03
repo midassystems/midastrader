@@ -159,6 +159,11 @@ class DummyBroker:
         self.logger.info("Shutting down DummyBroker ...")
         self.is_shutdown.set()
 
+    def await_ob_rolled(self) -> None:
+        while True:
+            if self.bus.get_flag(EventType.OB_ROLLED):
+                break
+
     def _handle_rollover(self, event: RolloverEvent) -> None:
         """
         Processes and executes an order based on given details.
@@ -205,12 +210,16 @@ class DummyBroker:
                 exit_action,
                 exit_fill_price,
                 exit_fees,
+                True,
             )
 
             # Return updates
             self.return_positions()
             self.return_account()
             self.return_equity_value()
+
+            self.bus.publish(EventType.ROLLOVER_EXITED, True)
+            self.await_ob_rolled()
 
             # Entry
             entry_action = (
@@ -242,6 +251,7 @@ class DummyBroker:
                 entry_action,
                 entry_fill_price,
                 entry_fees,
+                True,
             )
 
             # Return updates
@@ -260,47 +270,50 @@ class DummyBroker:
             event (OrderEvent): The event containing order details for execution.
         """
 
-        symbol = event.symbol
-        action = event.action
-        order = event.order
+        orders = event.orders
+        # action = event.action
         timestamp = event.timestamp
-        signal_id = event.signal_id
-        # leg_id = event.leg_id
+        # signal_id = event.signal_id
+        for order in orders:
+            symbol = self.symbols_map.get_symbol_by_id(order.instrument_id)
+            if symbol:
+                # Order Data
+                quantity = order.quantity  # +/- values
+                action = order.action
+                mkt_data = self.order_book.retrieve(symbol.instrument_id)
+                fill_price = symbol.slippage_price(
+                    mkt_data.pretty_price,
+                    order.action,
+                )
+                fees = symbol.commission_fees(quantity)
 
-        # symbol = self.symbols_map.get_symbol(contract.symbol)
+                # Adjust cash by fees
+                self.account.full_available_funds += fees
 
-        # if symbol:
-        # Order Data
-        quantity = float(order.quantity)  # +/- values
-        mkt_data = self.order_book.retrieve(symbol.instrument_id)
-        fill_price = symbol.slippage_price(mkt_data.pretty_price, action)
-        fees = symbol.commission_fees(quantity)
+                # Update Positions
+                self._update_positions(symbol, action, quantity, fill_price)
 
-        # Adjust cash by fees
-        self.account.full_available_funds += fees
+                # Update Account
+                self._update_account()
 
-        # Update Positions
-        self._update_positions(symbol, action, quantity, fill_price)
+                # Create Execution Events
+                self._update_trades(
+                    timestamp,
+                    # trade_id,
+                    order.signal_id,
+                    symbol,
+                    quantity,
+                    action,
+                    fill_price,
+                    fees,
+                    False,
+                )
 
-        # Update Account
-        self._update_account()
+                # Return updates
+                self.return_positions()
+                self.return_account()
+                self.return_equity_value()
 
-        # Create Execution Events
-        self._update_trades(
-            timestamp,
-            # trade_id,
-            signal_id,
-            symbol,
-            quantity,
-            action,
-            fill_price,
-            fees,
-        )
-
-        # Return updates
-        self.return_positions()
-        self.return_account()
-        self.return_equity_value()
         self.bus.publish(EventType.UPDATE_SYSTEM, False)
 
     def _update_positions(
@@ -392,6 +405,7 @@ class DummyBroker:
         action: Action,
         fill_price: float,
         fees: float,
+        is_rollover: bool,
     ) -> None:
         """
         Update the executed trades dictionary with the latest trade details.
@@ -419,12 +433,14 @@ class DummyBroker:
             trade_id=self.trade_id,
             signal_id=signal_id,
             instrument=symbol.instrument_id,
+            security_type=symbol.security_type,
             quantity=round(quantity, 4),
             avg_price=fill_price * symbol.price_multiplier,
             trade_value=round(symbol.value(quantity, fill_price), 2),
             trade_cost=round(symbol.cost(quantity, fill_price), 2),
             action=action.value,
             fees=round(fees, 4),
+            is_rollover=is_rollover,
         )
         # Keep for liquidation if needed at the end
         self.last_trades[symbol.instrument_id] = trade
@@ -481,6 +497,7 @@ class DummyBroker:
                         trade_id=self.trade_id,
                         signal_id=self.last_trades[instrument_id].signal_id,
                         instrument=instrument_id,
+                        security_type=symbol.security_type,
                         quantity=round(position.quantity * -1, 4),
                         avg_price=current_price * symbol.price_multiplier,
                         trade_value=round(
@@ -495,6 +512,7 @@ class DummyBroker:
                             else Action.COVER.value
                         ),
                         fees=0.0,  # because not actually a trade
+                        is_rollover=False,
                     )
 
                     # self.last_trades[contract] = trade

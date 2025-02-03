@@ -601,19 +601,21 @@ class TestBrokerApp(unittest.TestCase):
         execution.orderRef = ""
 
         # Execution dict
-        instrument = self.symbols_map.get_id(contract.symbol)
-        if instrument:
+        symbol = self.symbols_map.get_symbol(contract.symbol)
+        if symbol:
             execution_data = Trade(
                 timestamp=1713970490000000000,
                 trade_id=execution.orderId,
                 signal_id=0,
-                instrument=instrument,
+                instrument=symbol.instrument_id,
+                security_type=symbol.security_type,
                 quantity=float(execution.shares),
                 avg_price=float(execution.price),
                 trade_value=float(execution.price) * float(execution.shares),
                 trade_cost=float(execution.price) * float(execution.shares),
                 action="SELL",
                 fees=float(0.0),
+                is_rollover=False,
             )
             event = TradeEvent("11", execution_data)
 

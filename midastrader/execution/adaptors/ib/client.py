@@ -230,14 +230,17 @@ class IBAdaptor(ExecutionAdapter):
             event (OrderEvent): The event containing the contract and order details.
         """
         orderId = self._get_valid_id()
-
         try:
-            ib_order = event.order.ib_order()
-            self.app.placeOrder(
-                orderId=orderId,
-                contract=event.symbol.ib_contract(),
-                order=ib_order,
-            )
+            for order in event.orders:
+                ib_order = order.ib_order()
+                symbol = self.symbols_map.get_symbol_by_id(order.instrument_id)
+
+                if symbol:
+                    self.app.placeOrder(
+                        orderId=orderId,
+                        contract=symbol.ib_contract(),
+                        order=ib_order,
+                    )
         except Exception as e:
             raise e
 

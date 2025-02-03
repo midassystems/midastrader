@@ -2,6 +2,7 @@ import mbn
 from dataclasses import dataclass
 
 from midastrader.structs.constants import PRICE_FACTOR
+from midastrader.structs.symbol import SecurityType
 
 
 @dataclass
@@ -26,12 +27,14 @@ class Trade:
     trade_id: int
     signal_id: int
     instrument: int
+    security_type: SecurityType
     quantity: float
     avg_price: float
     trade_value: float
     trade_cost: float
     action: str  # BUY/SELL
     fees: float
+    is_rollover: bool
 
     def __post_init__(self):
         """
@@ -50,6 +53,8 @@ class Trade:
             raise TypeError("'signal_id' field must be of type int.")
         if not isinstance(self.instrument, int):
             raise TypeError("'instrument' field must be of type int.")
+        if not isinstance(self.security_type, SecurityType):
+            raise TypeError("'security_type' must be of type SecurityType.")
         if not isinstance(self.quantity, float):
             raise TypeError("'quantity' field must be of type float.")
         if not isinstance(self.avg_price, float):
@@ -62,6 +67,8 @@ class Trade:
             raise TypeError("'action' field must be of type str.")
         if not isinstance(self.fees, float):
             raise TypeError("'fees' field must be of type float.")
+        if not isinstance(self.is_rollover, bool):
+            raise TypeError("'is_rollover' field must be of type bool.")
 
         # Value Constraint
         if self.action not in ["BUY", "SELL", "LONG", "SHORT", "COVER"]:
@@ -83,12 +90,14 @@ class Trade:
             "trade_id": self.trade_id,
             "signal_id": self.signal_id,
             "ticker": self.instrument,
+            "security_type": self.security_type.value,
             "quantity": self.quantity,
             "avg_price": self.avg_price,
             "trade_value": self.trade_value,
             "trade_cost": self.trade_cost,
             "action": self.action,
             "fees": self.fees,
+            "is_rollover": self.is_rollover,
         }
 
     def to_mbn(self, ticker: str) -> mbn.Trades:

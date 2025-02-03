@@ -98,18 +98,22 @@ class BaseOrder(ABC):
 
     def __init__(
         self,
+        instrument_id: int,
         signal_id: int,
         action: Action,
         quantity: float,
         order_type: OrderType,
     ) -> None:
 
+        self.instrument_id: int = instrument_id
         self.signal_id: int = signal_id
         self.action: Action = action
         self.quantity: float = quantity
         self.order_type: OrderType = order_type
 
         # Type Check
+        if not isinstance(self.instrument_id, int):
+            raise TypeError("'instrument_id' field must be type int.")
         if not isinstance(self.signal_id, int):
             raise TypeError("'signal_id' field must be type int.")
         if not isinstance(self.action, Action):
@@ -136,20 +140,6 @@ class BaseOrder(ABC):
 
         return order
 
-    # @property
-    # def quantity(self) -> float:
-    #     """
-    #     Returns the signed quantity of the order.
-    #
-    #     Returns:
-    #         float: Positive quantity for 'BUY', negative for 'SELL'.
-    #     """
-    #     return float(
-    #         self.order.totalQuantity
-    #         if self.order.action == "BUY"
-    #         else -self.order.totalQuantity
-    #     )
-
 
 class MarketOrder(BaseOrder):
     """
@@ -165,11 +155,33 @@ class MarketOrder(BaseOrder):
 
     def __init__(
         self,
+        instrument_id: int,
         signal_id: int,
         action: Action,
         quantity: float,
     ) -> None:
-        super().__init__(signal_id, action, quantity, OrderType.MARKET)
+        super().__init__(
+            instrument_id,
+            signal_id,
+            action,
+            quantity,
+            OrderType.MARKET,
+        )
+
+    def __str__(self) -> str:
+        """
+        Returns a human-readable string representation of the MarketOrder.
+
+        Returns:
+            str: A formatted string with the signal's details.
+        """
+        return (
+            f"Instrument: {self.instrument_id}, "
+            f"Order Type: {self.order_type.name}, "
+            f"Action: {self.action.name}, "
+            f"Signal ID: {self.signal_id}, "
+            f"Quantity: {self.quantity}, "
+        )
 
 
 class LimitOrder(BaseOrder):
@@ -191,12 +203,19 @@ class LimitOrder(BaseOrder):
 
     def __init__(
         self,
+        instrument_id: int,
         signal_id: int,
         action: Action,
         quantity: float,
         limit_price: float,
     ) -> None:
-        super().__init__(signal_id, action, quantity, OrderType.LIMIT)
+        super().__init__(
+            instrument_id,
+            signal_id,
+            action,
+            quantity,
+            OrderType.LIMIT,
+        )
 
         self.limit_price: float = limit_price
 
@@ -212,6 +231,22 @@ class LimitOrder(BaseOrder):
         order = super().ib_order()
         order.lmtPrice = self.limit_price
         return order
+
+    def __str__(self) -> str:
+        """
+        Returns a human-readable string representation of the LimitOrder.
+
+        Returns:
+            str: A formatted string with the signal's details.
+        """
+        return (
+            f"Instrument: {self.instrument_id}, "
+            f"Order Type: {self.order_type.name}, "
+            f"Action: {self.action.name}, "
+            f"Signal ID: {self.signal_id}, "
+            f"Quantity: {self.quantity}, "
+            f"Limit Price: {self.limit_price if self.limit_price else ''}, "
+        )
 
 
 class StopLoss(BaseOrder):
@@ -233,12 +268,19 @@ class StopLoss(BaseOrder):
 
     def __init__(
         self,
+        instrument_id: int,
         signal_id: int,
         action: Action,
         quantity: float,
         aux_price: float,
     ) -> None:
-        super().__init__(signal_id, action, quantity, OrderType.STOPLOSS)
+        super().__init__(
+            instrument_id,
+            signal_id,
+            action,
+            quantity,
+            OrderType.STOPLOSS,
+        )
 
         self.aux_price: float = aux_price
 
@@ -251,3 +293,19 @@ class StopLoss(BaseOrder):
         order = super().ib_order()
         order.auxPrice = self.aux_price
         return order
+
+    def __str__(self) -> str:
+        """
+        Returns a human-readable string representation of the StopLoss.
+
+        Returns:
+            str: A formatted string with the signal's details.
+        """
+        return (
+            f"Instrument: {self.instrument_id}, "
+            f"Order Type: {self.order_type.name}, "
+            f"Action: {self.action.name}, "
+            f"Signal ID: {self.signal_id}, "
+            f"Quantity: {self.quantity}, "
+            f"Aux Price:  {self.aux_price if self.aux_price else ''}"
+        )

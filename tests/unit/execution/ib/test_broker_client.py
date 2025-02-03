@@ -1,3 +1,4 @@
+from typing import List
 import unittest
 import threading
 from time import sleep
@@ -7,7 +8,7 @@ from unittest.mock import Mock, patch
 
 from midastrader.structs.events import OrderEvent
 from midastrader.message_bus import MessageBus, EventType
-from midastrader.structs.orders import Action, MarketOrder
+from midastrader.structs.orders import Action, BaseOrder, MarketOrder
 from midastrader.structs.symbol import SymbolMap
 from midastrader.execution.adaptors.ib.client import IBAdaptor
 from midastrader.structs.symbol import (
@@ -154,18 +155,15 @@ class TestIBDataAdaptor(unittest.TestCase):
         self.valid_action = Action.LONG
         self.valid_trade_id = 2
         self.valid_signal_id = 2
-        self.valid_order = MarketOrder(
-            self.valid_signal_id,
-            action=self.valid_action,
-            quantity=10,
-        )
+        self.valid_order: List[BaseOrder] = [
+            MarketOrder(
+                1, self.valid_signal_id, action=self.valid_action, quantity=10
+            )
+        ]
 
         event = OrderEvent(
-            timestamp=self.valid_timestamp,
-            signal_id=self.valid_signal_id,
-            action=self.valid_action,
-            order=self.valid_order,
-            symbol=self.hogs,
+            self.valid_timestamp,
+            self.valid_order,
         )
 
         # Test
@@ -185,18 +183,18 @@ class TestIBDataAdaptor(unittest.TestCase):
         self.valid_action = Action.LONG
         self.valid_trade_id = 2
         self.valid_signal_id = 2
-        self.valid_order = MarketOrder(
-            signal_id=self.valid_signal_id,
-            action=self.valid_action,
-            quantity=10,
-        )
+        self.valid_order = [
+            MarketOrder(
+                1,
+                signal_id=self.valid_signal_id,
+                action=self.valid_action,
+                quantity=10,
+            )
+        ]
 
         event = OrderEvent(
-            timestamp=self.valid_timestamp,
-            signal_id=self.valid_signal_id,
-            action=self.valid_action,
-            order=self.valid_order,
-            symbol=self.hogs,
+            self.valid_timestamp,
+            self.valid_order,
         )
 
         # Test

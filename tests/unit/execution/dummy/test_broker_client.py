@@ -1,3 +1,4 @@
+from typing import List
 import unittest
 from time import sleep
 from datetime import time
@@ -5,7 +6,7 @@ import threading
 from unittest.mock import MagicMock
 
 from midastrader.message_bus import MessageBus, EventType
-from midastrader.structs.orders import Action, MarketOrder
+from midastrader.structs.orders import Action, BaseOrder, MarketOrder
 from midastrader.structs.symbol import SymbolMap
 from midastrader.utils.logger import SystemLogger
 from midastrader.execution.adaptors.dummy.broker_client import DummyAdaptor
@@ -96,15 +97,9 @@ class TestDummyAdaptor(unittest.TestCase):
         timestamp = 1651500000
         action = Action.LONG
         signal_id = 2
-        order = MarketOrder(signal_id, action, 10)
+        order: List[BaseOrder] = [MarketOrder(1, signal_id, action, 10)]
 
-        event = OrderEvent(
-            timestamp,
-            signal_id,
-            action=action,
-            order=order,
-            symbol=self.hogs,
-        )
+        event = OrderEvent(timestamp, order)
 
         # Test
         threading.Thread(target=self.adaptor.process, daemon=True).start()

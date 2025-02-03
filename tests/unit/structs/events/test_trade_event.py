@@ -3,6 +3,7 @@ import unittest
 from midastrader.structs.trade import Trade
 from midastrader.structs.orders import Action
 from midastrader.structs.events import TradeCommissionEvent, TradeEvent
+from midastrader.structs.symbol import SecurityType
 
 
 class TestTradeEvent(unittest.TestCase):
@@ -14,12 +15,14 @@ class TestTradeEvent(unittest.TestCase):
             trade_id=1,
             signal_id=2,
             instrument=123,
+            security_type=SecurityType.STOCK,
             quantity=-10.0,
             avg_price=9.9,
             trade_value=103829083.0,
             trade_cost=9000.99,
             action=Action.LONG.value,
             fees=9.78,
+            is_rollover=True,
         )
 
     # Basic Validation

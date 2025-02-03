@@ -1,7 +1,7 @@
 import queue
 from typing import List
 
-from midastrader.structs.symbol import Symbol, SymbolMap
+from midastrader.structs.symbol import SymbolMap
 from midastrader.structs.events import SignalEvent, OrderEvent
 from midastrader.message_bus import MessageBus, EventType
 from midastrader.structs.signal import SignalInstruction
@@ -167,15 +167,15 @@ class OrderExecutionManager(CoreAdapter):
                     current_price.pretty_price,
                 )
 
-                order_details = {
-                    "timestamp": timestamp,
-                    "signal_id": signal.signal_id,
-                    "action": signal.action,
-                    "symbol": symbol,
-                    "order": order,
-                }
-
-                orders.append(order_details)
+                # order_details = {
+                #     "timestamp": timestamp,
+                #     # "signal_id": signal.signal_id,
+                #     # "action": signal.action,
+                #     # "symbol": symbol,
+                #     "order": order,
+                # }
+                #
+                orders.append(order)
 
                 # SELL/Cover are exits so available capital will be freed up
                 if signal.action not in [Action.SELL, Action.COVER]:
@@ -187,14 +187,15 @@ class OrderExecutionManager(CoreAdapter):
                 )
 
         if total_capital_required <= self.portfolio_server.capital:
-            for order in orders:
-                self._set_order(
-                    order["timestamp"],
-                    order["signal_id"],
-                    order["action"],
-                    order["symbol"],
-                    order["order"],
-                )
+            # for order in orders:
+            self._set_order(timestamp, orders)
+
+            # order["timestamp"],
+            #     order["signal_id"],
+            #     order["action"],
+            #     order["symbol"],
+            #     order["order"],
+            # )
         else:
             self.logger.debug("Not enough capital to execute all orders")
             self.bus.publish(EventType.UPDATE_SYSTEM, False)
@@ -202,10 +203,10 @@ class OrderExecutionManager(CoreAdapter):
     def _set_order(
         self,
         timestamp: int,
-        signal_id: int,
-        action: Action,
-        symbol: Symbol,
-        order: BaseOrder,
+        # signal_id: int,
+        # action: Action,
+        # symbol: Symbol,
+        orders: List[BaseOrder],
     ) -> None:
         """
         Queues an OrderEvent for execution based on the provided order details.
@@ -224,10 +225,10 @@ class OrderExecutionManager(CoreAdapter):
         try:
             order_event = OrderEvent(
                 timestamp=timestamp,
-                signal_id=signal_id,
-                action=action,
-                symbol=symbol,
-                order=order,
+                # signal_id=signal_id,
+                # action=action,
+                # symbol=symbol,
+                orders=orders,
             )
             self.bus.publish(EventType.ORDER, order_event)
         except (ValueError, TypeError) as e:

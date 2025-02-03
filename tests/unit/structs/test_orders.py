@@ -55,18 +55,20 @@ class TestAction(unittest.TestCase):
 class TestMarketOrder(unittest.TestCase):
     def setUp(self) -> None:
         # Mock data
+        self.instrument_id = 1
+        self.signal_id = 1
         self.action = Action.LONG
         self.quantity = 20
-        self.signal_id = 1
         self.order_type = OrderType.MARKET
 
     # Basic Validation
     def test_valid_construction(self):
         # Test
         order = MarketOrder(
+            self.instrument_id,
             self.signal_id,
-            action=self.action,
-            quantity=self.quantity,
+            self.action,
+            self.quantity,
         )
 
         # Validation
@@ -76,9 +78,10 @@ class TestMarketOrder(unittest.TestCase):
     def test_ib_order(self):
         # Test
         order = MarketOrder(
+            self.instrument_id,
             self.signal_id,
-            action=self.action,
-            quantity=self.quantity,
+            self.action,
+            self.quantity,
         )
 
         # Validation
@@ -93,7 +96,7 @@ class TestMarketOrder(unittest.TestCase):
         action = Action.LONG
 
         # Test
-        order = MarketOrder(1, action, quantity)
+        order = MarketOrder(1, 1, action, quantity)
 
         # Validation
         base_order = order.ib_order()
@@ -105,7 +108,7 @@ class TestMarketOrder(unittest.TestCase):
         action = Action.SHORT
 
         # Test
-        order = MarketOrder(1, action, quantity)
+        order = MarketOrder(1, 1, action, quantity)
 
         # Validation
         base_order = order.ib_order()
@@ -119,6 +122,7 @@ class TestMarketOrder(unittest.TestCase):
         ):
             MarketOrder(
                 1,
+                1,
                 action="self.action,",  # pyright: ignore
                 quantity=self.quantity,
             )
@@ -127,6 +131,7 @@ class TestMarketOrder(unittest.TestCase):
             TypeError, "'quantity' field must be type float or int."
         ):
             MarketOrder(
+                1,
                 1,
                 action=self.action,
                 quantity="self.quantity",  # pyright: ignore
@@ -137,12 +142,14 @@ class TestMarketOrder(unittest.TestCase):
         with self.assertRaisesRegex(
             ValueError, "'quantity' field must not be zero."
         ):
-            MarketOrder(1, action=self.action, quantity=0.0)
+            MarketOrder(1, 1, action=self.action, quantity=0.0)
 
 
 class TestLimitOrder(unittest.TestCase):
     def setUp(self) -> None:
         # Mock data
+        self.instrument_id = 2
+        self.signal_id = 1
         self.action = Action.LONG
         self.quantity = 20
         self.limit_price = 100.9
@@ -152,10 +159,11 @@ class TestLimitOrder(unittest.TestCase):
     def test_valid_construction(self):
         # Test
         order = LimitOrder(
-            1,
-            action=self.action,
-            quantity=self.quantity,
-            limit_price=self.limit_price,
+            self.instrument_id,
+            self.signal_id,
+            self.action,
+            self.quantity,
+            self.limit_price,
         )
 
         # Validation
@@ -166,10 +174,11 @@ class TestLimitOrder(unittest.TestCase):
     def test_ib_order(self):
         # Test
         order = LimitOrder(
-            1,
-            action=self.action,
-            quantity=self.quantity,
-            limit_price=self.limit_price,
+            self.instrument_id,
+            self.signal_id,
+            self.action,
+            self.quantity,
+            self.limit_price,
         )
 
         # Validation
@@ -186,14 +195,15 @@ class TestLimitOrder(unittest.TestCase):
 
         # Test
         order = LimitOrder(
-            1,
-            action=action,
-            quantity=quantity,
-            limit_price=self.limit_price,
+            self.instrument_id,
+            self.signal_id,
+            action,
+            quantity,
+            self.limit_price,
         )
         # Validation
         base_order = order.ib_order()
-        self.assertEqual(base_order.totalQuantity, abs(quantity))
+        self.assertEqual(float(base_order.totalQuantity), float(abs(quantity)))
         self.assertEqual(order.quantity, quantity)
 
     def test_negative_quantity_property(self):
@@ -202,15 +212,16 @@ class TestLimitOrder(unittest.TestCase):
 
         # Test
         order = LimitOrder(
-            1,
-            action=action,
-            quantity=quantity,
-            limit_price=self.limit_price,
+            self.instrument_id,
+            self.signal_id,
+            action,
+            quantity,
+            self.limit_price,
         )
 
         # Validation
         base_order = order.ib_order()
-        self.assertEqual(base_order.totalQuantity, abs(quantity))
+        self.assertEqual(float(base_order.totalQuantity), float(abs(quantity)))
         self.assertEqual(order.quantity, quantity)
 
     # Type Check
@@ -219,6 +230,7 @@ class TestLimitOrder(unittest.TestCase):
             TypeError, "'action' field must be type Action enum."
         ):
             LimitOrder(
+                1,
                 1,
                 action="self.action,",  # pyright: ignore
                 quantity=self.quantity,
@@ -230,6 +242,7 @@ class TestLimitOrder(unittest.TestCase):
         ):
             LimitOrder(
                 1,
+                1,
                 action=self.action,
                 quantity="self.quantity",  # pyright: ignore
                 limit_price=self.limit_price,
@@ -239,6 +252,7 @@ class TestLimitOrder(unittest.TestCase):
             TypeError, "'limit_price' field must be of type float or int."
         ):
             LimitOrder(
+                1,
                 1,
                 action=self.action,
                 quantity=self.quantity,
@@ -252,6 +266,7 @@ class TestLimitOrder(unittest.TestCase):
         ):
             LimitOrder(
                 1,
+                1,
                 action=self.action,
                 quantity=0,
                 limit_price=self.limit_price,
@@ -261,6 +276,7 @@ class TestLimitOrder(unittest.TestCase):
             ValueError, "'limit_price' field must be greater than zero."
         ):
             LimitOrder(
+                1,
                 1,
                 action=self.action,
                 quantity=self.quantity,
@@ -281,6 +297,7 @@ class TestStopLoss(unittest.TestCase):
         # Test
         order = StopLoss(
             1,
+            1,
             action=self.action,
             quantity=self.quantity,
             aux_price=self.aux_price,
@@ -294,6 +311,7 @@ class TestStopLoss(unittest.TestCase):
     def test_ib_order(self):
         # Test
         order = StopLoss(
+            1,
             1,
             action=self.action,
             quantity=self.quantity,
@@ -315,13 +333,14 @@ class TestStopLoss(unittest.TestCase):
         # Test
         order = StopLoss(
             1,
+            1,
             action=action,
             quantity=quantity,
             aux_price=self.aux_price,
         )
         # Validation
         base_order = order.ib_order()
-        self.assertEqual(base_order.totalQuantity, abs(quantity))
+        self.assertEqual(float(base_order.totalQuantity), float(abs(quantity)))
         self.assertEqual(order.quantity, quantity)
 
     def test_negative_quantity_property(self):
@@ -330,6 +349,7 @@ class TestStopLoss(unittest.TestCase):
 
         # Test
         order = StopLoss(
+            1,
             1,
             action=action,
             quantity=quantity,
@@ -348,6 +368,7 @@ class TestStopLoss(unittest.TestCase):
         ):
             StopLoss(
                 1,
+                1,
                 action="self.action,",  # pyright: ignore
                 quantity=self.quantity,
                 aux_price=self.aux_price,
@@ -358,6 +379,7 @@ class TestStopLoss(unittest.TestCase):
         ):
             StopLoss(
                 1,
+                1,
                 action=self.action,
                 quantity="self.quantity",  # pyright: ignore
                 aux_price=self.aux_price,
@@ -367,6 +389,7 @@ class TestStopLoss(unittest.TestCase):
             TypeError, "'aux_price' field must be of type float or int."
         ):
             StopLoss(
+                1,
                 1,
                 action=self.action,
                 quantity=self.quantity,
@@ -380,6 +403,7 @@ class TestStopLoss(unittest.TestCase):
         ):
             StopLoss(
                 1,
+                1,
                 action=self.action,
                 quantity=0,
                 aux_price=self.aux_price,
@@ -389,6 +413,7 @@ class TestStopLoss(unittest.TestCase):
             ValueError, "'aux_price' field must be greater than zero."
         ):
             StopLoss(
+                1,
                 1,
                 action=self.action,
                 quantity=self.quantity,

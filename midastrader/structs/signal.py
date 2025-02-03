@@ -144,10 +144,16 @@ class SignalInstruction:
                        based on the order_type attribute.
         """
         if self.order_type == OrderType.MARKET:
-            return MarketOrder(self.signal_id, self.action, self.quantity)
+            return MarketOrder(
+                self.instrument,
+                self.signal_id,
+                self.action,
+                self.quantity,
+            )
         elif self.order_type == OrderType.LIMIT:
             if self.limit_price:
                 return LimitOrder(
+                    self.instrument,
                     self.signal_id,
                     self.action,
                     self.quantity,
@@ -156,6 +162,7 @@ class SignalInstruction:
         elif self.order_type == OrderType.STOPLOSS:
             if self.aux_price:
                 return StopLoss(
+                    self.instrument,
                     self.signal_id,
                     self.action,
                     self.quantity,

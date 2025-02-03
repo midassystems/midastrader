@@ -139,18 +139,56 @@ class TradeManager:
                 ],
                 "trade_cost": [
                     (
-                        "entry_value",
+                        "entry_cost",
                         lambda x: x[
-                            df["action"].isin(["LONG", "SHORT"])
+                            (df["action"].isin(["LONG", "SHORT"]))
+                            & (~df["is_rollover"])
                         ].sum(),
                     ),
                     (
-                        "exit_value",
+                        "exit_cost",
+                        # Treat rollovers as exit cost for futures & options
                         lambda x: x[
-                            df["action"].isin(["SELL", "COVER"])
+                            (
+                                (df["action"].isin(["SELL", "COVER"]))
+                                & (~df["is_rollover"])
+                            )
+                            | (
+                                (df["security_type"].isin(["FUT", "OPT"]))
+                                & df["is_rollover"]
+                            )
                         ].sum(),
                     ),
                 ],
+                # "trade_cost": [
+                #     (
+                #         "entry_cost",
+                #         lambda x: x[
+                #             (df["action"].isin(["LONG", "SHORT"]))
+                #             & (~df["is_rollover"])
+                #         ].sum(),
+                #     ),
+                #     (
+                #         "exit_cost",
+                #         lambda x: x[
+                #             df["action"].isin(["SELL", "COVER"])
+                #         ].sum(),
+                #     ),
+                # ],
+                # "trade_cost": [
+                #     (
+                #         "entry_value",
+                #         lambda x: x[
+                #             df["action"].isin(["LONG", "SHORT"])
+                #         ].sum(),
+                #     ),
+                #     (
+                #         "exit_value",
+                #         lambda x: x[
+                #             df["action"].isin(["SELL", "COVER"])
+                #         ].sum(),
+                #     ),
+                # ],
                 "fees": "sum",  # Sum of all fees for each trade group
             }
         )
@@ -174,13 +212,34 @@ class TradeManager:
         ) * -1
 
         # Calculate Profit and Loss (PnL)
-        aggregated["pnl"] = (
-            aggregated["exit_value"] + aggregated["entry_value"]
-        ) * -1 + aggregated["fees"]
+        aggregated["pnl"] = aggregated["gain/loss"] + aggregated["fees"]
 
-        aggregated["pnl_percentage"] = (
-            aggregated["pnl"] / aggregated["entry_cost"]
-        )  # * 100
+        # Calculate PnL percentage, ensuring no division by zero
+        aggregated["pnl_percentage"] = aggregated["pnl"] / aggregated[
+            "entry_cost"
+        ].replace(0, np.nan)
+
+        # # Calculate percentage gain/loss based on the entry value
+        # gain_loss = (aggregated["exit_value"] + aggregated["entry_value"]) * -1
+        # aggregated["gain/loss"] = gain_loss
+        #
+        # # Calculate Profit and Loss (PnL)
+        # pnl = gain_loss + aggregated["fees"]
+        # aggregated["pnl"] = pnl
+        # aggregated["pnl_percentage"] = pnl / aggregated["entry_cost"]
+
+        # aggregated["gain/loss"] = (
+        #     aggregated["exit_value"] + aggregated["entry_value"]
+        # ) * -1
+        #
+        # # Calculate Profit and Loss (PnL)
+        # aggregated["pnl"] = (
+        #     aggregated["exit_value"] + aggregated["entry_value"]
+        # ) * -1 + aggregated["fees"]
+        #
+        # aggregated["pnl_percentage"] = (
+        #     aggregated["pnl"] / aggregated["entry_cost"]
+        # )  # * 100
 
         # Reset index to make 'trade_id' a column again
         aggregated.reset_index(inplace=True)

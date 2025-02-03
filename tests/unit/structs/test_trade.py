@@ -2,6 +2,7 @@ import random
 import unittest
 
 from midastrader.structs.trade import Trade
+from midastrader.structs.symbol import SecurityType
 
 
 class TestTrade(unittest.TestCase):
@@ -17,35 +18,40 @@ class TestTrade(unittest.TestCase):
         self.trade_cost = 400.0
         self.action = random.choice(["BUY", "SELL"])
         self.fees = 9.87
+        self.security_type = SecurityType.STOCK
 
         # Creaet trade object
         self.trade_obj = Trade(
+            timestamp=self.timetamp,
             trade_id=self.trade_id,
             signal_id=self.signal_id,
-            timestamp=self.timetamp,
             instrument=self.instrument,
+            security_type=self.security_type,
             quantity=self.quantity,
             avg_price=self.avg_price,
             trade_value=self.trade_value,
             trade_cost=self.trade_cost,
             action=self.action,
             fees=self.fees,
+            is_rollover=True,
         )
 
     # Basic Validation
     def test_construction(self):
         # Test
         trade = Trade(
+            timestamp=self.timetamp,
             trade_id=self.trade_id,
             signal_id=self.signal_id,
-            timestamp=self.timetamp,
             instrument=self.instrument,
+            security_type=self.security_type,
             quantity=self.quantity,
             avg_price=self.avg_price,
             trade_value=self.trade_value,
             trade_cost=self.trade_cost,
             action=self.action,
             fees=self.fees,
+            is_rollover=True,
         )
         # Validate
         self.assertEqual(trade.trade_id, self.trade_id)
@@ -69,12 +75,14 @@ class TestTrade(unittest.TestCase):
                 signal_id=self.signal_id,
                 timestamp=self.timetamp,
                 instrument=self.instrument,
+                security_type=self.security_type,
                 quantity=self.quantity,
                 avg_price=self.avg_price,
                 trade_value=self.trade_value,
                 trade_cost=self.trade_cost,
                 action=self.action,
                 fees=self.fees,
+                is_rollover=True,
             )
 
         with self.assertRaisesRegex(
@@ -85,12 +93,14 @@ class TestTrade(unittest.TestCase):
                 signal_id="2",  # pyright: ignore
                 timestamp=self.timetamp,
                 instrument=self.instrument,
+                security_type=self.security_type,
                 quantity=self.quantity,
                 avg_price=self.avg_price,
                 trade_value=self.trade_value,
                 trade_cost=self.trade_cost,
                 action=self.action,
                 fees=self.fees,
+                is_rollover=True,
             )
 
         with self.assertRaisesRegex(
@@ -101,12 +111,14 @@ class TestTrade(unittest.TestCase):
                 signal_id=self.signal_id,
                 timestamp="2022-08-08",  # pyright: ignore
                 instrument=self.instrument,
+                security_type=self.security_type,
                 quantity=self.quantity,
                 avg_price=self.avg_price,
                 trade_value=self.trade_value,
                 trade_cost=self.trade_cost,
                 action=self.action,
                 fees=self.fees,
+                is_rollover=True,
             )
 
         with self.assertRaisesRegex(
@@ -117,12 +129,14 @@ class TestTrade(unittest.TestCase):
                 signal_id=self.signal_id,
                 timestamp=self.timetamp,
                 instrument="1",  # pyright: ignore
+                security_type=self.security_type,
                 quantity=self.quantity,
                 avg_price=self.avg_price,
                 trade_value=self.trade_value,
                 trade_cost=self.trade_cost,
                 action=self.action,
                 fees=self.fees,
+                is_rollover=True,
             )
 
         with self.assertRaisesRegex(
@@ -133,12 +147,14 @@ class TestTrade(unittest.TestCase):
                 signal_id=self.signal_id,
                 timestamp=self.timetamp,
                 instrument=self.instrument,
+                security_type=self.security_type,
                 quantity="1234",  # pyright: ignore
                 avg_price=self.avg_price,
                 trade_value=self.trade_value,
                 trade_cost=self.trade_cost,
                 action=self.action,
                 fees=self.fees,
+                is_rollover=True,
             )
 
         with self.assertRaisesRegex(
@@ -149,12 +165,14 @@ class TestTrade(unittest.TestCase):
                 signal_id=self.signal_id,
                 timestamp=self.timetamp,
                 instrument=self.instrument,
+                security_type=self.security_type,
                 quantity=self.quantity,
                 avg_price="90.9",  # pyright: ignore
                 trade_value=self.trade_value,
                 trade_cost=self.trade_cost,
                 action=self.action,
                 fees=self.fees,
+                is_rollover=True,
             )
 
         with self.assertRaisesRegex(
@@ -165,12 +183,14 @@ class TestTrade(unittest.TestCase):
                 signal_id=self.signal_id,
                 timestamp=self.timetamp,
                 instrument=self.instrument,
+                security_type=self.security_type,
                 quantity=self.quantity,
                 avg_price=self.avg_price,
                 trade_value="12345",  # pyright: ignore
                 trade_cost=self.trade_cost,
                 action=self.action,
                 fees=self.fees,
+                is_rollover=True,
             )
 
         with self.assertRaisesRegex(
@@ -181,12 +201,14 @@ class TestTrade(unittest.TestCase):
                 signal_id=self.signal_id,
                 timestamp=self.timetamp,
                 instrument=self.instrument,
+                security_type=self.security_type,
                 quantity=self.quantity,
                 avg_price=self.avg_price,
                 trade_value=self.trade_value,
                 trade_cost="1234",  # pyright: ignore
                 action=self.action,
                 fees=self.fees,
+                is_rollover=True,
             )
 
         with self.assertRaisesRegex(
@@ -197,12 +219,14 @@ class TestTrade(unittest.TestCase):
                 signal_id=self.signal_id,
                 timestamp=self.timetamp,
                 instrument=self.instrument,
+                security_type=self.security_type,
                 quantity=self.quantity,
                 avg_price=self.avg_price,
                 trade_value=self.trade_value,
                 trade_cost=self.trade_cost,
                 action=12234,  # pyright: ignore
                 fees=self.fees,
+                is_rollover=True,
             )
 
         with self.assertRaisesRegex(
@@ -213,12 +237,14 @@ class TestTrade(unittest.TestCase):
                 signal_id=self.signal_id,
                 timestamp=self.timetamp,
                 instrument=self.instrument,
+                security_type=self.security_type,
                 quantity=self.quantity,
                 avg_price=self.avg_price,
                 trade_value=self.trade_value,
                 trade_cost=self.trade_cost,
                 action=self.action,
                 fees="90.99",  # pyright: ignore
+                is_rollover=True,
             )
 
     # Value validation
@@ -229,12 +255,14 @@ class TestTrade(unittest.TestCase):
                 signal_id=self.signal_id,
                 timestamp=self.timetamp,
                 instrument=self.instrument,
+                security_type=self.security_type,
                 quantity=self.quantity,
                 avg_price=self.avg_price,
                 trade_value=self.trade_value,
                 trade_cost=self.trade_cost,
                 action="long",
                 fees=self.fees,
+                is_rollover=True,
             )
 
         with self.assertRaisesRegex(
@@ -245,12 +273,14 @@ class TestTrade(unittest.TestCase):
                 signal_id=self.signal_id,
                 timestamp=self.timetamp,
                 instrument=self.instrument,
+                security_type=self.security_type,
                 quantity=self.quantity,
                 avg_price=0.0,
                 trade_value=self.trade_value,
                 trade_cost=self.trade_cost,
                 action=self.action,
                 fees=self.fees,
+                is_rollover=True,
             )
 
 

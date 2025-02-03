@@ -219,6 +219,10 @@ class OrderBookManager(CoreAdapter):
 
         self.await_rollover_flag(rollover_event)
 
+        # self.book._update(record)
+
+        # self.await_rollover_flag(rollover_event)
+
     # def handle_event(self, event: ) -> None:
     #     """
     #     Handles market data events and updates the order book.
@@ -303,17 +307,25 @@ class OrderBookManager(CoreAdapter):
     #     self.await_equity_updated()
     #     self.await_system_updated()
 
-    def await_rollover_flag(self, event: RolloverEvent):
+    def await_rollover_flag(
+        self,
+        event: RolloverEvent,
+    ):
         """
         Signals that the orderbook and by extensions the market has updated so the portoflio
         should be updated to reflect these changes (would be done automatically live).
         """
         self.bus.publish(EventType.ROLLED_OVER, False)
+        self.bus.publish(EventType.ROLLOVER_EXITED, False)
+        self.bus.publish(EventType.OB_ROLLED, False)
         self.bus.publish(EventType.ROLLOVER, event)
 
         while True:
             if self.bus.get_flag(EventType.ROLLED_OVER):
                 break
+            elif self.bus.get_flag(EventType.ROLLOVER_EXITED):
+                self.book._update(event.entry_record)
+                self.bus.publish(EventType.OB_ROLLED, True)
 
     def await_equity_updated(self):
         """

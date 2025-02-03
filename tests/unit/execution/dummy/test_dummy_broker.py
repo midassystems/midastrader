@@ -1,3 +1,4 @@
+from typing import List
 import unittest
 import threading
 from time import sleep
@@ -8,7 +9,7 @@ from unittest.mock import Mock, MagicMock
 from midastrader.structs.trade import Trade
 from midastrader.structs.events import OrderEvent
 from midastrader.structs.account import Account
-from midastrader.structs.orders import Action, MarketOrder
+from midastrader.structs.orders import Action, BaseOrder, MarketOrder
 from midastrader.execution.adaptors.dummy.dummy_broker import DummyBroker
 from midastrader.structs.symbol import SymbolMap
 from midastrader.structs.events import TradeEvent
@@ -133,14 +134,11 @@ class TestDummyClient(unittest.TestCase):
         timestamp = 1651500000
         action = Action.LONG
         signal_id = 2
-        order = MarketOrder(signal_id, action, 10)
+        orders: List[BaseOrder] = [MarketOrder(1, signal_id, action, 10)]
 
         event = OrderEvent(
             timestamp,
-            signal_id,
-            action=action,
-            order=order,
-            symbol=self.hogs,
+            orders,
         )
 
         # Test
@@ -321,12 +319,14 @@ class TestDummyClient(unittest.TestCase):
             trade_id=trade_id,
             signal_id=signal_id,
             instrument=symbol.instrument_id,
+            security_type=symbol.security_type,
             quantity=round(quantity, 4),
             avg_price=fill_price,
             trade_value=round(fill_price * quantity, 2),
             trade_cost=round(abs(quantity) * fill_price, 2),
             action=action.value,
             fees=round(fees, 4),
+            is_rollover=False,
         )
 
         # Test
@@ -340,6 +340,7 @@ class TestDummyClient(unittest.TestCase):
             action,
             fill_price,
             fees,
+            False,
         )
 
         # Validate
@@ -406,6 +407,7 @@ class TestDummyClient(unittest.TestCase):
             trade_id=1,
             signal_id=1,
             instrument=self.hogs.instrument_id,
+            security_type=hogs_symbol.security_type,
             quantity=round(hogs_position.quantity, 4),
             avg_price=float(hogs_position.avg_price),
             trade_value=round(
@@ -418,6 +420,7 @@ class TestDummyClient(unittest.TestCase):
             trade_cost=hogs_position.initial_margin * hogs_position.quantity,
             action=hogs_position.action,
             fees=70.0,
+            is_rollover=False,
         )
         self.broker.last_trades[hogs_symbol.instrument_id] = hogs_trade
 
@@ -442,6 +445,7 @@ class TestDummyClient(unittest.TestCase):
             trade_id=2,
             signal_id=2,
             instrument=self.aapl.instrument_id,
+            security_type=aapl_symbol.security_type,
             quantity=round(aapl_position.quantity, 4),
             avg_price=float(aapl_position.avg_price),
             trade_value=round(
@@ -452,6 +456,7 @@ class TestDummyClient(unittest.TestCase):
             ),
             action=aapl_position.action,
             fees=70.0,
+            is_rollover=False,
         )
         self.broker.last_trades[aapl_symbol.instrument_id] = aapl_trade
 
@@ -481,6 +486,7 @@ class TestDummyClient(unittest.TestCase):
             trade_id=3,
             signal_id=1,
             instrument=self.hogs.instrument_id,
+            security_type=SecurityType.FUTURE,
             quantity=round(hogs_position.quantity * -1, 4),
             avg_price=float(current_price * hogs_position.price_multiplier),
             trade_value=round(
@@ -495,6 +501,7 @@ class TestDummyClient(unittest.TestCase):
             trade_cost=hogs_position.initial_margin * hogs_position.quantity,
             action=Action.SELL.value,
             fees=0.0,
+            is_rollover=False,
         )
         trade1 = TradeEvent("3", hogs_trade_liquidated)
 
@@ -503,12 +510,14 @@ class TestDummyClient(unittest.TestCase):
             trade_id=4,
             signal_id=2,
             instrument=self.aapl.instrument_id,
+            security_type=SecurityType.STOCK,
             quantity=round(aapl_position.quantity * -1, 4),
             avg_price=float(current_price * 1),
             trade_value=round(current_price * aapl_position.quantity, 2),
             trade_cost=round(current_price * abs(aapl_position.quantity), 2),
             action=Action.SELL.value,
             fees=0.0,
+            is_rollover=False,
         )
         trade2 = TradeEvent("4", aapl_trade_liquidated)
 
