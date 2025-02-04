@@ -10,32 +10,32 @@ from midastrader.structs.events import (
     TradeEvent,
     TradeCommissionEvent,
 )
-from midastrader.utils.unix import resample_timestamp, unix_to_iso
+from midastrader.utils.unix import resample_timestamp
 from midastrader.structs.account import EquityDetails, Account
 from midastrader.structs.symbol import SymbolMap
 from midastrader.structs.constants import PRICE_FACTOR
 from midastrader.utils.logger import SystemLogger
 
 
-def _convert_timestamp(df: pd.DataFrame, column: str = "timestamp") -> None:
-    """
-    Converts a Unix timestamp column in a DataFrame to a localized and human-readable timestamp.
-
-    The function converts Unix timestamps in the specified column to ISO 8601 format, adjusts the timezone
-    to 'America/New_York', and removes the timezone information for consistency.
-
-    Args:
-        df (pd.DataFrame): The DataFrame containing the timestamp column to convert.
-        column (str, optional): The name of the column with Unix timestamps. Defaults to "timestamp".
-
-    Returns:
-        None: The function modifies the DataFrame in place.
-    """
-    df[column] = pd.to_datetime(
-        df[column].map(lambda x: unix_to_iso(x, "EST"))
-    )
-    df[column] = df[column].dt.tz_convert("America/New_York")
-    df[column] = df[column].dt.tz_localize(None)
+# def _convert_timestamp(df: pd.DataFrame, column: str = "timestamp") -> None:
+#     """
+#     Converts a Unix timestamp column in a DataFrame to a localized and human-readable timestamp.
+#
+#     The function converts Unix timestamps in the specified column to ISO 8601 format, adjusts the timezone
+#     to 'America/New_York', and removes the timezone information for consistency.
+#
+#     Args:
+#         df (pd.DataFrame): The DataFrame containing the timestamp column to convert.
+#         column (str, optional): The name of the column with Unix timestamps. Defaults to "timestamp".
+#
+#     Returns:
+#         None: The function modifies the DataFrame in place.
+#     """
+#     df[column] = pd.to_datetime(
+#         df[column].map(lambda x: unix_to_iso(x, "EST"))
+#     )
+#     df[column] = df[column].dt.tz_convert("America/New_York")
+#     df[column] = df[column].dt.tz_localize(None)
 
 
 class TradeManager:
@@ -44,7 +44,7 @@ class TradeManager:
     aggregations, and performance statistics.
     """
 
-    def __init__(self, logger: SystemLogger):
+    def __init__(self):
         """
         Initializes the TradeManager.
 
@@ -55,8 +55,9 @@ class TradeManager:
             trades (Dict[str, Trade]): A dictionary storing trades with their IDs as keys.
             logger (SystemLogger): Logger for recording trade operations.
         """
+        self.logger = SystemLogger.get_logger()
         self.trades: Dict[str, Trade] = {}
-        self.logger = logger
+        # self.logger = logger
 
     def update_trades(self, event: TradeEvent) -> None:
         """
@@ -102,7 +103,7 @@ class TradeManager:
             str: String representation of all trades.
         """
         string = ""
-        for trade in self.trades:
+        for trade in self.trades.values():
             string += f"{trade.pretty_print("  ")}\n"
         return string
 
@@ -119,7 +120,7 @@ class TradeManager:
         df = pd.DataFrame(self.trades.values())
 
         # Group by trade_id to calculate aggregated values
-        aggregated = df.groupby("trade_id").agg(
+        aggregated = df.groupby("signal_id").agg(
             {
                 "timestamp": ["first", "last"],
                 "trade_value": [
@@ -138,21 +139,61 @@ class TradeManager:
                 ],
                 "trade_cost": [
                     (
-                        "entry_value",
+                        "entry_cost",
                         lambda x: x[
-                            df["action"].isin(["LONG", "SHORT"])
+                            (df["action"].isin(["LONG", "SHORT"]))
+                            & (~df["is_rollover"])
                         ].sum(),
                     ),
                     (
-                        "exit_value",
+                        "exit_cost",
+                        # Treat rollovers as exit cost for futures & options
                         lambda x: x[
-                            df["action"].isin(["SELL", "COVER"])
+                            (
+                                (df["action"].isin(["SELL", "COVER"]))
+                                & (~df["is_rollover"])
+                            )
+                            | (
+                                (df["security_type"].isin(["FUT", "OPT"]))
+                                & df["is_rollover"]
+                            )
                         ].sum(),
                     ),
                 ],
+                # "trade_cost": [
+                #     (
+                #         "entry_cost",
+                #         lambda x: x[
+                #             (df["action"].isin(["LONG", "SHORT"]))
+                #             & (~df["is_rollover"])
+                #         ].sum(),
+                #     ),
+                #     (
+                #         "exit_cost",
+                #         lambda x: x[
+                #             df["action"].isin(["SELL", "COVER"])
+                #         ].sum(),
+                #     ),
+                # ],
+                # "trade_cost": [
+                #     (
+                #         "entry_value",
+                #         lambda x: x[
+                #             df["action"].isin(["LONG", "SHORT"])
+                #         ].sum(),
+                #     ),
+                #     (
+                #         "exit_value",
+                #         lambda x: x[
+                #             df["action"].isin(["SELL", "COVER"])
+                #         ].sum(),
+                #     ),
+                # ],
                 "fees": "sum",  # Sum of all fees for each trade group
             }
         )
+
+        aggregated = pd.DataFrame(aggregated)
 
         # Simplify column names after aggregation
         aggregated.columns = [
@@ -171,13 +212,34 @@ class TradeManager:
         ) * -1
 
         # Calculate Profit and Loss (PnL)
-        aggregated["pnl"] = (
-            aggregated["exit_value"] + aggregated["entry_value"]
-        ) * -1 + aggregated["fees"]
+        aggregated["pnl"] = aggregated["gain/loss"] + aggregated["fees"]
 
-        aggregated["pnl_percentage"] = (
-            aggregated["pnl"] / aggregated["entry_cost"]
-        )  # * 100
+        # Calculate PnL percentage, ensuring no division by zero
+        aggregated["pnl_percentage"] = aggregated["pnl"] / aggregated[
+            "entry_cost"
+        ].replace(0, np.nan)
+
+        # # Calculate percentage gain/loss based on the entry value
+        # gain_loss = (aggregated["exit_value"] + aggregated["entry_value"]) * -1
+        # aggregated["gain/loss"] = gain_loss
+        #
+        # # Calculate Profit and Loss (PnL)
+        # pnl = gain_loss + aggregated["fees"]
+        # aggregated["pnl"] = pnl
+        # aggregated["pnl_percentage"] = pnl / aggregated["entry_cost"]
+
+        # aggregated["gain/loss"] = (
+        #     aggregated["exit_value"] + aggregated["entry_value"]
+        # ) * -1
+        #
+        # # Calculate Profit and Loss (PnL)
+        # aggregated["pnl"] = (
+        #     aggregated["exit_value"] + aggregated["entry_value"]
+        # ) * -1 + aggregated["fees"]
+        #
+        # aggregated["pnl_percentage"] = (
+        #     aggregated["pnl"] / aggregated["entry_cost"]
+        # )  # * 100
 
         # Reset index to make 'trade_id' a column again
         aggregated.reset_index(inplace=True)
@@ -271,7 +333,7 @@ class TradeManager:
         Returns:
             int: The total number of winning trades.
         """
-        return np.sum(trades_pnl > 0)
+        return int(np.sum(trades_pnl > 0))
 
     @staticmethod
     def total_losing_trades(trades_pnl: np.ndarray) -> int:
@@ -284,7 +346,7 @@ class TradeManager:
         Returns:
             int: The total number of losing trades.
         """
-        return np.sum(trades_pnl < 0)
+        return int(np.sum(trades_pnl < 0))
 
     @staticmethod
     def avg_profit(trade_pnl: np.ndarray) -> float:
@@ -457,17 +519,17 @@ class EquityManager:
         logger (SystemLogger): Logger instance for logging equity updates and calculations.
     """
 
-    def __init__(self, logger: SystemLogger):
+    def __init__(self):
         """
         Initializes the EquityManager with a logger instance.
 
         Args:
             logger (SystemLogger): Logger for recording equity updates and calculations.
         """
+        self.logger = SystemLogger.get_logger()
         self.equity_value: List[EquityDetails] = []
-        self.daily_stats: pd.DataFrame = None
-        self.period_stats: pd.DataFrame = None
-        self.logger = logger
+        self.daily_stats: pd.DataFrame = pd.DataFrame()
+        self.period_stats: pd.DataFrame = pd.DataFrame()
 
     def update_equity(self, equity_details: EquityDetails) -> None:
         """
@@ -487,7 +549,7 @@ class EquityManager:
             )
 
     @property
-    def period_stats_mbn(self) -> mbn.TimeseriesStats:
+    def period_stats_mbn(self) -> List[mbn.TimeseriesStats]:
         """
         Converts period statistics to the Midas Binary Notation (MBN) format.
 
@@ -508,7 +570,7 @@ class EquityManager:
         ]
 
     @property
-    def daily_stats_mbn(self) -> mbn.TimeseriesStats:
+    def daily_stats_mbn(self) -> List[mbn.TimeseriesStats]:
         """
         Converts daily statistics to the Midas Binary Notation (MBN) format.
 
@@ -529,7 +591,7 @@ class EquityManager:
         ]
 
     @property
-    def period_stats_dict(self) -> dict:
+    def period_stats_dict(self) -> List[Dict]:
         """
         Converts period statistics DataFrame to a dictionary.
 
@@ -539,7 +601,7 @@ class EquityManager:
         return self.period_stats.to_dict(orient="records")
 
     @property
-    def daily_stats_dict(self) -> dict:
+    def daily_stats_dict(self) -> List[Dict]:
         """
         Converts daily statistics DataFrame to a dictionary.
 
@@ -670,15 +732,15 @@ class AccountManager:
         logger (SystemLogger): Logger instance for recording updates and logs.
     """
 
-    def __init__(self, logger: SystemLogger):
+    def __init__(self):
         """
         Initializes the AccountManager with a logger instance.
 
         Args:
             logger (SystemLogger): Logger for recording account updates.
         """
+        self.logger = SystemLogger.get_logger()
         self.account_log: List[Account] = []
-        self.logger = logger
 
     def update_account_log(self, account_details: Account) -> None:
         """
@@ -709,15 +771,15 @@ class SignalManager:
         logger (SystemLogger): Logger instance for recording updates and logs.
     """
 
-    def __init__(self, logger: SystemLogger):
+    def __init__(self):
         """
         Initializes the SignalManager with a logger instance.
 
         Args:
             logger (SystemLogger): Logger for recording signal updates.
         """
+        self.logger = SystemLogger.get_logger()
         self.signals: List[SignalEvent] = []
-        self.logger = logger
 
     def update_signals(self, signal: SignalEvent) -> None:
         """
@@ -738,9 +800,9 @@ class SignalManager:
         """
         string = ""
         for signals in self.signals:
-            string += f"  Timestamp: {signals['timestamp']} \n"
+            string += f"  Timestamp: {signals.timestamp} \n"
             string += "  Trade Instructions: \n"
-            for instruction in signals["instructions"]:
+            for instruction in signals.instructions:
                 string += f"    {instruction}\n"
         return string
 
@@ -781,4 +843,7 @@ class SignalManager:
         Returns:
             List[mbn.Signals]: A list of signals converted into the `mbn.Signals` format.
         """
+        for signal in self.signals:
+            self.logger.info(signal.instructions[0].quantity)
+            self.logger.info(signal.instructions[0].weight)
         return [signal.to_mbn(symbols_map) for signal in self.signals]

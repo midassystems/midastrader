@@ -1,3 +1,4 @@
+from decimal import Decimal
 import time
 import unittest
 import datetime
@@ -129,7 +130,7 @@ class TestBrokerApp(unittest.TestCase):
 
     def test_contractDetails(self):
         # Test
-        self.broker_app.contractDetails(10, None)
+        self.broker_app.contractDetails(10, Mock())
 
         # Validate
         self.assertTrue(self.broker_app.is_valid_contract)
@@ -237,9 +238,6 @@ class TestBrokerApp(unittest.TestCase):
         self.broker_app.process_account_updates.assert_called_once()
 
     def test_process_account_updates(self):
-        self.broker_app.account_update_timer = True
-        self.broker_app.notify = Mock()
-
         # Test
         self.bus.publish = Mock()
         self.broker_app.process_account_updates()
@@ -350,8 +348,6 @@ class TestBrokerApp(unittest.TestCase):
             self.assertEqual(args[1][1], positions[key])
 
     def test_accountDownloadEnd_valid(self):
-        account_info = {1: "1"}
-        self.broker_app.account_info = account_info
         self.broker_app.process_account_updates = Mock()
 
         # Test
@@ -377,7 +373,7 @@ class TestBrokerApp(unittest.TestCase):
         order.account = "account_name"
         order.action = "BUY"
         order.orderType = "MKT"
-        order.totalQuantity = 100
+        order.totalQuantity = Decimal(100)
         order.cashQty = 100909
         order.lmtPrice = 0
         order.auxPrice = 0
@@ -398,7 +394,7 @@ class TestBrokerApp(unittest.TestCase):
             exchange=contract.exchange,
             action=order.action,
             orderType=order.orderType,
-            totalQty=order.totalQuantity,
+            totalQty=float(order.totalQuantity),
             cashQty=order.cashQty,
             lmtPrice=order.lmtPrice,
             auxPrice=order.auxPrice,
@@ -460,8 +456,8 @@ class TestBrokerApp(unittest.TestCase):
         self.broker_app.orderStatus(
             orderId,
             status,
-            filled,
-            remaining,
+            Decimal(filled),
+            Decimal(remaining),
             avgFillPrice,
             permId,
             parentId,
@@ -565,7 +561,6 @@ class TestBrokerApp(unittest.TestCase):
         # Test
         self.bus.publish = Mock()
         reqId = 10
-        self.broker_app.notify = Mock()
         self.broker_app.accountSummaryEnd(reqId)
 
         # Validate
@@ -593,47 +588,50 @@ class TestBrokerApp(unittest.TestCase):
         contract.exchange = "NASDAQ"
 
         execution = Execution()
-        execution.execId = 11
+        execution.execId = "11"
         execution.time = "20240424 09:54:50 US/Central"
         execution.acctNumber = "128294"
         execution.exchange = "NASDAQ"
         execution.side = "SLD"
 
-        execution.shares = 1000
-        execution.price = 100
+        execution.shares = Decimal(1000)
+        execution.price = 100.0
         execution.avgPrice = 99.9
-        execution.cumQty = 9.9
+        execution.cumQty = Decimal(9.9)
         execution.orderRef = ""
 
         # Execution dict
-        instrument = self.symbols_map.get_id(contract.symbol)
-        execution_data = Trade(
-            timestamp=1713970490000000000,
-            trade_id=execution.orderId,
-            leg_id=1,
-            instrument=instrument,
-            quantity=execution.shares,  # Decimal
-            avg_price=execution.price,
-            trade_value=execution.price * execution.shares,
-            trade_cost=execution.price * execution.shares,
-            action="SELL",
-            fees=0,
-        )
-        event = TradeEvent("11", execution_data)
+        symbol = self.symbols_map.get_symbol(contract.symbol)
+        if symbol:
+            execution_data = Trade(
+                timestamp=1713970490000000000,
+                trade_id=execution.orderId,
+                signal_id=0,
+                instrument=symbol.instrument_id,
+                security_type=symbol.security_type,
+                quantity=float(execution.shares),
+                avg_price=float(execution.price),
+                trade_value=float(execution.price) * float(execution.shares),
+                trade_cost=float(execution.price) * float(execution.shares),
+                action="SELL",
+                fees=float(0.0),
+                is_rollover=False,
+            )
+            event = TradeEvent("11", execution_data)
 
-        # Test
-        self.bus.publish = Mock()
-        self.broker_app.execDetails(reqId, contract, execution)
+            # Test
+            self.bus.publish = Mock()
+            self.broker_app.execDetails(reqId, contract, execution)
 
-        # Validate
-        self.assertEqual(self.bus.publish.call_count, 1)
+            # Validate
+            self.assertEqual(self.bus.publish.call_count, 1)
 
-        # Access all calls made to publish
-        args = self.bus.publish.call_args[0]
+            # Access all calls made to publish
+            args = self.bus.publish.call_args[0]
 
-        # Validate the first call
-        self.assertEqual(args[0], EventType.TRADE_UPDATE)
-        self.assertEqual(args[1], event)
+            # Validate the first call
+            self.assertEqual(args[0], EventType.TRADE_UPDATE)
+            self.assertEqual(args[1], event)
 
 
 if __name__ == "__main__":

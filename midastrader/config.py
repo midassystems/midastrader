@@ -12,10 +12,30 @@ class Mode(Enum):
     LIVE = "LIVE"
     BACKTEST = "BACKTEST"
 
+    @classmethod
+    def from_string(cls, mode_str: str) -> "Mode":
+        """Convert a string to a Mode enum, ensuring case-insensitivity."""
+        try:
+            return cls[mode_str.upper()]
+        except KeyError:
+            raise ValueError(
+                f"Invalid mode: {mode_str}. Expected 'LIVE' or 'BACKTEST'."
+            )
+
 
 class LiveDataType(Enum):
     TICK = "TICK"
     BAR = "BAR"
+
+    @classmethod
+    def from_string(cls, type_str: str) -> "LiveDataType":
+        """Convert a string to a LiveDataType enum, ensuring case-insensitivity."""
+        try:
+            return cls[type_str.upper()]
+        except KeyError:
+            raise ValueError(
+                f"Invalid mode: {type_str}. Expected 'TICK' or 'BAR'."
+            )
 
 
 class Config:
@@ -55,8 +75,8 @@ class Config:
         Args:
             config_dict (dict): Dictionary representation of the loaded TOML configuration file.
         """
-        self.vendors = config_dict.get("vendor")
-        self.executors = config_dict.get("executor")
+        self.vendors = config_dict.get("vendor", {})
+        self.executors = config_dict.get("executor", {})
         self.general = config_dict.get("general", {})
         self.risk = config_dict.get("risk", {})
         self.strategy = config_dict.get("strategy", {})
@@ -202,7 +222,7 @@ class Parameters:
             strategy_name=self.strategy_name,
             capital=self.capital,
             data_type=self.data_type.value,
-            schema=self.schema,
+            schema=self.schema.value,
             start=(int(iso_to_unix(self.start))),
             end=(int(iso_to_unix(self.end))),
             tickers=self.tickers,

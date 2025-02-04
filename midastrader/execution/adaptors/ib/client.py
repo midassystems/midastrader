@@ -1,6 +1,7 @@
 # client.py
 import threading
 import queue
+import time
 from ibapi.contract import Contract
 
 from midastrader.structs.events import OrderEvent
@@ -66,6 +67,8 @@ class IBAdaptor(ExecutionAdapter):
         """
         Main processing loop that streams data and handles EOD synchronization.
         """
+        self.request_account_summary()
+        time.sleep(5)  # time for final account summary request-maybe shorten
         self.logger.info("IBAdaptor shutting down ...")
         self.is_shutdown.set()
 
@@ -135,7 +138,7 @@ class IBAdaptor(ExecutionAdapter):
 
         # Validate Contracts
         for symbol in self.symbols_map.symbols:
-            if not self.validate_contract(symbol.contract):
+            if not self.validate_contract(symbol.ib_contract()):
                 raise RuntimeError(f"{symbol.broker_ticker} invalid contract.")
 
         self.logger.info("IBBrokerAdaptor running ...")
@@ -155,7 +158,7 @@ class IBAdaptor(ExecutionAdapter):
         Returns:
             bool: True if connected, False otherwise.
         """
-        return self.app.isConnected()
+        return bool(self.app.isConnected())
 
     # -- Validate Contracts --
     def validate_contract(self, contract: Contract) -> bool:
@@ -204,7 +207,7 @@ class IBAdaptor(ExecutionAdapter):
                 f"Contract {contract.symbol} validation failed."
             )
 
-        return self.app.is_valid_contract
+        return bool(self.app.is_valid_contract)
 
     def _is_contract_validated(self, contract: Contract) -> bool:
         """
@@ -228,11 +231,16 @@ class IBAdaptor(ExecutionAdapter):
         """
         orderId = self._get_valid_id()
         try:
-            self.app.placeOrder(
-                orderId=orderId,
-                contract=event.contract,
-                order=event.order.order,
-            )
+            for order in event.orders:
+                ib_order = order.ib_order()
+                symbol = self.symbols_map.get_symbol_by_id(order.instrument_id)
+
+                if symbol:
+                    self.app.placeOrder(
+                        orderId=orderId,
+                        contract=symbol.ib_contract(),
+                        order=ib_order,
+                    )
         except Exception as e:
             raise e
 
@@ -243,7 +251,7 @@ class IBAdaptor(ExecutionAdapter):
         Args:
             orderId (int): The ID of the order to be canceled.
         """
-        self.app.cancelOrder(orderId=orderId)
+        self.app.cancelOrder(orderId=orderId, manualCancelOrderTime="")
 
     # -- Account request --
     def request_account_summary(self) -> None:

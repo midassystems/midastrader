@@ -15,19 +15,17 @@ class TestSignalEvent(unittest.TestCase):
             instrument=1,
             order_type=OrderType.MARKET,
             action=Action.LONG,
-            trade_id=2,
-            leg_id=5,
+            signal_id=2,
             weight=0.5,
-            quantity=10,
+            quantity=10.0,
         )
         self.trade2 = SignalInstruction(
             instrument=2,
             order_type=OrderType.MARKET,
             action=Action.LONG,
-            trade_id=2,
-            leg_id=6,
+            signal_id=2,
             weight=0.5,
-            quantity=10,
+            quantity=10.0,
         )
         self.instructions = [self.trade1, self.trade2]
 
@@ -47,8 +45,9 @@ class TestSignalEvent(unittest.TestCase):
             signal.instructions[0].order_type, self.trade1.order_type
         )
         self.assertEqual(signal.instructions[0].action, self.trade1.action)
-        self.assertEqual(signal.instructions[0].trade_id, self.trade1.trade_id)
-        self.assertEqual(signal.instructions[0].leg_id, self.trade1.leg_id)
+        self.assertEqual(
+            signal.instructions[0].signal_id, self.trade1.signal_id
+        )
         self.assertEqual(signal.instructions[0].weight, self.trade1.weight)
 
         # Validate second set of trade instructions
@@ -59,8 +58,9 @@ class TestSignalEvent(unittest.TestCase):
             signal.instructions[1].order_type, self.trade2.order_type
         )
         self.assertEqual(signal.instructions[1].action, self.trade2.action)
-        self.assertEqual(signal.instructions[1].trade_id, self.trade2.trade_id)
-        self.assertEqual(signal.instructions[1].leg_id, self.trade2.leg_id)
+        self.assertEqual(
+            signal.instructions[1].signal_id, self.trade2.signal_id
+        )
         self.assertEqual(signal.instructions[1].weight, self.trade2.weight)
 
     def test_to_dict(self):
@@ -85,21 +85,25 @@ class TestSignalEvent(unittest.TestCase):
             TypeError, "'timestamp' must be of type int."
         ):
             SignalEvent(
-                timestamp=datetime(2024, 1, 1),
+                timestamp=datetime(2024, 1, 1),  # pyright: ignore
                 instructions=self.instructions,
             )
 
         with self.assertRaisesRegex(
             TypeError, "'instructions' must be of type list."
         ):
-            SignalEvent(timestamp=self.timestamp, instructions=self.trade1)
+            SignalEvent(
+                timestamp=self.timestamp,
+                instructions=self.trade1,  # pyright: ignore
+            )
 
         with self.assertRaisesRegex(
             TypeError,
             "All instructions must be SignalInstruction.",
         ):
             SignalEvent(
-                timestamp=self.timestamp, instructions=["sell", "long"]
+                timestamp=self.timestamp,
+                instructions=["sell", "long"],  # pyright: ignore
             )
 
     # Constraint Check
@@ -107,7 +111,10 @@ class TestSignalEvent(unittest.TestCase):
         with self.assertRaisesRegex(
             ValueError, "'instructions' list cannot be empty."
         ):
-            SignalEvent(timestamp=self.timestamp, instructions=[])
+            SignalEvent(
+                timestamp=self.timestamp,
+                instructions=[],
+            )
 
 
 if __name__ == "__main__":

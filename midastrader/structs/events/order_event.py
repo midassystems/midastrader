@@ -1,7 +1,7 @@
-from ibapi.contract import Contract
 from dataclasses import dataclass, field
+from typing import List
 
-from midastrader.structs.orders import BaseOrder, Action
+from midastrader.structs.orders import BaseOrder
 from midastrader.structs.events.base import SystemEvent
 
 
@@ -25,11 +25,7 @@ class OrderEvent(SystemEvent):
     """
 
     timestamp: int
-    trade_id: int
-    leg_id: int
-    action: Action
-    contract: Contract
-    order: BaseOrder
+    orders: List[BaseOrder]
     type: str = field(init=False, default="ORDER")
 
     def __post_init__(self):
@@ -43,22 +39,11 @@ class OrderEvent(SystemEvent):
         # Type Check
         if not isinstance(self.timestamp, int):
             raise TypeError("'timestamp' must be of type int.")
-        if not isinstance(self.trade_id, int):
-            raise TypeError("'trade_id' must be of type int.")
-        if not isinstance(self.leg_id, int):
-            raise TypeError("'leg_id' must be of type int.")
-        if not isinstance(self.action, Action):
-            raise TypeError("'action' must be of type Action enum.")
-        if not isinstance(self.contract, Contract):
-            raise TypeError("'contract' must be of type Contract.")
-        if not isinstance(self.order, BaseOrder):
-            raise TypeError("'order' must be of type BaseOrder.")
 
-        # Value Check
-        if self.trade_id <= 0:
-            raise ValueError("'trade_id' must be greater than zero.")
-        if self.leg_id <= 0:
-            raise ValueError("'leg_id' must be greater than zero.")
+        if not isinstance(self.orders, list) or not all(
+            isinstance(order, BaseOrder) for order in self.orders
+        ):
+            raise TypeError("'orders' must be of type List[BaseOrder].")
 
     def __str__(self) -> str:
         """
@@ -67,12 +52,9 @@ class OrderEvent(SystemEvent):
         Returns:
             str: A formatted string containing details of the order event.
         """
+        order_str = "\n    ".join(str(order) for order in self.orders)
         return (
             f"\n{self.type} EVENT:\n"
             f"  Timestamp: {self.timestamp}\n"
-            f"  Trade ID: {self.trade_id}\n"
-            f"  Leg ID: {self.leg_id}\n"
-            f"  Action: {self.action}\n"
-            f"  Contract: {self.contract}\n"
-            f"  Order: {self.order.__dict__}\n"
+            f"  Orders:\n    {order_str}\n"
         )

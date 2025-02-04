@@ -20,6 +20,7 @@ class EventType(Enum):
     SIGNAL = auto()
     ORDER = auto()
     TRADE = auto()
+    ROLLOVER = auto()
 
     # Update Events
     SIGNAL_UPDATE = auto()
@@ -35,6 +36,9 @@ class EventType(Enum):
     # Flags
     UPDATE_EQUITY = auto()
     UPDATE_SYSTEM = auto()
+    ROLLED_OVER = auto()
+    ROLLOVER_EXITED = auto()
+    OB_ROLLED = auto()
 
     ORDER_BOOK_UPDATED = auto()
     OB_PROCESSED = auto()
@@ -52,6 +56,7 @@ class MessageBus:
             EventType.SIGNAL: queue.Queue(),
             EventType.ORDER: queue.Queue(),
             EventType.TRADE: queue.Queue(),
+            EventType.ROLLOVER: queue.Queue(),
             EventType.TRADE_COMMISSION_UPDATE: queue.Queue(),
             EventType.SIGNAL_UPDATE: queue.Queue(),
             EventType.POSITION_UPDATE: queue.Queue(),
@@ -68,6 +73,9 @@ class MessageBus:
             EventType.EOD: False,
             EventType.UPDATE_EQUITY: False,
             EventType.UPDATE_SYSTEM: False,
+            EventType.ROLLED_OVER: False,
+            EventType.ROLLOVER_EXITED: False,
+            EventType.OB_ROLLED: False,
         }
 
         self.lock = threading.Lock()

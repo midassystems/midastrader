@@ -1,8 +1,5 @@
 import queue
-
-# import threading
 from typing import List
-from ibapi.contract import Contract
 
 from midastrader.structs.symbol import SymbolMap
 from midastrader.structs.events import SignalEvent, OrderEvent
@@ -147,38 +144,58 @@ class OrderExecutionManager(CoreAdapter):
         orders = []
         total_capital_required = 0
 
-        for trade in trade_instructions:
-            # self.logger.debug(trade)
-            symbol = self.symbols_map.map[trade.instrument]
-            order = trade.to_order()
-            current_price = self.order_book.retrieve(symbol.instrument_id)
-            order_cost = symbol.cost(order.quantity, current_price)
+        for signal in trade_instructions:
+            try:
+                symbol = self.symbols_map.map[signal.instrument]
+                current_price = self.order_book.retrieve(symbol.instrument_id)
+                order = signal.to_order()
 
-            order_details = {
-                "timestamp": timestamp,
-                "trade_id": trade.trade_id,
-                "leg_id": trade.leg_id,
-                "action": trade.action,
-                "contract": symbol.contract,
-                "order": order,
-            }
+                if not order:
+                    self.logger.warning(
+                        f"Skipping order {signal.signal_id}: error creating order."
+                    )
+                    return
+                #
+                # if current_price is None:
+                #     self.logger.warning(
+                #         f"Skipping trade {trade.trade_id}: No current price for {symbol.instrument_id}"
+                #     )
+                #     return
 
-            orders.append(order_details)
+                order_cost = symbol.cost(
+                    float(order.quantity),
+                    current_price.pretty_price,
+                )
 
-            # SELL/Cover are exits so available capital will be freed up
-            if trade.action not in [Action.SELL, Action.COVER]:
-                total_capital_required += order_cost
+                # order_details = {
+                #     "timestamp": timestamp,
+                #     # "signal_id": signal.signal_id,
+                #     # "action": signal.action,
+                #     # "symbol": symbol,
+                #     "order": order,
+                # }
+                #
+                orders.append(order)
+
+                # SELL/Cover are exits so available capital will be freed up
+                if signal.action not in [Action.SELL, Action.COVER]:
+                    total_capital_required += order_cost
+
+            except Exception as e:
+                self.logger.warning(
+                    f"Error crreating order for{signal.signal_id} : {e}"
+                )
 
         if total_capital_required <= self.portfolio_server.capital:
-            for order in orders:
-                self._set_order(
-                    order["timestamp"],
-                    order["trade_id"],
-                    order["leg_id"],
-                    order["action"],
-                    order["contract"],
-                    order["order"],
-                )
+            # for order in orders:
+            self._set_order(timestamp, orders)
+
+            # order["timestamp"],
+            #     order["signal_id"],
+            #     order["action"],
+            #     order["symbol"],
+            #     order["order"],
+            # )
         else:
             self.logger.debug("Not enough capital to execute all orders")
             self.bus.publish(EventType.UPDATE_SYSTEM, False)
@@ -186,11 +203,10 @@ class OrderExecutionManager(CoreAdapter):
     def _set_order(
         self,
         timestamp: int,
-        trade_id: int,
-        leg_id: int,
-        action: Action,
-        contract: Contract,
-        order: BaseOrder,
+        # signal_id: int,
+        # action: Action,
+        # symbol: Symbol,
+        orders: List[BaseOrder],
     ) -> None:
         """
         Queues an OrderEvent for execution based on the provided order details.
@@ -209,11 +225,10 @@ class OrderExecutionManager(CoreAdapter):
         try:
             order_event = OrderEvent(
                 timestamp=timestamp,
-                trade_id=trade_id,
-                leg_id=leg_id,
-                action=action,
-                contract=contract,
-                order=order,
+                # signal_id=signal_id,
+                # action=action,
+                # symbol=symbol,
+                orders=orders,
             )
             self.bus.publish(EventType.ORDER, order_event)
         except (ValueError, TypeError) as e:

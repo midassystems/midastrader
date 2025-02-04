@@ -22,7 +22,7 @@ class TestExecutionEvent(unittest.TestCase):
             TypeError,
             "'timestamp' should be a datetime.date.",
         ):
-            EODEvent(100000000000)
+            EODEvent(100000000000)  # pyright: ignore
 
 
 if __name__ == "__main__":

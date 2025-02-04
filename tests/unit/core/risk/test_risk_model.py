@@ -6,7 +6,7 @@ from midastrader.core.adapters.risk import BaseRiskModel, load_risk_class
 
 class TestRiskModel(BaseRiskModel):
     def evaluate_risk(self, data: dict) -> dict:
-        pass
+        return {}
 
 
 class TestLoadStrategyClass(unittest.TestCase):

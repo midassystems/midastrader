@@ -10,11 +10,11 @@ class TestTradeInsructions(unittest.TestCase):
         self.order_type = OrderType.MARKET
         self.action = Action.LONG
         self.trade_id = 2
-        self.leg_id = 5
+        self.signal_id = 5
         self.weight = 0.483938
-        self.quantity = -10
-        self.limit_price = 100
-        self.aux_price = 10
+        self.quantity = -10.0
+        self.limit_price = 100.0
+        self.aux_price = 10.0
 
     # Basic Validation
     def test_construction_market_order(self):
@@ -23,8 +23,7 @@ class TestTradeInsructions(unittest.TestCase):
             instrument=self.instrument,
             order_type=self.order_type,
             action=self.action,
-            trade_id=self.trade_id,
-            leg_id=self.leg_id,
+            signal_id=self.signal_id,
             weight=self.weight,
             quantity=self.quantity,
         )
@@ -32,8 +31,7 @@ class TestTradeInsructions(unittest.TestCase):
         self.assertEqual(instructions.instrument, self.instrument)
         self.assertEqual(instructions.order_type, self.order_type)
         self.assertEqual(instructions.action, self.action)
-        self.assertEqual(instructions.trade_id, self.trade_id)
-        self.assertEqual(instructions.leg_id, self.leg_id)
+        self.assertEqual(instructions.signal_id, self.signal_id)
         self.assertEqual(instructions.weight, self.weight)
         self.assertEqual(instructions.quantity, self.quantity)
 
@@ -43,8 +41,7 @@ class TestTradeInsructions(unittest.TestCase):
             instrument=self.instrument,
             order_type=OrderType.LIMIT,
             action=self.action,
-            trade_id=self.trade_id,
-            leg_id=self.leg_id,
+            signal_id=self.signal_id,
             weight=self.weight,
             quantity=self.quantity,
             limit_price=self.limit_price,
@@ -53,8 +50,7 @@ class TestTradeInsructions(unittest.TestCase):
         self.assertEqual(instructions.instrument, self.instrument)
         self.assertEqual(instructions.order_type, OrderType.LIMIT)
         self.assertEqual(instructions.action, self.action)
-        self.assertEqual(instructions.trade_id, self.trade_id)
-        self.assertEqual(instructions.leg_id, self.leg_id)
+        self.assertEqual(instructions.signal_id, self.signal_id)
         self.assertEqual(instructions.weight, self.weight)
         self.assertEqual(instructions.quantity, self.quantity)
         self.assertEqual(instructions.limit_price, self.limit_price)
@@ -65,8 +61,7 @@ class TestTradeInsructions(unittest.TestCase):
             instrument=self.instrument,
             order_type=OrderType.STOPLOSS,
             action=self.action,
-            trade_id=self.trade_id,
-            leg_id=self.leg_id,
+            signal_id=self.signal_id,
             weight=self.weight,
             quantity=self.quantity,
             aux_price=self.aux_price,
@@ -75,8 +70,7 @@ class TestTradeInsructions(unittest.TestCase):
         self.assertEqual(instructions.instrument, self.instrument)
         self.assertEqual(instructions.order_type, OrderType.STOPLOSS)
         self.assertEqual(instructions.action, self.action)
-        self.assertEqual(instructions.trade_id, self.trade_id)
-        self.assertEqual(instructions.leg_id, self.leg_id)
+        self.assertEqual(instructions.signal_id, self.signal_id)
         self.assertEqual(instructions.weight, self.weight)
         self.assertEqual(instructions.quantity, self.quantity)
         self.assertEqual(instructions.aux_price, self.aux_price)
@@ -86,8 +80,7 @@ class TestTradeInsructions(unittest.TestCase):
             instrument=self.instrument,
             order_type=OrderType.MARKET,
             action=self.action,
-            trade_id=self.trade_id,
-            leg_id=self.leg_id,
+            signal_id=self.signal_id,
             weight=self.weight,
             quantity=self.quantity,
         )
@@ -101,8 +94,7 @@ class TestTradeInsructions(unittest.TestCase):
             instructions_dict["order_type"], self.order_type.value
         )
         self.assertEqual(instructions_dict["action"], self.action.value)
-        self.assertEqual(instructions_dict["trade_id"], self.trade_id)
-        self.assertEqual(instructions_dict["leg_id"], self.leg_id)
+        self.assertEqual(instructions_dict["signal_id"], self.signal_id)
         self.assertAlmostEqual(instructions_dict["weight"], self.weight, 4)
         self.assertEqual(instructions_dict["quantity"], self.quantity)
         self.assertEqual(instructions_dict["limit_price"], "")
@@ -113,8 +105,7 @@ class TestTradeInsructions(unittest.TestCase):
             instrument=self.instrument,
             order_type=OrderType.LIMIT,
             action=self.action,
-            trade_id=self.trade_id,
-            leg_id=self.leg_id,
+            signal_id=self.signal_id,
             weight=self.weight,
             quantity=self.quantity,
             limit_price=self.limit_price,
@@ -129,8 +120,7 @@ class TestTradeInsructions(unittest.TestCase):
             instructions_dict["order_type"], OrderType.LIMIT.value
         )
         self.assertEqual(instructions_dict["action"], self.action.value)
-        self.assertEqual(instructions_dict["trade_id"], self.trade_id)
-        self.assertEqual(instructions_dict["leg_id"], self.leg_id)
+        self.assertEqual(instructions_dict["signal_id"], self.signal_id)
         self.assertAlmostEqual(instructions_dict["weight"], self.weight, 4)
         self.assertEqual(instructions_dict["quantity"], self.quantity)
         self.assertEqual(instructions_dict["limit_price"], self.limit_price)
@@ -141,8 +131,7 @@ class TestTradeInsructions(unittest.TestCase):
             instrument=self.instrument,
             order_type=OrderType.STOPLOSS,
             action=self.action,
-            trade_id=self.trade_id,
-            leg_id=self.leg_id,
+            signal_id=self.signal_id,
             weight=self.weight,
             quantity=self.quantity,
             aux_price=self.aux_price,
@@ -157,8 +146,7 @@ class TestTradeInsructions(unittest.TestCase):
             instructions_dict["order_type"], OrderType.STOPLOSS.value
         )
         self.assertEqual(instructions_dict["action"], self.action.value)
-        self.assertEqual(instructions_dict["trade_id"], self.trade_id)
-        self.assertEqual(instructions_dict["leg_id"], self.leg_id)
+        self.assertEqual(instructions_dict["signal_id"], self.signal_id)
         self.assertAlmostEqual(instructions_dict["weight"], self.weight, 4)
         self.assertEqual(instructions_dict["quantity"], self.quantity)
         self.assertEqual(instructions_dict["limit_price"], "")
@@ -170,11 +158,10 @@ class TestTradeInsructions(unittest.TestCase):
             TypeError, "'instrument' field must be of type int."
         ):
             SignalInstruction(
-                instrument="1234",
+                instrument="1234",  # pyright: ignore
                 order_type=self.order_type,
                 action=self.action,
-                trade_id=self.trade_id,
-                leg_id=self.leg_id,
+                signal_id=self.signal_id,
                 weight=self.weight,
                 quantity=self.quantity,
             )
@@ -184,10 +171,9 @@ class TestTradeInsructions(unittest.TestCase):
         ):
             SignalInstruction(
                 instrument=self.instrument,
-                order_type="MKT",
+                order_type="MKT",  # pyright: ignore
                 action=self.action,
-                trade_id=self.trade_id,
-                leg_id=self.leg_id,
+                signal_id=self.signal_id,
                 weight=self.weight,
                 quantity=self.quantity,
             )
@@ -198,104 +184,74 @@ class TestTradeInsructions(unittest.TestCase):
             SignalInstruction(
                 instrument=self.instrument,
                 order_type=self.order_type,
-                action="LONG",
-                trade_id=self.trade_id,
-                leg_id=self.leg_id,
+                action="LONG",  # pyright: ignore
+                signal_id=self.signal_id,
                 weight=self.weight,
                 quantity=self.quantity,
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'trade_id' field must of type int."
+            TypeError, "'signal_id' field must of type int."
         ):
             SignalInstruction(
                 instrument=self.instrument,
                 order_type=self.order_type,
                 action=self.action,
-                trade_id="2",
-                leg_id=self.leg_id,
+                signal_id="2",  # pyright: ignore
                 weight=self.weight,
                 quantity=self.quantity,
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'leg_id' field must be of type int."
+            TypeError, "'quantity' field must be of type float."
         ):
             SignalInstruction(
                 instrument=self.instrument,
                 order_type=self.order_type,
                 action=self.action,
-                trade_id=self.trade_id,
-                leg_id="2",
+                signal_id=self.signal_id,
                 weight=self.weight,
-                quantity=self.quantity,
-            )
-
-        with self.assertRaisesRegex(
-            TypeError, "'quantity' field must be of type int or float."
-        ):
-            SignalInstruction(
-                instrument=self.instrument,
-                order_type=self.order_type,
-                action=self.action,
-                trade_id=self.trade_id,
-                leg_id=2,
-                weight=self.weight,
-                quantity="123",
+                quantity="123",  # pyright: ignore
             )
 
         with self.assertRaisesRegex(
             TypeError,
-            "'limit_price' field must be int or float for OrderType.LIMIT.",
+            "'limit_price' field must be float for OrderType.LIMIT.",
         ):
             SignalInstruction(
                 instrument=self.instrument,
                 order_type=OrderType.LIMIT,
                 action=self.action,
-                trade_id=self.trade_id,
-                leg_id=self.leg_id,
+                signal_id=self.signal_id,
                 weight=self.weight,
                 quantity=self.quantity,
+                limit_price=0,
             )
 
         with self.assertRaisesRegex(
             TypeError,
-            "'aux_price' field must be int or float for OrderType.STOPLOSS.",
+            "'aux_price' field must be float for OrderType.STOPLOSS.",
         ):
             SignalInstruction(
                 instrument=self.instrument,
                 order_type=OrderType.STOPLOSS,
                 action=self.action,
-                trade_id=self.trade_id,
-                leg_id=self.leg_id,
+                signal_id=self.signal_id,
                 weight=self.weight,
                 quantity=self.quantity,
+                aux_price=0,
             )
 
     # Constraint Check
     def test_value_constraint(self):
         with self.assertRaisesRegex(
-            ValueError, "'trade_id' field must be greater than zero."
+            ValueError, "'signal_id' field must be greater than zero."
         ):
             SignalInstruction(
                 instrument=self.instrument,
                 order_type=self.order_type,
                 action=self.action,
-                trade_id=0,
-                leg_id=self.leg_id,
-                weight=self.weight,
-                quantity=self.quantity,
-            )
-
-        with self.assertRaisesRegex(
-            ValueError, "'leg_id' field must must be greater than zero."
-        ):
-            SignalInstruction(
-                instrument=self.instrument,
-                order_type=self.order_type,
-                action=self.action,
-                trade_id=self.trade_id,
-                leg_id=0,
+                signal_id=0,
                 weight=self.weight,
                 quantity=self.quantity,
             )
@@ -307,11 +263,10 @@ class TestTradeInsructions(unittest.TestCase):
                 instrument=self.instrument,
                 order_type=OrderType.LIMIT,
                 action=self.action,
-                trade_id=self.trade_id,
-                leg_id=self.leg_id,
+                signal_id=self.signal_id,
                 weight=self.weight,
                 quantity=self.quantity,
-                limit_price=-1,
+                limit_price=-1.0,
             )
 
         with self.assertRaisesRegex(
@@ -321,11 +276,10 @@ class TestTradeInsructions(unittest.TestCase):
                 instrument=self.instrument,
                 order_type=OrderType.STOPLOSS,
                 action=self.action,
-                trade_id=self.trade_id,
-                leg_id=self.leg_id,
+                signal_id=self.signal_id,
                 weight=self.weight,
                 quantity=self.quantity,
-                aux_price=-1,
+                aux_price=-1.0,
             )
 
 

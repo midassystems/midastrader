@@ -1,8 +1,8 @@
-from typing import Type
-
-# from midas.core.order_book import OrderBook
-# from midas.core.portfolio import PortfolioServer
-from .base_risk_model import BaseRiskModel
+# from typing import Type
+#
+# # from midas.core.order_book import OrderBook
+# # from midas.core.portfolio import PortfolioServer
+# from .base_risk_model import BaseRiskModel
 
 
 class RiskHandler:
@@ -24,7 +24,7 @@ class RiskHandler:
             Process the evaluated risk data.
     """
 
-    def __init__(self, risk_model_class: Type[BaseRiskModel]):
+    def __init__(self):  # , risk_model_class: Type[BaseRiskModel]):
         """
         Initialize RiskHandler with a specific risk model class.
 

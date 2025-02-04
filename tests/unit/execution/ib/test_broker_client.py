@@ -1,3 +1,4 @@
+from typing import List
 import unittest
 import threading
 from time import sleep
@@ -7,7 +8,7 @@ from unittest.mock import Mock, patch
 
 from midastrader.structs.events import OrderEvent
 from midastrader.message_bus import MessageBus, EventType
-from midastrader.structs.orders import Action, MarketOrder
+from midastrader.structs.orders import Action, BaseOrder, MarketOrder
 from midastrader.structs.symbol import SymbolMap
 from midastrader.execution.adaptors.ib.client import IBAdaptor
 from midastrader.structs.symbol import (
@@ -26,7 +27,7 @@ from midastrader.structs.symbol import (
 class TestIBDataAdaptor(unittest.TestCase):
     def setUp(self):
         # Test symbols
-        hogs = Future(
+        self.hogs = Future(
             instrument_id=1,
             broker_ticker="HEJ4",
             data_ticker="HE",
@@ -55,7 +56,7 @@ class TestIBDataAdaptor(unittest.TestCase):
             term_day_rule="nth_business_day_10",
             market_calendar="CMEGlobex_Lean_Hog",
         )
-        aapl = Equity(
+        self.aapl = Equity(
             instrument_id=2,
             broker_ticker="AAPL",
             data_ticker="AAPL2",
@@ -78,8 +79,8 @@ class TestIBDataAdaptor(unittest.TestCase):
         )
 
         self.symbols_map = SymbolMap()
-        self.symbols_map.add_symbol(hogs)
-        self.symbols_map.add_symbol(aapl)
+        self.symbols_map.add_symbol(self.hogs)
+        self.symbols_map.add_symbol(self.aapl)
 
         # Mock Config
         self.kwargs = {
@@ -114,7 +115,7 @@ class TestIBDataAdaptor(unittest.TestCase):
 
     def test_is_connected(self):
         # Test
-        self.adapter.app.isConnected.return_value = True
+        self.adapter.app.isConnected = Mock(return_value=True)
 
         # Validate
         self.assertTrue(self.adapter.is_connected())
@@ -128,6 +129,9 @@ class TestIBDataAdaptor(unittest.TestCase):
         with patch(
             "threading.Thread.start", return_value=None
         ) as mock_thread_start:
+            self.adapter.app.connected_event.wait = Mock()
+            self.adapter.app.valid_id_event.wait = Mock()
+
             # Test
             self.adapter.connect()
 
@@ -137,6 +141,8 @@ class TestIBDataAdaptor(unittest.TestCase):
             self.adapter.app.valid_id_event.wait.assert_called_once()
 
     def test_disconnect(self):
+        self.adapter.app.disconnect = Mock()
+
         # Test
         self.adapter.disconnect()
 
@@ -148,17 +154,16 @@ class TestIBDataAdaptor(unittest.TestCase):
         self.valid_timestamp = 1651500000
         self.valid_action = Action.LONG
         self.valid_trade_id = 2
-        self.valid_leg_id = 6
-        self.valid_order = MarketOrder(action=self.valid_action, quantity=10)
-        self.valid_contract = Contract()
+        self.valid_signal_id = 2
+        self.valid_order: List[BaseOrder] = [
+            MarketOrder(
+                1, self.valid_signal_id, action=self.valid_action, quantity=10
+            )
+        ]
 
         event = OrderEvent(
-            timestamp=self.valid_timestamp,
-            trade_id=self.valid_trade_id,
-            leg_id=self.valid_leg_id,
-            action=self.valid_action,
-            order=self.valid_order,
-            contract=self.valid_contract,
+            self.valid_timestamp,
+            self.valid_order,
         )
 
         # Test
@@ -177,17 +182,19 @@ class TestIBDataAdaptor(unittest.TestCase):
         self.valid_timestamp = 1651500000
         self.valid_action = Action.LONG
         self.valid_trade_id = 2
-        self.valid_leg_id = 6
-        self.valid_order = MarketOrder(action=self.valid_action, quantity=10)
-        self.valid_contract = Contract()
+        self.valid_signal_id = 2
+        self.valid_order = [
+            MarketOrder(
+                1,
+                signal_id=self.valid_signal_id,
+                action=self.valid_action,
+                quantity=10,
+            )
+        ]
 
         event = OrderEvent(
-            timestamp=self.valid_timestamp,
-            trade_id=self.valid_trade_id,
-            leg_id=self.valid_leg_id,
-            action=self.valid_action,
-            order=self.valid_order,
-            contract=self.valid_contract,
+            self.valid_timestamp,
+            self.valid_order,
         )
 
         # Test
@@ -307,7 +314,7 @@ class TestIBDataAdaptor(unittest.TestCase):
         with self.assertRaisesRegex(
             ValueError, "'contract' must be of type Contract instance."
         ):
-            self.adapter.validate_contract(contract)
+            self.adapter.validate_contract(contract)  # pyright: ignore
 
 
 if __name__ == "__main__":

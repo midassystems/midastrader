@@ -53,7 +53,7 @@ class TestDataApp(unittest.TestCase):
 
     def test_contractDetails(self):
         # Test
-        self.data_app.contractDetails(10, None)
+        self.data_app.contractDetails(10, Mock())
 
         # Validate
         self.assertTrue(self.data_app.is_valid_contract)
@@ -89,8 +89,8 @@ class TestDataApp(unittest.TestCase):
             high,
             low,
             close,
-            volume,
-            wap,
+            Decimal(volume),
+            Decimal(wap),
             count,
         )
 
@@ -123,7 +123,7 @@ class TestDataApp(unittest.TestCase):
         )
         self.data_app.tick_data[123] = bbo_obj
 
-        bbo_obj.levels[0].bid_px = 12345432
+        bbo_obj.levels[0].bid_px = 12345432  # pyright: ignore
 
         # Mock api response
         reqId = 123
@@ -173,7 +173,7 @@ class TestDataApp(unittest.TestCase):
         )
         self.data_app.tick_data[123] = bbo_obj
 
-        bbo_obj.levels[0].bid_px = 12345432
+        bbo_obj.levels[0].bid_px = 12345432  # pyright: ignore
 
         # Mock api response
         reqId = 123

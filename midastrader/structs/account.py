@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, TypedDict, Dict
+from typing import Optional, TypedDict, Dict, Union
 
 
 class EquityDetails(TypedDict):
@@ -119,7 +119,11 @@ class Account:
             "TotalCashBalance": "total_cash_balance",
         }
 
-    def update_from_broker_data(self, broker_key: str, value: any):
+    def update_from_broker_data(
+        self,
+        broker_key: str,
+        value: Union[int, float, str],
+    ):
         """
         Updates account attributes based on data received from the broker.
 

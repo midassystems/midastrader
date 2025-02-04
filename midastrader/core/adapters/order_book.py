@@ -4,14 +4,15 @@ from mbn import RecordMsg
 from threading import Lock
 from typing import Optional
 
-# import threading
-
 from midastrader.config import Mode
+from midastrader.structs.events.rollover_event import RolloverEvent
 from midastrader.structs.symbol import SymbolMap
 from midastrader.structs.events import MarketEvent, EODEvent
 from midastrader.message_bus import MessageBus, EventType
-from midastrader.structs.events.base import SystemEvent
+
+# from midastrader.structs.events.base import SystemEvent
 from midastrader.core.adapters.base import CoreAdapter
+from midastrader.utils.logger import SystemLogger
 
 
 class OrderBook:
@@ -30,6 +31,7 @@ class OrderBook:
             raise Exception(
                 "OrderBook is a singleton. Use get_instance() to access."
             )
+        self.logger = SystemLogger.get_logger()
         self._book: Dict[int, RecordMsg] = {}
         self._last_updated: int = 0
         self._tickers_loaded = False
@@ -44,11 +46,17 @@ class OrderBook:
         return OrderBook._instance
 
     # Read methods (thread-safe)
-    def retrieve(self, instrument_id: int) -> Optional[RecordMsg]:
+    def retrieve(self, instrument_id: int) -> RecordMsg:
         """
         Retrieve market data for a specific instrument.
         """
-        return self._book.get(instrument_id)
+        record = self._book.get(instrument_id)
+
+        if not record:
+            self.logger.error(f"RecordMsg not found for {instrument_id}")
+            raise RuntimeError("RecordMsg not found for {instrument_id}")
+
+        return record
 
     # Read methods (thread-safe)
     @property
@@ -124,7 +132,13 @@ class OrderBookManager(CoreAdapter):
         while not self.shutdown_event.is_set():
             try:
                 item = self.data_queue.get(timeout=0.01)
-                self.handle_event(item)
+                if RecordMsg.is_record(item):
+                    self.logger.info(f"{type(item)}")
+                    self.handle_record(item)
+                elif isinstance(item, EODEvent):
+                    self.handle_eod(item)
+                # elif isinstance(item, RolloverEvent):
+                #     self.handle_rollover()
             except queue.Empty:
                 continue
 
@@ -134,48 +148,38 @@ class OrderBookManager(CoreAdapter):
         while True:
             try:
                 item = self.data_queue.get(timeout=1)
-                self.handle_event(item)
+                if RecordMsg.is_record(item):  # isinstance(item, RecordMsg):
+                    self.handle_record(item)
+                elif isinstance(item, EODEvent):
+                    self.handle_eod(item)
             except queue.Empty:
                 break
 
         self.logger.info("Shutting down OrderbookManager ...")
         self.is_shutdown.set()
 
-    def handle_event(self, event: SystemEvent) -> None:
-        """
-        Handles market data events and updates the order book.
+    def handle_eod(self, event: EODEvent) -> None:
+        self.logger.debug(event)
+        # Publish that EOD processing is complete
+        # processed only in backtest situations
+        self.bus.publish(EventType.EOD, True)
 
-        Behavior:
-            - Updates the order book with the new market data.
-            - Logs the market event.
-            - Checks if initial data for all tickers has been loaded.
-            - Notifies observers of the updated market state.
+        while self.bus.get_flag(EventType.EOD):
+            continue
 
-        Args:
-            subject (Subject): The subject that triggered the event.
-            event_type (EventType): The type of event being handled (e.g., `MARKET_DATA`).
-            record (RecordMsg): The market data record to process.
+        self.bus.publish(EventType.EOD_PROCESSED, True)
 
-        """
-        if isinstance(event, EODEvent):
-            self.logger.debug(event)
-            # Publish that EOD processing is complete
-            # processed only in backtest situations
-            self.bus.publish(EventType.EOD, True)
-
-            while self.bus.get_flag(EventType.EOD):
-                continue
-
-            self.bus.publish(EventType.EOD_PROCESSED, True)
-            return
+    def handle_record(self, record: RecordMsg) -> None:
+        if record.rollover_flag == 1:
+            self.handle_rollover(record)
 
         # Update the order book with the new market data
-        self.book._update(event)
+        self.book._update(record)
 
         # Put market event in the event queue
         market_event = MarketEvent(
-            timestamp=event.ts_event,
-            data=event,
+            timestamp=record.ts_event,
+            data=record,
         )
 
         self.logger.debug(market_event)
@@ -196,6 +200,95 @@ class OrderBookManager(CoreAdapter):
         else:
             self.bus.publish(EventType.ORDER_BOOK, market_event)
 
+    def handle_rollover(self, record: RecordMsg) -> None:
+        # if record.rollover_flag == 1:
+        id = record.hd.instrument_id
+        symbol = self.symbols_map.get_symbol_by_id(id)
+
+        if not symbol:
+            raise RuntimeError(f"Symbol not found for instrument_id {id}.")
+
+        old_record = self.book.retrieve(id)
+
+        if not old_record:
+            raise RuntimeError(f"Instrument_id {id} not in orderbook.")
+
+        rollover_event = RolloverEvent(
+            record.hd.ts_event, symbol, old_record, record
+        )
+
+        self.await_rollover_flag(rollover_event)
+
+        # self.book._update(record)
+
+        # self.await_rollover_flag(rollover_event)
+
+    # def handle_event(self, event: ) -> None:
+    #     """
+    #     Handles market data events and updates the order book.
+    #
+    #     Behavior:
+    #         - Updates the order book with the new market data.
+    #         - Logs the market event.
+    #         - Checks if initial data for all tickers has been loaded.
+    #         - Notifies observers of the updated market state.
+    #
+    #     Args:
+    #         subject (Subject): The subject that triggered the event.
+    #         event_type (EventType): The type of event being handled (e.g., `MARKET_DATA`).
+    #         record (RecordMsg): The market data record to process.
+    #
+    #     """
+    #     if isinstance(event, EODEvent):
+    #         self.logger.debug(event)
+    #         # Publish that EOD processing is complete
+    #         # processed only in backtest situations
+    #         self.bus.publish(EventType.EOD, True)
+    #
+    #         while self.bus.get_flag(EventType.EOD):
+    #             continue
+    #
+    #         self.bus.publish(EventType.EOD_PROCESSED, True)
+    #         return
+    #
+    #     # if self.mode == Mode.BACKTEST:
+    #     #     if event.rollover_flag == 1:
+    #     #         rollover_event = RolloverEvent(
+    #     #             event.hd.ts_event,
+    #     #             self.symbols_map.get_symbol_by_id(event.hd.instrument_id),
+    #     #             self.book.retrieve(event.hd.instrument_id),
+    #     #             event.close,  # update
+    #     #         )
+    #     #
+    #     #         self.await_rollover_flag(rollover_event)
+    #
+    #     # Update the order book with the new market data
+    #     self.book._update(event)
+    #
+    #     # Put market event in the event queue
+    #     market_event = MarketEvent(
+    #         timestamp=event.ts_event,
+    #         data=event,
+    #     )
+    #
+    #     self.logger.debug(market_event)
+    #
+    #     # Check inital data loaded
+    #     if not self.book.tickers_loaded:
+    #         self.book._tickers_loaded = self.check_tickers_loaded()
+    #
+    #     # Backtest only
+    #     # if self.mode == Mode.BACKTEST:
+    #
+    #     # Notify any observers about the market update
+    #     # self.bus.publish(EventType.ORDER_BOOK, market_event)
+    #
+    #     if self.mode == Mode.BACKTEST:
+    #         self.await_equity_updated()
+    #         self.await_market_data_processed(market_event)
+    #     else:
+    #         self.bus.publish(EventType.ORDER_BOOK, market_event)
+
     def check_tickers_loaded(self) -> bool:
         """
         Checks if market data for all tickers in the symbol map has been loaded.
@@ -213,6 +306,26 @@ class OrderBookManager(CoreAdapter):
     #     """
     #     self.await_equity_updated()
     #     self.await_system_updated()
+
+    def await_rollover_flag(
+        self,
+        event: RolloverEvent,
+    ):
+        """
+        Signals that the orderbook and by extensions the market has updated so the portoflio
+        should be updated to reflect these changes (would be done automatically live).
+        """
+        self.bus.publish(EventType.ROLLED_OVER, False)
+        self.bus.publish(EventType.ROLLOVER_EXITED, False)
+        self.bus.publish(EventType.OB_ROLLED, False)
+        self.bus.publish(EventType.ROLLOVER, event)
+
+        while True:
+            if self.bus.get_flag(EventType.ROLLED_OVER):
+                break
+            elif self.bus.get_flag(EventType.ROLLOVER_EXITED):
+                self.book._update(event.entry_record)
+                self.bus.publish(EventType.OB_ROLLED, True)
 
     def await_equity_updated(self):
         """

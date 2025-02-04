@@ -41,16 +41,13 @@ class HistoricalAdaptor(DataAdapter):
         super().__init__(symbols_map, bus)
         self.data_file = kwargs["data_file"]
         self.database_client = DatabaseClient()
-        self.data: BufferStore = None
-        self.mode: Mode = None
+        self.data: BufferStore
+        self.mode: Mode
         self.last_ts = None
         self.next_date = None
         self.current_date = None
         self.eod_triggered = False
         self.eod_event = threading.Event()  # Thread-safe synchronization
-
-        # Subscriptions
-        # self.data_processed_flag = self.bus.subscribe(EventType.EOD_PROCESSED)
 
     def process(self):
         """
@@ -96,9 +93,10 @@ class HistoricalAdaptor(DataAdapter):
         if self.data_file:
             data = BufferStore.from_file(self.data_file)
             metadata = data.metadata
+            self.logger.info(metadata)
             parameters.start = unix_to_iso(metadata.start)
             parameters.end = unix_to_iso(metadata.end)
-            parameters.schema = metadata.schema.__str__()
+            parameters.schema = metadata.schema
         else:
             params = RetrieveParams(
                 parameters.tickers,
@@ -113,25 +111,26 @@ class HistoricalAdaptor(DataAdapter):
         self.data = data
         return True
 
-    def next_record(self) -> RecordMsg:
-        """
-        Retrieves the next record from the data buffer and adjusts its instrument ID.
-
-        Returns:
-            RecordMsg: The next record with updated instrument ID.
-        """
-        record = self.data.replay()
-
-        if record is None:
-            return None
-
-        # Adjust instrument id
-        id = record.hd.instrument_id
-        ticker = self.data.metadata.mappings.get_ticker(id)
-        new_id = self.symbols_map.get_symbol(ticker).instrument_id
-        record.instrument_id = new_id
-
-        return record
+    #
+    # def next_record(self) -> RecordMsg:
+    #     """
+    #     Retrieves the next record from the data buffer and adjusts its instrument ID.
+    #
+    #     Returns:
+    #         RecordMsg: The next record with updated instrument ID.
+    #     """
+    #     record = self.data.replay()
+    #
+    #     if record is None:
+    #         return RecordMsg()
+    #
+    #     # Adjust instrument id
+    #     id = record.hd.instrument_id
+    #     ticker = self.data.metadata.mappings.get_ticker(id)
+    #     new_id = self.symbols_map.get_symbol(ticker).instrument_id
+    #     record.instrument_id = new_id
+    #
+    #     return record
 
     def data_stream(self) -> bool:
         """
@@ -140,10 +139,21 @@ class HistoricalAdaptor(DataAdapter):
         Returns:
             bool: True if a record was processed, False if no more records are available.
         """
-        record = self.next_record()
+        record = self.data.replay()
 
         if record is None:
             return False
+
+        # Adjust instrument id
+        id = record.hd.instrument_id
+        ticker = self.data.metadata.mappings.get_ticker(id)
+        symbol = self.symbols_map.get_symbol(ticker)
+
+        if not symbol:
+            raise RuntimeError("Record instrument_id not found in mappings.")
+
+        new_id = symbol.instrument_id
+        record.instrument_id = new_id
 
         # Check for end of trading da
         if self.mode == Mode.BACKTEST:

@@ -5,6 +5,7 @@ from ibapi.contract import Contract
 
 from midastrader.structs import Trade, Action
 from midastrader.structs.events import ExecutionEvent
+from midastrader.structs.symbol import SecurityType
 
 
 class TestExecutionEvent(unittest.TestCase):
@@ -14,14 +15,16 @@ class TestExecutionEvent(unittest.TestCase):
         self.trade_details = Trade(
             timestamp=1651500000,
             trade_id=1,
-            leg_id=2,
+            signal_id=2,
             instrument=123,
-            quantity=-10,
+            security_type=SecurityType.STOCK,
+            quantity=-10.0,
             avg_price=9.9,
-            trade_value=103829083,
+            trade_value=103829083.0,
             trade_cost=9000.99,
             action=Action.LONG.value,
             fees=9.78,
+            is_rollover=False,
         )
         self.action = random.choice(
             [Action.LONG, Action.COVER, Action.SELL, Action.SHORT]
@@ -51,7 +54,7 @@ class TestExecutionEvent(unittest.TestCase):
             TypeError, "'timestamp' must be of type int."
         ):
             ExecutionEvent(
-                timestamp=datetime(2024, 1, 1),
+                timestamp=datetime(2024, 1, 1),  # pyright: ignore
                 trade_details=self.trade_details,
                 action=self.action,
                 contract=self.contract,
@@ -63,7 +66,7 @@ class TestExecutionEvent(unittest.TestCase):
             ExecutionEvent(
                 timestamp=self.timetamp,
                 trade_details=self.trade_details,
-                action="self.action",
+                action="self.action",  # pyright: ignore
                 contract=self.contract,
             )
 
@@ -72,7 +75,7 @@ class TestExecutionEvent(unittest.TestCase):
         ):
             ExecutionEvent(
                 timestamp=self.timetamp,
-                trade_details="self.trade_details,",
+                trade_details="self.trade_details,",  # pyright: ignore
                 action=self.action,
                 contract=self.contract,
             )
@@ -84,7 +87,7 @@ class TestExecutionEvent(unittest.TestCase):
                 timestamp=self.timetamp,
                 trade_details=self.trade_details,
                 action=self.action,
-                contract="self.contract",
+                contract="self.contract",  # pyright: ignore
             )
 
 

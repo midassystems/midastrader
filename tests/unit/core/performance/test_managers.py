@@ -1,10 +1,10 @@
 import unittest
 import numpy as np
 import pandas as pd
-from unittest.mock import Mock
 
 from midastrader.structs.orders import Action, OrderType
 from midastrader.structs.signal import SignalInstruction
+from midastrader.structs.symbol import SecurityType
 from midastrader.structs.trade import Trade
 from midastrader.structs.account import Account
 from midastrader.structs.events import SignalEvent
@@ -18,151 +18,175 @@ from midastrader.core.adapters.performance.managers import (
 
 class TestTradeManager(unittest.TestCase):
     def setUp(self):
-        self.manager = TradeManager(Mock())
+        self.manager = TradeManager()
         self.manager.trades = {
             "1234": Trade(
                 timestamp=1712066400000000000,
-                trade_id=13,
-                leg_id=1,
+                signal_id=13,
+                trade_id=1,
                 instrument=43,
-                quantity=-63,
+                security_type=SecurityType.FUTURE,
+                quantity=-63.0,
                 avg_price=104.425,
                 trade_value=-2631510.0,
                 trade_cost=354511.71,
                 action="SHORT",
                 fees=-53.55,
+                is_rollover=False,
             ),
             "10928": Trade(
                 timestamp=1712066400000000000,
-                trade_id=13,
-                leg_id=2,
+                signal_id=13,
+                trade_id=2,
                 instrument=70,
-                quantity=114,
+                security_type=SecurityType.FUTURE,
+                quantity=114.0,
                 avg_price=431.5,
                 trade_value=2459550.0,
                 trade_cost=236591.04,
                 action="LONG",
                 fees=-96.9,
+                is_rollover=False,
             ),
             "2827": Trade(
                 timestamp=1712235600000000000,
-                trade_id=13,
-                leg_id=1,
+                signal_id=13,
+                trade_id=3,
                 instrument=43,
-                quantity=63,
+                security_type=SecurityType.FUTURE,
+                quantity=63.0,
                 avg_price=104.55,
                 trade_value=2634660.0,
                 trade_cost=354511.71,
                 action="COVER",
                 fees=-53.55,
+                is_rollover=False,
             ),
             "32342": Trade(
                 timestamp=1712235600000000000,
-                trade_id=13,
-                leg_id=2,
+                signal_id=13,
+                trade_id=4,
                 instrument=70,
-                quantity=-114,
+                security_type=SecurityType.FUTURE,
+                quantity=-114.0,
                 avg_price=433.0,
                 trade_value=-2468100.0,
                 trade_cost=236591.04,
                 action="SELL",
                 fees=-96.9,
+                is_rollover=False,
             ),
             "23232": Trade(
                 timestamp=1712336400000000000,
-                trade_id=14,
-                leg_id=1,
+                signal_id=14,
+                trade_id=5,
                 instrument=43,
-                quantity=-63,
+                security_type=SecurityType.FUTURE,
+                quantity=-63.0,
                 avg_price=107.925,
                 trade_value=-2719710.0,
                 trade_cost=354511.71,
                 action="SHORT",
                 fees=-53.55,
+                is_rollover=False,
             ),
             "23234234": Trade(
                 timestamp=1712336400000000000,
-                trade_id=14,
-                leg_id=2,
+                signal_id=14,
+                trade_id=6,
                 instrument=70,
-                quantity=114,
+                security_type=SecurityType.FUTURE,
+                quantity=114.0,
                 avg_price=433.25,
                 trade_value=2469525.0,
                 trade_cost=236591.04,
                 action="LONG",
                 fees=-96.9,
+                is_rollover=False,
             ),
             "234342": Trade(
                 timestamp=1712754000000000000,
-                trade_id=14,
-                leg_id=1,
+                signal_id=14,
+                trade_id=7,
                 instrument=43,
-                quantity=63,
+                security_type=SecurityType.FUTURE,
+                quantity=63.0,
                 avg_price=107.875,
                 trade_value=2718450.0,
                 trade_cost=354511.71,
                 action="COVER",
                 fees=-53.55,
+                is_rollover=False,
             ),
             "9434": Trade(
                 timestamp=1712754000000000000,
-                trade_id=14,
-                leg_id=2,
+                signal_id=14,
+                trade_id=8,
                 instrument=70,
-                quantity=-114,
+                security_type=SecurityType.FUTURE,
+                quantity=-114.0,
                 avg_price=433.5,
                 trade_value=-2470950.0,
                 trade_cost=236591.04,
                 action="SELL",
                 fees=-96.9,
+                is_rollover=False,
             ),
             "087342": Trade(
                 timestamp=1712926800000000000,
-                trade_id=15,
-                leg_id=1,
+                signal_id=15,
+                trade_id=9,
                 instrument=43,
-                quantity=63,
+                security_type=SecurityType.FUTURE,
+                quantity=63.0,
                 avg_price=105.25,
                 trade_value=2652300.0,
                 trade_cost=354511.71,
                 action="LONG",
                 fees=-53.55,
+                is_rollover=False,
             ),
             "635209": Trade(
                 timestamp=1712926800000000000,
-                trade_id=15,
-                leg_id=2,
+                signal_id=15,
+                trade_id=10,
                 instrument=70,
-                quantity=-115,
+                security_type=SecurityType.FUTURE,
+                quantity=-115.0,
                 avg_price=446.25,
                 trade_value=-2565937.5,
                 trade_cost=238666.4,
                 action="SHORT",
                 fees=-97.75,
+                is_rollover=False,
             ),
             "9654": Trade(
                 timestamp=1713272400000000000,
-                trade_id=15,
-                leg_id=1,
+                signal_id=15,
+                trade_id=11,
                 instrument=43,
-                quantity=-63,
+                security_type=SecurityType.FUTURE,
+                quantity=-63.0,
                 avg_price=102.775,
                 trade_value=-2589930.0,
                 trade_cost=354511.71,
                 action="SELL",
                 fees=-53.55,
+                is_rollover=False,
             ),
             "5498703": Trade(
                 timestamp=1713272400000000000,
-                trade_id=15,
-                leg_id=2,
+                signal_id=15,
+                trade_id=12,
                 instrument=70,
-                quantity=115,
+                security_type=SecurityType.FUTURE,
+                quantity=115.0,
                 avg_price=441.75,
                 trade_value=2540062.5,
                 trade_cost=238666.4,
                 action="COVER",
                 fees=-97.75,
+                is_rollover=False,
             ),
         }
 
@@ -193,7 +217,7 @@ class TestTradeManager(unittest.TestCase):
 
         # Expected
         data = {
-            "trade_id": [13, 14, 15],
+            "signal_id": [13, 14, 15],
             "start_date": [
                 1712066400000000000,
                 1712336400000000000,
@@ -337,7 +361,7 @@ class TestTradeManager(unittest.TestCase):
 
 class TestEquityManager(unittest.TestCase):
     def setUp(self):
-        self.manager = EquityManager(Mock())
+        self.manager = EquityManager()
         self.manager.equity_value = [
             {"timestamp": 1713888000000000000, "equity_value": 1189792.75},
             {"timestamp": 1713891600000000000, "equity_value": 1193107.75},
@@ -477,7 +501,7 @@ class TestEquityManager(unittest.TestCase):
 
 class TestAccountManager(unittest.TestCase):
     def setUp(self):
-        self.manager = AccountManager(Mock())
+        self.manager = AccountManager()
 
     def test_account_log(self):
         account_info = Account(
@@ -499,7 +523,7 @@ class TestAccountManager(unittest.TestCase):
 
 class TestSignalManager(unittest.TestCase):
     def setUp(self):
-        self.manager = SignalManager(Mock())
+        self.manager = SignalManager()
 
         # Signal data
         self.timestamp = 1651500000
@@ -507,19 +531,17 @@ class TestSignalManager(unittest.TestCase):
             instrument=1,
             order_type=OrderType.MARKET,
             action=Action.LONG,
-            trade_id=2,
-            leg_id=5,
+            signal_id=2,
             weight=0.5,
-            quantity=10,
+            quantity=10.0,
         )
         self.trade2 = SignalInstruction(
             instrument=2,
             order_type=OrderType.MARKET,
             action=Action.LONG,
-            trade_id=2,
-            leg_id=6,
+            signal_id=2,
             weight=0.5,
-            quantity=10,
+            quantity=10.0,
         )
         self.trade_instructions = [self.trade1, self.trade2]
         self.event = SignalEvent(self.timestamp, self.trade_instructions)
@@ -532,10 +554,9 @@ class TestSignalManager(unittest.TestCase):
                 "ticker": 1,
                 "order_type": "MKT",
                 "action": "LONG",
-                "trade_id": 2,
-                "leg_id": 5,
+                "signal_id": 2,
                 "weight": 0.5,
-                "quantity": 10,
+                "quantity": 10.0,
                 "limit_price": "",
                 "aux_price": "",
             },
@@ -544,10 +565,9 @@ class TestSignalManager(unittest.TestCase):
                 "ticker": 2,
                 "order_type": "MKT",
                 "action": "LONG",
-                "trade_id": 2,
-                "leg_id": 6,
+                "signal_id": 2,
                 "weight": 0.5,
-                "quantity": 10,
+                "quantity": 10.0,
                 "limit_price": "",
                 "aux_price": "",
             },

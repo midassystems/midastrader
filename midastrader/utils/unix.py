@@ -1,6 +1,6 @@
 import pytz
 import pandas as pd
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 
 
 def iso_to_unix(timestamp_str: str):
@@ -64,7 +64,7 @@ def unix_to_iso(unix_timestamp: int, tz_info="UTC"):
         return dt_utc.isoformat()
 
 
-def unix_to_date(unix_timestamp: int, tz_info="UTC") -> datetime.date:
+def unix_to_date(unix_timestamp: int, tz_info="UTC") -> date:
     """
     Converts a UNIX timestamp in nanoseconds to an ISO 8601 formatted date string, with an optional timezone.
 

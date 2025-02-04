@@ -118,7 +118,7 @@ class TestIBDataAdaptor(unittest.TestCase):
 
     def test_is_connected(self):
         # Test
-        self.adapter.app.isConnected.return_value = True
+        self.adapter.app.isConnected = Mock(return_value=True)
 
         # Validate
         self.assertTrue(self.adapter.is_connected())
@@ -129,6 +129,9 @@ class TestIBDataAdaptor(unittest.TestCase):
         with patch(
             "threading.Thread.start", return_value=None
         ) as mock_thread_start:
+            self.adapter.app.connected_event.wait = Mock()
+            self.adapter.app.valid_id_event.wait = Mock()
+
             # Test
             self.adapter.connect()
 
@@ -138,6 +141,8 @@ class TestIBDataAdaptor(unittest.TestCase):
             self.adapter.app.valid_id_event.wait.assert_called_once()
 
     def test_disconnect(self):
+        self.adapter.app.disconnect = Mock()
+
         # Test
         self.adapter.disconnect()
 
@@ -173,6 +178,8 @@ class TestIBDataAdaptor(unittest.TestCase):
         with patch.object(
             self.adapter, "_get_valid_id", return_value=123
         ) as _:
+            self.adapter.app.reqRealTimeBars = Mock()
+
             # Test
             self.adapter.stream_5_sec_bars(contract=contract)
 
@@ -200,6 +207,8 @@ class TestIBDataAdaptor(unittest.TestCase):
         with patch.object(
             self.adapter, "_get_valid_id", return_value=123
         ) as _:
+            self.adapter.app.reqRealTimeBars = Mock()
+
             # Test
             self.adapter.stream_5_sec_bars(contract=contract)
 
@@ -213,6 +222,8 @@ class TestIBDataAdaptor(unittest.TestCase):
         with patch.object(
             self.adapter, "_get_valid_id", return_value=123
         ) as _:
+            self.adapter.app.reqMktData = Mock()
+
             # Test
             self.adapter.stream_quote_data(contract=contract)
 
@@ -236,13 +247,15 @@ class TestIBDataAdaptor(unittest.TestCase):
         self.adapter.app.reqId_to_instrument = {321: contract.symbol}
 
         with patch.object(
-            self.adapter, "_get_valid_id", return_value=123
+            self.adapter, "_get_valid_id", return_value=321
         ) as _:
+            self.adapter.app.reqMktData = Mock()
+
             # Test
             self.adapter.stream_quote_data(contract=contract)
 
             # Validate
-            self.assertFalse(self.adapter.app.reqRealTimeBars.called)
+            self.assertFalse(self.adapter.app.reqMktData.called)
 
     def test_cancel_all_bar_data(self):
         contract = Contract()
@@ -269,12 +282,11 @@ class TestIBDataAdaptor(unittest.TestCase):
     # Type Validation
     def test_get_data_value_error(self):
         contract = Contract()
-        data_type = "BAR"
 
         with self.assertRaisesRegex(
             ValueError, "'data_type' must be of type MarketDataType enum."
         ):
-            self.adapter.get_data(data_type, contract)
+            self.adapter.get_data("BAR", contract)  # pyright: ignore
 
     # Basic Validation
     def change_is_valid_contract_true(self, reqId, contract):
@@ -370,7 +382,7 @@ class TestIBDataAdaptor(unittest.TestCase):
         with self.assertRaisesRegex(
             ValueError, "'contract' must be of type Contract instance."
         ):
-            self.adapter.validate_contract(contract)
+            self.adapter.validate_contract(contract)  # pyright: ignore
 
 
 if __name__ == "__main__":

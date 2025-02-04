@@ -147,7 +147,15 @@ def load_strategy_class(
         ImportError: If the module cannot be loaded.
     """
     spec = importlib.util.spec_from_file_location("module.name", module_path)
+
+    if spec is None:
+        raise ImportError(f"Cannot load module from path: {module_path}")
+
     module = importlib.util.module_from_spec(spec)
+
+    if spec.loader is None:
+        raise ImportError(f"Module {module_path} has no valid loader.")
+
     spec.loader.exec_module(module)
     strategy_class = getattr(module, class_name)
 

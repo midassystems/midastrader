@@ -1,4 +1,3 @@
-import time
 import threading
 import signal
 
@@ -47,16 +46,17 @@ class EngineBuilder:
             mode (Mode): Mode of operation, either `Mode.LIVE` or `Mode.BACKTEST`.
         """
         self.mode = mode
-        self.config = self._load_config(config_path)
-        self.bus = None
-        self.params = None
-        self.data_engine = None
-        self.execution_engine = None
-        self.core_engine = None
-        self.symbols_map = None
-        self.eod_event_flag = None
+        self.config = self.load_config(config_path)
 
-    def _load_config(self, config_path: str) -> Config:
+        self.logger = self.create_logger()
+        self.bus = self.create_messagebus()
+        self.params = self.create_parameters()
+        self.symbols_map = self.create_symbols_map()
+        self.data_engine = self.create_data_engine()
+        self.execution_engine = self.create_execution_engine()
+        self.core_engine = self.create_core_engine()
+
+    def load_config(self, config_path: str) -> Config:
         """
         Load the trading system configuration from a TOML file.
 
@@ -68,7 +68,7 @@ class EngineBuilder:
         """
         return Config.from_toml(config_path)
 
-    def create_logger(self):
+    def create_logger(self) -> SystemLogger:
         """
         Create the system logger for logging output.
 
@@ -78,20 +78,17 @@ class EngineBuilder:
         Returns:
             EngineBuilder: Returns the current instance for method chaining.
         """
-        SystemLogger(
+        return SystemLogger(
             self.config.strategy_parameters["strategy_name"],
             self.config.log_output,
             self.config.output_path,
             self.config.log_level,
         )
-        return self
 
-    def create_messagebus(self):
+    def create_messagebus(self) -> MessageBus:
+        return MessageBus()
 
-        self.bus = MessageBus()
-        return self
-
-    def create_orderbook(self):
+    def create_orderbook(self) -> OrderBook:
         """
         Create the system logger for logging output.
 
@@ -101,67 +98,65 @@ class EngineBuilder:
         Returns:
             EngineBuilder: Returns the current instance for method chaining.
         """
-        OrderBook()
-        return self
+        return OrderBook()
 
-    def create_symbols_map(self):
+    def create_symbols_map(self) -> SymbolMap:
         """
         Create the symbol map for all trading instruments.
 
             Returns:
             EngineBuilder: Returns the current instance for method chaining.
         """
-        self.symbols_map = SymbolMap()
+        symbols_map = SymbolMap()
 
         for symbol in self.params.symbols:
-            self.symbols_map.add_symbol(symbol=symbol)
-        return self
+            symbols_map.add_symbol(symbol=symbol)
+        return symbols_map
 
-    def create_parameters(self):
+    def create_parameters(self) -> Parameters:
         """
         Create and load trading parameters from the configuration.
 
         Returns:
             EngineBuilder: Returns the current instance for method chaining.
         """
-        self.params = Parameters.from_dict(self.config.strategy_parameters)
-        return self
+        return Parameters.from_dict(self.config.strategy_parameters)
 
-    def create_data_engine(self) -> None:
-        self.data_engine = DataEngine(
+    def create_data_engine(self) -> DataEngine:
+        data_engine = DataEngine(
             self.symbols_map,
             self.bus,
             self.mode,
             self.params,
         )
-        self.data_engine.construct_adaptors(self.config.vendors)
+        data_engine.construct_adaptors(self.config.vendors)
 
-        return self
+        return data_engine
 
-    def create_execution_engine(self) -> None:
-        self.execution_engine = ExecutionEngine(
+    def create_execution_engine(self) -> ExecutionEngine:
+        execution_engine = ExecutionEngine(
             self.symbols_map,
             self.bus,
             self.mode,
             self.params,
         )
-        self.execution_engine.initialize_adaptors(self.config.executors)
+        execution_engine.initialize_adaptors(self.config.executors)
 
-        return self
+        return execution_engine
 
-    def create_core_engine(self) -> None:
-        self.core_engine = CoreEngine(
+    def create_core_engine(self) -> CoreEngine:
+        core_engine = CoreEngine(
             self.symbols_map,
             self.bus,
             self.mode,
             self.params,
             self.config.output_path,
         )
-        self.core_engine.initialize()
+        core_engine.initialize()
 
-        return self
+        return core_engine
 
-    def build(self):
+    def build(self) -> "Engine":
         """
         Finalize and return the fully constructed trading system engine.
 
@@ -171,6 +166,7 @@ class EngineBuilder:
         return Engine(
             mode=self.mode,
             config=self.config,
+            bus=self.bus,
             symbols_map=self.symbols_map,
             params=self.params,
             core_engine=self.core_engine,
@@ -219,6 +215,7 @@ class Engine:
         self,
         mode: Mode,
         config: Config,
+        bus: MessageBus,
         symbols_map: SymbolMap,
         params: Parameters,
         core_engine: CoreEngine,
@@ -245,6 +242,7 @@ class Engine:
         """
         self.mode = mode
         self.config = config
+        self.bus = bus
         self.symbols_map = symbols_map
         self.logger = SystemLogger.get_logger()
         self.parameters = params
@@ -275,7 +273,9 @@ class Engine:
             self.config.strategy_class,
         )
 
-        self.core_engine.set_strategy(strategy_class)
+        strategy = strategy_class(self.symbols_map, self.bus)
+
+        self.core_engine.set_strategy(strategy)
 
         # self.logger.info("Trading system initialized successfully.")
 
@@ -336,25 +336,30 @@ class Engine:
             continue
 
         # Perform cleanup here
-        # self.database_updater.delete_session()
+        self.data_engine.stop()
 
         # Finalize and save to database
         self.execution_engine.stop()
 
-        self.broker_client.request_account_summary()
-        time.sleep(5)  # time for final account summary request-maybe shorten
-        self.performance_manager.save()
+        self.core_engine.save()
+        self.core_engine.wait_until_complete()
 
-    def stop(self):
-        """
-        Gracefully shut down the trading engine.
+        self.logger.info("Live completed ...")
 
-        Disconnects live data feeds and performs cleanup operations.
-        """
-        self.logger.info("Shutting down the engine.")
-        if self.mode == Mode.LIVE:
-            self.live_data_client.disconnect()
-        self.logger.info("Engine shutdown complete.")
+        # self.broker_client.request_account_summary()
+        # time.sleep(5)  # time for final account summary request-maybe shorten
+        # self.performance_manager.save()
+
+    # def stop(self):
+    #     """
+    #     Gracefully shut down the trading engine.
+    #
+    #     Disconnects live data feeds and performs cleanup operations.
+    #     """
+    #     self.logger.info("Shutting down the engine.")
+    #     if self.mode == Mode.LIVE:
+    #         self.live_data_client.disconnect()
+    #     self.logger.info("Engine shutdown complete.")
 
     def _signal_handler(self, signum, frame):
         """
@@ -367,19 +372,22 @@ class Engine:
         self.logger.info("Signal received, preparing to shut down.")
         self.running = False  # Stop the event loop
 
-        # def _run_backtest_event_loop(self):
-        #     """Event loop for backtesting."""
-        #     # Load Initial account data
-        #     self.broker_client.update_account()
-        #
-        #     while self.hist_data_client.data_stream():
-        #         continue
-        #
-        #     # Perform EOD operations for the last trading day
-        #     self.broker_client.liquidate_positions()
-        #
-        #     # Finalize and save to database
-        #     self.performance_manager.save(self.mode, self.config.output_path)
+
+# =========  Delete below ==========
+
+# def _run_backtest_event_loop(self):
+#     """Event loop for backtesting."""
+#     # Load Initial account data
+#     self.broker_client.update_account()
+#
+#     while self.hist_data_client.data_stream():
+#         continue
+#
+#     # Perform EOD operations for the last trading day
+#     self.broker_client.liquidate_positions()
+#
+#     # Finalize and save to database
+#     self.performance_manager.save(self.mode, self.config.output_path)
 
 
 # def connect_execution_engine(self):

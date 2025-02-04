@@ -1,6 +1,6 @@
 import mbn
 from dataclasses import dataclass
-from typing import Union, Optional
+from typing import Optional
 
 from midastrader.structs.constants import PRICE_FACTOR
 from midastrader.structs.orders import (
@@ -34,12 +34,13 @@ class SignalInstruction:
     instrument: int
     order_type: OrderType
     action: Action
-    trade_id: int
-    leg_id: int
-    weight: float
-    quantity: Union[int, float]
-    limit_price: Optional[float] = None
-    aux_price: Optional[float] = None
+    signal_id: int
+    # trade_id: int = 0
+    # leg_id: int = 0
+    weight: float = 0.0
+    quantity: float = 0.0
+    limit_price: Optional[float] = 0.0
+    aux_price: Optional[float] = 0.0
 
     def __post_init__(self):
         """
@@ -58,30 +59,30 @@ class SignalInstruction:
             )
         if not isinstance(self.action, Action):
             raise TypeError("'action' field must be of type Action enum.")
-        if not isinstance(self.trade_id, int):
-            raise TypeError("'trade_id' field must of type int.")
-        if not isinstance(self.leg_id, int):
-            raise TypeError("'leg_id' field must be of type int.")
-        if not isinstance(self.quantity, (int, float)):
-            raise TypeError("'quantity' field must be of type int or float.")
+        if not isinstance(self.signal_id, int):
+            raise TypeError("'signal_id' field must of type int.")
+        # if not isinstance(self.leg_id, int):
+        # raise TypeError("'leg_id' field must be of type int.")
+        if not isinstance(self.quantity, float):
+            raise TypeError("'quantity' field must be of type float.")
         if self.order_type == OrderType.LIMIT and not isinstance(
-            self.limit_price, (int, float)
+            self.limit_price, float
         ):
             raise TypeError(
-                "'limit_price' field must be int or float for OrderType.LIMIT."
+                "'limit_price' field must be float for OrderType.LIMIT."
             )
         if self.order_type == OrderType.STOPLOSS and not isinstance(
-            self.aux_price, (int, float)
+            self.aux_price, float
         ):
             raise TypeError(
-                "'aux_price' field must be int or float for OrderType.STOPLOSS."
+                "'aux_price' field must be float for OrderType.STOPLOSS."
             )
 
         # Value Constraint
-        if self.trade_id <= 0:
-            raise ValueError("'trade_id' field must be greater than zero.")
-        if self.leg_id <= 0:
-            raise ValueError("'leg_id' field must must be greater than zero.")
+        if self.signal_id <= 0:
+            raise ValueError("'signal_id' field must be greater than zero.")
+        # if self.leg_id <= 0:
+        # raise ValueError("'leg_id' field must must be greater than zero.")
         if self.limit_price and self.limit_price <= 0:
             raise ValueError(
                 "'limit_price' field must must be greater than zero."
@@ -102,8 +103,8 @@ class SignalInstruction:
             "ticker": self.instrument,
             "order_type": self.order_type.value,
             "action": self.action.value,
-            "trade_id": self.trade_id,
-            "leg_id": self.leg_id,
+            "signal_id": self.signal_id,
+            # "leg_id": self.leg_id,
             "weight": round(self.weight, 4),
             "quantity": self.quantity,
             "limit_price": (self.limit_price if self.limit_price else ""),
@@ -121,19 +122,20 @@ class SignalInstruction:
         Returns:
             mbn.SignalInstructions: The binary-compatible signal structure.
         """
+
         return mbn.SignalInstructions(
             ticker=ticker,
             order_type=self.order_type.value,
             action=self.action.value,
-            trade_id=self.trade_id,
-            leg_id=self.leg_id,
+            trade_id=self.signal_id,
+            leg_id=self.signal_id,
             weight=int(self.weight * PRICE_FACTOR),
-            quantity=self.quantity,
-            limit_price=(self.limit_price if self.limit_price else ""),
-            aux_price=self.aux_price if self.aux_price else "",
+            quantity=int(self.quantity * PRICE_FACTOR),
+            limit_price=str(self.limit_price) if self.limit_price else "",
+            aux_price=str(self.aux_price) if self.aux_price else "",
         )
 
-    def to_order(self) -> BaseOrder:
+    def to_order(self) -> Optional[BaseOrder]:
         """
         Converts the signal into its corresponding order object.
 
@@ -142,19 +144,30 @@ class SignalInstruction:
                        based on the order_type attribute.
         """
         if self.order_type == OrderType.MARKET:
-            return MarketOrder(action=self.action, quantity=self.quantity)
+            return MarketOrder(
+                self.instrument,
+                self.signal_id,
+                self.action,
+                self.quantity,
+            )
         elif self.order_type == OrderType.LIMIT:
-            return LimitOrder(
-                action=self.action,
-                quantity=self.quantity,
-                limit_price=self.limit_price,
-            )
+            if self.limit_price:
+                return LimitOrder(
+                    self.instrument,
+                    self.signal_id,
+                    self.action,
+                    self.quantity,
+                    self.limit_price,
+                )
         elif self.order_type == OrderType.STOPLOSS:
-            return StopLoss(
-                action=self.action,
-                quantity=self.quantity,
-                aux_price=self.aux_price,
-            )
+            if self.aux_price:
+                return StopLoss(
+                    self.instrument,
+                    self.signal_id,
+                    self.action,
+                    self.quantity,
+                    self.aux_price,
+                )
 
     def __str__(self) -> str:
         """
@@ -167,8 +180,8 @@ class SignalInstruction:
             f"Instrument: {self.instrument}, "
             f"Order Type: {self.order_type.name}, "
             f"Action: {self.action.name}, "
-            f"Trade ID: {self.trade_id}, "
-            f"Leg ID: {self.leg_id}, "
+            # f"Trade ID: {self.trade_id}, "
+            f"Signal ID: {self.signal_id}, "
             f"Weight: {self.weight}, "
             f"Quantity: {self.quantity}, "
             f"Limit Price: {self.limit_price if self.limit_price else ''}, "

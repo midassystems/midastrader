@@ -11,7 +11,8 @@ from midastrader.core.adapters import (
     PortfolioServerManager,
     PerformanceManager,
 )
-from midastrader.core.adapters.risk import RiskHandler
+
+# from midastrader.core.adapters.risk import RiskHandler
 
 
 class CoreEngine:
@@ -95,16 +96,21 @@ class CoreEngine:
         #         EventType.RISK_MODEL_UPDATE,
         #     )
 
-    def set_strategy(self, strategy_class: BaseStrategy):
+    def set_strategy(self, strategy: BaseStrategy):
         """
         Load and initialize the trading strategy.
 
         Attaches the strategy to key components such as the order book, order manager, and performance manager.
         """
-        self.adapters["strategy"] = strategy_class(
-            self.symbols_map,
-            self.message_bus,
-        )
+        if not isinstance(strategy, BaseStrategy):
+            raise TypeError("Strategy must be an instance of BaseStrategy")
+        # self._strategy = value
+
+        self.adapters["strategy"] = strategy
+        # strategy(
+        #     self.symbols_map,
+        #     self.message_bus,
+        # )
 
         self.adapters["performance_manager"].set_strategy(
             self.adapters["strategy"]

@@ -7,6 +7,7 @@ import threading
 from datetime import time
 from unittest.mock import Mock, MagicMock
 
+from midastrader.structs.events.market_event import MarketEvent
 from midastrader.structs.symbol import SymbolMap
 from midastrader.utils.logger import SystemLogger
 from midastrader.structs.account import Account, EquityDetails
@@ -43,7 +44,7 @@ class TestStrategy(BaseStrategy):
     def prepare(self):
         pass
 
-    def handle_event(self):
+    def handle_event(self, event: MarketEvent) -> None:
         pass
 
     def get_strategy_data(self) -> pd.DataFrame:
@@ -109,17 +110,15 @@ class TestPerformanceManager(unittest.TestCase):
         self.symbols_map.add_symbol(aapl)
 
         # Parameters
-        self.schema = "Ohlcv-1s"
-        self.stype = "continuous"
-        self.dataset = "futures"
+        self.schema = mbn.Schema.OHLCV1_S
+        self.stype = mbn.Stype.CONTINUOUS
+        self.dataset = mbn.Dataset.FUTURES
         self.strategy_name = "Testing"
         self.capital = 1000000
         self.data_type = random.choice([LiveDataType.BAR, LiveDataType.TICK])
         self.strategy_allocation = 1.0
         self.start = "2020-05-18"
         self.end = "2023-12-31"
-        # self.test_start = "2024-01-01"
-        # self.test_end = "2024-01-19"
 
         self.params = Parameters(
             strategy_name=self.strategy_name,
@@ -128,10 +127,8 @@ class TestPerformanceManager(unittest.TestCase):
             data_type=self.data_type,
             start=self.start,
             end=self.end,
-            stype="continuous",
-            dataset="futures",
-            # test_start=self.test_start,
-            # test_end=self.test_end,
+            stype=self.stype,
+            dataset=self.dataset,
             risk_free_rate=0.9,
             symbols=[hogs, aapl],
         )
@@ -193,15 +190,17 @@ class TestPerformanceManager(unittest.TestCase):
         trade_id = "124243"
         trade_data = Trade(
             trade_id=1,
-            leg_id=2,
+            signal_id=2,
             timestamp=16555000000000000,
             instrument=1,
-            quantity=10,
+            security_type=SecurityType.STOCK,
+            quantity=10.0,
             avg_price=85.98,
             trade_value=900.90,
-            trade_cost=400,
+            trade_cost=400.0,
             action=random.choice(["BUY", "SELL"]),
             fees=9.87,
+            is_rollover=False,
         )
 
         trade_event = TradeEvent(trade_id, trade_data)
@@ -220,15 +219,17 @@ class TestPerformanceManager(unittest.TestCase):
         commission = 90.0
         trade_data = Trade(
             trade_id=1,
-            leg_id=2,
+            signal_id=2,
             timestamp=16555000000000000,
             instrument=1,
-            quantity=10,
+            security_type=SecurityType.STOCK,
+            quantity=10.0,
             avg_price=85.98,
             trade_value=900.90,
-            trade_cost=400,
+            trade_cost=400.0,
             action=random.choice(["BUY", "SELL"]),
             fees=0.0,
+            is_rollover=False,
         )
         trade_event = TradeEvent(trade_id, trade_data)
         self.message_bus.publish(EventType.TRADE_UPDATE, trade_event)
@@ -253,19 +254,17 @@ class TestPerformanceManager(unittest.TestCase):
             instrument=1,
             order_type=OrderType.MARKET,
             action=Action.LONG,
-            trade_id=2,
-            leg_id=5,
+            signal_id=2,
             weight=0.5,
-            quantity=10,
+            quantity=10.0,
         )
         self.trade2 = SignalInstruction(
             instrument=2,
             order_type=OrderType.MARKET,
             action=Action.LONG,
-            trade_id=2,
-            leg_id=6,
+            signal_id=2,
             weight=0.5,
-            quantity=10,
+            quantity=10.0,
         )
         self.trade_instructions = [self.trade1, self.trade2]
         signal = SignalEvent(self.timestamp, self.trade_instructions)
@@ -284,50 +283,58 @@ class TestPerformanceManager(unittest.TestCase):
             "25432": Trade(
                 timestamp=1640995200000000000,
                 trade_id=1,
-                leg_id=1,
+                signal_id=1,
                 instrument=1,
-                quantity=10,
-                avg_price=10,
-                trade_value=-100,
-                trade_cost=100,
-                fees=10,
+                security_type=SecurityType.STOCK,
+                quantity=10.0,
+                avg_price=10.0,
+                trade_value=-100.0,
+                trade_cost=100.0,
+                fees=10.0,
                 action=Action.LONG.value,
+                is_rollover=False,
             ),
             "532": Trade(
                 timestamp=1641081600000000000,
-                trade_id=1,
-                leg_id=1,
+                trade_id=2,
+                signal_id=1,
                 instrument=1,
-                quantity=-10,
-                avg_price=15,
-                trade_value=150,
-                trade_cost=100,
-                fees=10,
+                security_type=SecurityType.STOCK,
+                quantity=-10.0,
+                avg_price=15.0,
+                trade_value=150.0,
+                trade_cost=100.0,
+                fees=10.0,
                 action=Action.SELL.value,
+                is_rollover=False,
             ),
             "5432": Trade(
                 timestamp=1640995200000000000,
-                trade_id=2,
-                leg_id=1,
+                trade_id=3,
+                signal_id=2,
                 instrument=1,
-                quantity=-10,
-                avg_price=20,
-                trade_value=500,
-                trade_cost=100,
-                fees=10,
+                security_type=SecurityType.STOCK,
+                quantity=-10.0,
+                avg_price=20.0,
+                trade_value=500.0,
+                trade_cost=100.0,
+                fees=10.0,
                 action=Action.SHORT.value,
+                is_rollover=False,
             ),
             "9867": Trade(
                 timestamp=1641081600000000000,
-                trade_id=2,
-                leg_id=1,
+                trade_id=4,
+                signal_id=2,
                 instrument=1,
-                quantity=10,
-                avg_price=18,
-                trade_value=-180,
-                trade_cost=100,
-                fees=10,
+                security_type=SecurityType.STOCK,
+                quantity=10.0,
+                avg_price=18.0,
+                trade_value=-180.0,
+                trade_cost=100.0,
+                fees=10.0,
                 action=Action.COVER.value,
+                is_rollover=False,
             ),
         }
 
@@ -348,19 +355,17 @@ class TestPerformanceManager(unittest.TestCase):
             instrument=1,
             order_type=OrderType.MARKET,
             action=Action.LONG,
-            trade_id=2,
-            leg_id=5,
+            signal_id=2,
             weight=0.5,
-            quantity=2,
+            quantity=2.0,
         )
         self.trade2 = SignalInstruction(
             instrument=2,
             order_type=OrderType.MARKET,
             action=Action.LONG,
-            trade_id=2,
-            leg_id=6,
+            signal_id=2,
             weight=0.5,
-            quantity=2,
+            quantity=2.0,
         )
         self.trade_instructions = [self.trade1, self.trade2]
 
@@ -376,8 +381,8 @@ class TestPerformanceManager(unittest.TestCase):
 
         # Validate parameters
         self.assertEqual(
-            backtest.metadata.parameters.__dict__(),
-            self.params.to_mbn().__dict__(),
+            backtest.metadata.parameters.to_dict(),
+            self.params.to_mbn().to_dict(),
         )
 
         # Validate static stats
@@ -408,13 +413,11 @@ class TestPerformanceManager(unittest.TestCase):
             "sortino_ratio",
         ]
 
-        static_stats = list(backtest.metadata.static_stats.__dict__().keys())
+        static_stats = list(backtest.metadata.static_stats.to_dict().keys())
 
         for key in static_stats:
             self.assertIn(key, expected_static_keys)
-            self.assertIsNotNone(
-                backtest.metadata.static_stats.__dict__()[key]
-            )
+            self.assertIsNotNone(backtest.metadata.static_stats.to_dict()[key])
 
         # Validate timeseries stats
         expected_timeseries_keys = {
@@ -425,10 +428,10 @@ class TestPerformanceManager(unittest.TestCase):
             "percent_drawdown",
         }
         actual_daily_timeseries_keys = set(
-            backtest.daily_timeseries_stats[0].__dict__().keys()
+            backtest.daily_timeseries_stats[0].to_dict().keys()
         )
         actual_period_timeseries_keys = set(
-            backtest.period_timeseries_stats[0].__dict__().keys()
+            backtest.period_timeseries_stats[0].to_dict().keys()
         )
 
         self.assertEqual(
@@ -461,19 +464,17 @@ class TestPerformanceManager(unittest.TestCase):
             instrument=1,
             order_type=OrderType.MARKET,
             action=Action.LONG,
-            trade_id=2,
-            leg_id=5,
+            signal_id=2,
             weight=0.5,
-            quantity=2,
+            quantity=2.0,
         )
         self.trade2 = SignalInstruction(
             instrument=2,
             order_type=OrderType.MARKET,
             action=Action.LONG,
-            trade_id=2,
-            leg_id=6,
+            signal_id=2,
             weight=0.5,
-            quantity=2,
+            quantity=2.0,
         )
         self.trade_instructions = [self.trade1, self.trade2]
 
@@ -487,51 +488,59 @@ class TestPerformanceManager(unittest.TestCase):
         trades = {
             "25432": Trade(
                 timestamp=1640995200000000000,
+                signal_id=1,
                 trade_id=1,
-                leg_id=1,
                 instrument=1,
-                quantity=10,
-                avg_price=10,
-                trade_value=-100,
-                trade_cost=100,
-                fees=10,
+                security_type=SecurityType.STOCK,
+                quantity=10.0,
+                avg_price=10.0,
+                trade_value=-100.0,
+                trade_cost=100.0,
+                fees=100.0,
                 action=Action.LONG.value,
+                is_rollover=False,
             ),
             "532": Trade(
                 timestamp=1641081600000000000,
-                trade_id=1,
-                leg_id=1,
+                signal_id=1,
+                trade_id=2,
                 instrument=1,
-                quantity=-10,
-                avg_price=15,
-                trade_value=150,
-                trade_cost=100,
-                fees=10,
+                security_type=SecurityType.STOCK,
+                quantity=-10.0,
+                avg_price=15.0,
+                trade_value=150.0,
+                trade_cost=100.0,
+                fees=10.0,
                 action=Action.SELL.value,
+                is_rollover=False,
             ),
             "5432": Trade(
                 timestamp=1640995200000000000,
-                trade_id=2,
-                leg_id=1,
+                signal_id=2,
+                trade_id=3,
                 instrument=1,
-                quantity=-10,
-                avg_price=20,
-                trade_value=500,
-                trade_cost=100,
-                fees=10,
+                security_type=SecurityType.STOCK,
+                quantity=-10.0,
+                avg_price=20.0,
+                trade_value=500.0,
+                trade_cost=100.0,
+                fees=10.0,
                 action=Action.SHORT.value,
+                is_rollover=False,
             ),
             "9867": Trade(
                 timestamp=1641081600000000000,
-                trade_id=2,
-                leg_id=1,
+                signal_id=2,
+                trade_id=4,
                 instrument=1,
-                quantity=10,
-                avg_price=18,
-                trade_value=-180,
-                trade_cost=100,
-                fees=10,
+                security_type=SecurityType.STOCK,
+                quantity=10.0,
+                avg_price=18.0,
+                trade_value=-180.0,
+                trade_cost=100.0,
+                fees=10.0,
                 action=Action.COVER.value,
+                is_rollover=False,
             ),
         }
 
@@ -597,7 +606,7 @@ class TestPerformanceManager(unittest.TestCase):
         )
 
         self.assertEqual(
-            live_summary.account.__dict__(), expected_account.__dict__()
+            live_summary.account.to_dict(), expected_account.to_dict()
         )
 
 
