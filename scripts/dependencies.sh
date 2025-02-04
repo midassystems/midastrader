@@ -23,4 +23,7 @@ DEPENDENCIES=$(echo "$DEPENDENCIES" | sed '$ s/,$//')
 # Cleanup temporary file
 rm "$TMPFILE"
 
+# Update requirements.txt
+pip freeze | grep -vE '^(build|twine|bump2version|wheel|setuptools|ibapi[ @])' >requirements.txt
+
 echo "Updated pyproject.toml with new dependencies."

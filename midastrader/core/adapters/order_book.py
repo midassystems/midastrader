@@ -1,6 +1,6 @@
 import queue
 from typing import Dict
-from mbn import RecordMsg
+from mbinary import RecordMsg
 from threading import Lock
 from typing import Optional
 

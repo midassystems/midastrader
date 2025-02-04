@@ -2,7 +2,7 @@ from typing import List
 import unittest
 import threading
 from time import sleep
-from mbn import OhlcvMsg
+from mbinary import OhlcvMsg
 from datetime import time
 from unittest.mock import Mock, MagicMock
 

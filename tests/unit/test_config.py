@@ -3,7 +3,7 @@ from typing import List
 import unittest
 from datetime import datetime, time
 
-from mbn import Dataset, Schema, Stype
+from mbinary import Dataset, Schema, Stype
 
 from midastrader.utils.unix import iso_to_unix
 from midastrader.config import Parameters, LiveDataType, Config

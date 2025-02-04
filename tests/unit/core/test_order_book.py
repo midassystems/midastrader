@@ -3,7 +3,7 @@ from time import sleep
 import threading
 from datetime import time
 from midastrader.utils.logger import SystemLogger
-from mbn import OhlcvMsg, BboMsg, Side, BidAskPair
+from mbinary import OhlcvMsg, BboMsg, Side, BidAskPair
 from unittest.mock import MagicMock
 
 from midastrader.config import Mode

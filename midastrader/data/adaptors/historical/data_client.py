@@ -1,5 +1,5 @@
 import threading
-from mbn import BufferStore, RecordMsg
+from mbinary import BufferStore, RecordMsg
 from midas_client.client import DatabaseClient
 from midas_client.historical import RetrieveParams
 from datetime import datetime

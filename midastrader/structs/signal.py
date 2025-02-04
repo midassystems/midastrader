@@ -1,4 +1,4 @@
-import mbn
+import mbinary
 from dataclasses import dataclass
 from typing import Optional
 
@@ -111,19 +111,19 @@ class SignalInstruction:
             "aux_price": self.aux_price if self.aux_price else "",
         }
 
-    def to_mbn(self, ticker: str) -> mbn.SignalInstructions:
+    def to_mbinary(self, ticker: str) -> mbinary.SignalInstructions:
         """
         Converts the SignalInstruction object into a binary structure
-        (mbn.SignalInstructions).
+        (mbinary.SignalInstructions).
 
         Args:
             ticker (str): The ticker or instrument identifier as a string.
 
         Returns:
-            mbn.SignalInstructions: The binary-compatible signal structure.
+            mbinary.SignalInstructions: The binary-compatible signal structure.
         """
 
-        return mbn.SignalInstructions(
+        return mbinary.SignalInstructions(
             ticker=ticker,
             order_type=self.order_type.value,
             action=self.action.value,

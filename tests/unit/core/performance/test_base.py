@@ -1,4 +1,4 @@
-import mbn
+import mbinary
 import unittest
 import pandas as pd
 import random
@@ -110,9 +110,9 @@ class TestPerformanceManager(unittest.TestCase):
         self.symbols_map.add_symbol(aapl)
 
         # Parameters
-        self.schema = mbn.Schema.OHLCV1_S
-        self.stype = mbn.Stype.CONTINUOUS
-        self.dataset = mbn.Dataset.FUTURES
+        self.schema = mbinary.Schema.OHLCV1_S
+        self.stype = mbinary.Stype.CONTINUOUS
+        self.dataset = mbinary.Dataset.FUTURES
         self.strategy_name = "Testing"
         self.capital = 1000000
         self.data_type = random.choice([LiveDataType.BAR, LiveDataType.TICK])
@@ -382,7 +382,7 @@ class TestPerformanceManager(unittest.TestCase):
         # Validate parameters
         self.assertEqual(
             backtest.metadata.parameters.to_dict(),
-            self.params.to_mbn().to_dict(),
+            self.params.to_mbinary().to_dict(),
         )
 
         # Validate static stats
@@ -581,7 +581,7 @@ class TestPerformanceManager(unittest.TestCase):
         live_summary = self.manager.live_summary
 
         # Validate account
-        expected_account = mbn.AccountSummary(
+        expected_account = mbinary.AccountSummary(
             start_timestamp=165000000000,
             start_full_available_funds=int(768953.53 * PRICE_FACTOR),
             start_full_init_margin_req=int(263.95 * PRICE_FACTOR),

@@ -3,7 +3,7 @@ import threading
 from time import sleep
 from datetime import datetime, time
 from unittest.mock import Mock, MagicMock
-from mbn import Dataset, OhlcvMsg, Schema, Stype
+from mbinary import Dataset, OhlcvMsg, Schema, Stype
 
 from midastrader.config import LiveDataType, Parameters, Mode
 from midastrader.structs.events import EODEvent

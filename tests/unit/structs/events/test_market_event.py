@@ -1,6 +1,6 @@
 import unittest
 from datetime import datetime
-from mbn import OhlcvMsg, BboMsg, BidAskPair, Side
+from mbinary import OhlcvMsg, BboMsg, BidAskPair, Side
 
 from midastrader.structs.events import MarketEvent
 

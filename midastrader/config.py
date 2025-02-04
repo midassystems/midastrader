@@ -2,7 +2,7 @@ import toml
 from enum import Enum
 from typing import List
 from dataclasses import dataclass, field
-from mbn import Dataset, Schema, Parameters as MbnParameters, Stype
+from mbinary import Dataset, Schema, Parameters as MbnParameters, Stype
 
 from midastrader.utils import iso_to_unix
 from midastrader.structs import Symbol, SymbolFactory
@@ -138,8 +138,8 @@ class Parameters:
         to_dict():
             Converts the Parameters instance into a dictionary, serializing date strings into UNIX timestamps.
 
-        to_mbn():
-            Converts the Parameters instance into `MbnParameters` format for integration with the `mbn` module.
+        to_mbinary():
+            Converts the Parameters instance into `MbnParameters` format for integration with the `mbinary` module.
 
         from_dict(data: dict) -> Parameters:
             Constructs a Parameters instance from a dictionary, validating and mapping its fields.
@@ -211,12 +211,12 @@ class Parameters:
             "tickers": self.tickers,
         }
 
-    def to_mbn(self) -> MbnParameters:
+    def to_mbinary(self) -> MbnParameters:
         """
         Converts the Parameters instance into an `MbnParameters` object.
 
         Returns:
-            MbnParameters: Object formatted for compatibility with the `mbn` module.
+            MbnParameters: Object formatted for compatibility with the `mbinary` module.
         """
         return MbnParameters(
             strategy_name=self.strategy_name,

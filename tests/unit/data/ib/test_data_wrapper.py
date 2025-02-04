@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import Mock
-from mbn import OhlcvMsg, BboMsg, BidAskPair, Side
+from mbinary import OhlcvMsg, BboMsg, BidAskPair, Side
 from decimal import Decimal
 
 from midastrader.message_bus import MessageBus, EventType

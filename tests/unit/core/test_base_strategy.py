@@ -2,7 +2,7 @@ import unittest
 import pandas as pd
 import time
 import threading
-from mbn import OhlcvMsg
+from mbinary import OhlcvMsg
 from unittest.mock import Mock, patch, MagicMock
 
 from midastrader.structs import SignalInstruction, Action, OrderType

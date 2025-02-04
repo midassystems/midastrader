@@ -1,4 +1,4 @@
-import mbn
+import mbinary
 import numpy as np
 import pandas as pd
 from typing import List, Dict
@@ -281,7 +281,7 @@ class TradeManager:
             "total_fees": round(float(trades_df["fees"].sum()), 4),
         }
 
-    def to_mbn(self, symbols_map: SymbolMap) -> List[mbn.Trades]:
+    def to_mbinary(self, symbols_map: SymbolMap) -> List[mbinary.Trades]:
         """
         Converts trade data into MBN-compatible format.
 
@@ -289,15 +289,15 @@ class TradeManager:
             symbols_map (SymbolMap): Mapping of instrument symbols to their MBN-compatible tickers.
 
         Returns:
-            List[mbn.Trades]: A list of trades in MBN format.
+            List[mbinary.Trades]: A list of trades in MBN format.
         """
-        mbn_trades = []
+        mbinary_trades = []
 
         for i in self.trades.values():
             ticker = symbols_map.map[i.instrument].midas_ticker
-            mbn_trades.append(i.to_mbn(ticker))
+            mbinary_trades.append(i.to_mbinary(ticker))
 
-        return mbn_trades
+        return mbinary_trades
 
     @property
     def trades_dict(self) -> List[dict]:
@@ -549,15 +549,15 @@ class EquityManager:
             )
 
     @property
-    def period_stats_mbn(self) -> List[mbn.TimeseriesStats]:
+    def period_stats_mbinary(self) -> List[mbinary.TimeseriesStats]:
         """
         Converts period statistics to the Midas Binary Notation (MBN) format.
 
         Returns:
-            List[mbn.TimeseriesStats]: List of timeseries statistics in MBN format.
+            List[mbinary.TimeseriesStats]: List of timeseries statistics in MBN format.
         """
         return [
-            mbn.TimeseriesStats(
+            mbinary.TimeseriesStats(
                 timestamp=stat["timestamp"],
                 equity_value=int(stat["equity_value"] * PRICE_FACTOR),
                 percent_drawdown=int(stat["percent_drawdown"] * PRICE_FACTOR),
@@ -570,15 +570,15 @@ class EquityManager:
         ]
 
     @property
-    def daily_stats_mbn(self) -> List[mbn.TimeseriesStats]:
+    def daily_stats_mbinary(self) -> List[mbinary.TimeseriesStats]:
         """
         Converts daily statistics to the Midas Binary Notation (MBN) format.
 
         Returns:
-            List[mbn.TimeseriesStats]: List of daily timeseries statistics in MBN format.
+            List[mbinary.TimeseriesStats]: List of daily timeseries statistics in MBN format.
         """
         return [
-            mbn.TimeseriesStats(
+            mbinary.TimeseriesStats(
                 timestamp=stat["timestamp"],
                 equity_value=int(stat["equity_value"] * PRICE_FACTOR),
                 percent_drawdown=int(stat["percent_drawdown"] * PRICE_FACTOR),
@@ -833,17 +833,17 @@ class SignalManager:
             expanded_df = expanded_df.drop(columns=[column])
         return expanded_df
 
-    def to_mbn(self, symbols_map: SymbolMap) -> List[mbn.Signals]:
+    def to_mbinary(self, symbols_map: SymbolMap) -> List[mbinary.Signals]:
         """
-        Converts the recorded signals into the `mbn.Signals` format for further processing.
+        Converts the recorded signals into the `mbinary.Signals` format for further processing.
 
         Args:
             symbols_map (SymbolMap): A mapping of instrument identifiers to their respective symbols.
 
         Returns:
-            List[mbn.Signals]: A list of signals converted into the `mbn.Signals` format.
+            List[mbinary.Signals]: A list of signals converted into the `mbinary.Signals` format.
         """
         for signal in self.signals:
             self.logger.info(signal.instructions[0].quantity)
             self.logger.info(signal.instructions[0].weight)
-        return [signal.to_mbn(symbols_map) for signal in self.signals]
+        return [signal.to_mbinary(symbols_map) for signal in self.signals]

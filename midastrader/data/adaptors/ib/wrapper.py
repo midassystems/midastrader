@@ -1,7 +1,7 @@
 import time
 import os
 from datetime import datetime
-from mbn import OhlcvMsg
+from mbinary import OhlcvMsg
 import threading
 from typing import Union, Optional
 from decimal import Decimal

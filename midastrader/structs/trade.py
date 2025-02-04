@@ -1,4 +1,4 @@
-import mbn
+import mbinary
 from dataclasses import dataclass
 
 from midastrader.structs.constants import PRICE_FACTOR
@@ -100,7 +100,7 @@ class Trade:
             "is_rollover": self.is_rollover,
         }
 
-    def to_mbn(self, ticker: str) -> mbn.Trades:
+    def to_mbinary(self, ticker: str) -> mbinary.Trades:
         """
         Converts the Trade object into a custom binary structure.
 
@@ -108,9 +108,9 @@ class Trade:
             ticker (str): The instrument ticker to associate with the trade.
 
         Returns:
-            mbn.Trades: A custom binary trade object.
+            mbinary.Trades: A custom binary trade object.
         """
-        return mbn.Trades(
+        return mbinary.Trades(
             trade_id=self.trade_id,
             leg_id=self.signal_id,
             timestamp=self.timestamp,

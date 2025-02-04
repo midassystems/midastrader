@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 
-from mbn import RecordMsg
+from mbinary import RecordMsg
 from midastrader.structs.events.base import SystemEvent
 from midastrader.structs.symbol import Symbol
 

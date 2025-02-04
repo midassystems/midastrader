@@ -2,7 +2,7 @@ import random
 import pandas as pd
 from enum import Enum, auto
 from typing import List
-from mbn import OhlcvMsg
+from mbinary import OhlcvMsg
 
 from midastrader.structs.symbol import SymbolMap
 from midastrader.core.adapters.base_strategy import BaseStrategy
@@ -119,8 +119,9 @@ class RandomSignalStrategy(BaseStrategy):
                     instrument=ticker,  # pyright: ignore
                     order_type=OrderType.MARKET,
                     action=action,
-                    trade_id=self.trade_id,
-                    leg_id=leg_id,
+                    signal_id=1,
+                    # trade_id=self.trade_id,
+                    # leg_id=leg_id,
                     weight=1.0,  # Simplified for testing
                     quantity=quantities[ticker],
                 )

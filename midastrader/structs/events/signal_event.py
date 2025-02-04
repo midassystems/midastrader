@@ -1,4 +1,4 @@
-import mbn
+import mbinary
 from typing import List
 from dataclasses import dataclass, field
 
@@ -67,26 +67,26 @@ class SignalEvent(SystemEvent):
             f"  Instructions:\n    {instructions_str}\n"
         )
 
-    def to_mbn(self, symbols_map: SymbolMap) -> mbn.Signals:
+    def to_mbinary(self, symbols_map: SymbolMap) -> mbinary.Signals:
         """
-        Converts the SignalEvent into an `mbn.Signals` object for compatibility with
-        the `mbn` module.
+        Converts the SignalEvent into an `mbinary.Signals` object for compatibility with
+        the `mbinary` module.
 
         Args:
             symbols_map (SymbolMap): A mapping of symbols to their corresponding tickers.
 
         Returns:
-            mbn.Signals: An `mbn.Signals` instance containing the timestamp and trade instructions.
+            mbinary.Signals: An `mbinary.Signals` instance containing the timestamp and trade instructions.
         """
-        mbn_instructions = []
+        mbinary_instructions = []
 
         for i in self.instructions:
             ticker = symbols_map.map[i.instrument].midas_ticker
-            mbn_instructions.append(i.to_mbn(ticker))
+            mbinary_instructions.append(i.to_mbinary(ticker))
 
-        return mbn.Signals(
+        return mbinary.Signals(
             timestamp=int(self.timestamp),
-            trade_instructions=mbn_instructions,
+            trade_instructions=mbinary_instructions,
         )
 
     def to_dict(self) -> dict:

@@ -1,5 +1,5 @@
 from typing import Union
-from mbn import OhlcvMsg, BboMsg, RecordMsg
+from mbinary import OhlcvMsg, BboMsg, RecordMsg
 from dataclasses import dataclass, field
 
 from midastrader.structs.events.base import SystemEvent

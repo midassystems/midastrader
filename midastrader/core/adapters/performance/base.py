@@ -1,11 +1,11 @@
 from typing import Optional
-import mbn
+import mbinary
 import math
 import queue
 import threading
 import pandas as pd
 from datetime import datetime
-from mbn import BacktestData
+from mbinary import BacktestData
 from midas_client.client import DatabaseClient
 
 from midastrader.structs.symbol import SymbolMap
@@ -290,22 +290,22 @@ class PerformanceManager(CoreAdapter):
         elif self.mode == Mode.LIVE:
             self._save_live()
 
-    def mbn_static_stats(self, static_stats: dict) -> mbn.StaticStats:
+    def mbinary_static_stats(self, static_stats: dict) -> mbinary.StaticStats:
         """
-        Converts static performance statistics into an `mbn.StaticStats` object.
+        Converts static performance statistics into an `mbinary.StaticStats` object.
 
         Behavior:
             - Scales all percentage and ratio metrics using a `PRICE_FACTOR`.
-            - Creates an `mbn.StaticStats` object with all relevant performance statistics.
+            - Creates an `mbinary.StaticStats` object with all relevant performance statistics.
 
         Args:
             static_stats (dict): A dictionary containing static performance metrics.
 
         Returns:
-            mbn.StaticStats: An instance of `mbn.StaticStats` with converted and scaled values.
+            mbinary.StaticStats: An instance of `mbinary.StaticStats` with converted and scaled values.
 
         """
-        return mbn.StaticStats(
+        return mbinary.StaticStats(
             total_trades=static_stats["total_trades"],
             total_winning_trades=static_stats["total_winning_trades"],
             total_losing_trades=static_stats["total_losing_trades"],
@@ -403,37 +403,37 @@ class PerformanceManager(CoreAdapter):
 
         # Create Backtest Object
         self.backtest = BacktestData(
-            metadata=mbn.BacktestMetaData(
+            metadata=mbinary.BacktestMetaData(
                 backtest_id=0,  # dummy value server will assign a unique id
                 backtest_name=self.generate_backtest_name(),
-                parameters=self.params.to_mbn(),
-                static_stats=self.mbn_static_stats(static_stats),
+                parameters=self.params.to_mbinary(),
+                static_stats=self.mbinary_static_stats(static_stats),
             ),
-            period_timeseries_stats=self.equity_manager.period_stats_mbn,
-            daily_timeseries_stats=self.equity_manager.daily_stats_mbn,
-            trades=self.trade_manager.to_mbn(self.symbols_map),
-            signals=self.signal_manager.to_mbn(self.symbols_map),
+            period_timeseries_stats=self.equity_manager.period_stats_mbinary,
+            daily_timeseries_stats=self.equity_manager.daily_stats_mbinary,
+            trades=self.trade_manager.to_mbinary(self.symbols_map),
+            signals=self.signal_manager.to_mbinary(self.symbols_map),
         )
         # Save Backtest Object
         response = self.database.trading.create_backtest(self.backtest)
         self.logger.info(f"Backtest saved with response : {response}")
 
-    def mbn_account_summary(self, account: dict) -> mbn.AccountSummary:
+    def mbinary_account_summary(self, account: dict) -> mbinary.AccountSummary:
         """
-        Converts account summary data into an `mbn.AccountSummary` object.
+        Converts account summary data into an `mbinary.AccountSummary` object.
 
         Behavior:
             - Scales monetary and percentage metrics using a `PRICE_FACTOR`.
-            - Populates `mbn.AccountSummary` with fields for both start and end timestamps, buying power,
+            - Populates `mbinary.AccountSummary` with fields for both start and end timestamps, buying power,
               liquidity, margin requirements, PnL, cash balance, and net liquidation values.
 
         Args:
             account (dict): A dictionary containing account-related metrics for both start and end states.
 
         Returns:
-            mbn.AccountSummary: An instance of `mbn.AccountSummary` with scaled and converted account values.
+            mbinary.AccountSummary: An instance of `mbinary.AccountSummary` with scaled and converted account values.
         """
-        return mbn.AccountSummary(
+        return mbinary.AccountSummary(
             currency=account["currency"],
             start_timestamp=int(account["start_timestamp"]),
             start_buying_power=int(
@@ -493,8 +493,8 @@ class PerformanceManager(CoreAdapter):
 
         Behavior:
             - Combines account log entries for start and end states into a single dictionary.
-            - Converts account data into an `mbn.AccountSummary` object using `mbn_account_summary`.
-            - Creates an `mbn.LiveData` object containing session parameters, trades, signals, and account summary.
+            - Converts account data into an `mbinary.AccountSummary` object using `mbinary_account_summary`.
+            - Creates an `mbinary.LiveData` object containing session parameters, trades, signals, and account summary.
             - Saves the live session data to the database via the `create_live_session` method.
             - Logs the results of the save operation.
 
@@ -512,12 +512,12 @@ class PerformanceManager(CoreAdapter):
         }
 
         # Create Live Summary Object
-        self.live_summary = mbn.LiveData(
+        self.live_summary = mbinary.LiveData(
             live_id=None,
-            parameters=self.params.to_mbn(),
-            trades=self.trade_manager.to_mbn(self.symbols_map),
-            signals=self.signal_manager.to_mbn(self.symbols_map),
-            account=self.mbn_account_summary(combined_data),
+            parameters=self.params.to_mbinary(),
+            trades=self.trade_manager.to_mbinary(self.symbols_map),
+            signals=self.signal_manager.to_mbinary(self.symbols_map),
+            account=self.mbinary_account_summary(combined_data),
         )
 
         # Save Live Summary Session

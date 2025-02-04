@@ -2,7 +2,7 @@
 import threading
 from enum import Enum
 from ibapi.contract import Contract
-from mbn import BboMsg, BidAskPair, Side
+from mbinary import BboMsg, BidAskPair, Side
 
 from midastrader.data.adaptors.ib.wrapper import DataApp
 from midastrader.data.adaptors.base import DataAdapter

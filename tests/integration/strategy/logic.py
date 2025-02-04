@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from enum import Enum, auto
 from typing import List, Dict, Tuple
-from mbn import OhlcvMsg
+from mbinary import OhlcvMsg
 
 from midastrader.message_bus import MessageBus
 from midastrader.structs import SymbolMap, SignalInstruction, OrderType, Action
@@ -410,7 +410,7 @@ class Cointegrationzscore(BaseStrategy):
     #     ):
     #         self.generate_signals()
 
-    # def primer(self, record: mbn.RecordMsg) -> None:
+    # def primer(self, record: mbinary.RecordMsg) -> None:
     #     # pass
     #     # self.data = pd.DataFrame()
     #     # self.initialize_current_price()
