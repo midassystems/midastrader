@@ -40,7 +40,7 @@ class Cointegrationzscore(BaseStrategy):
         self.spread = []
         self.zscore = []
         self.last_signal = Signal.NoSignal
-        self.last_update_time = {symbol: None for symbol in self.weights}
+        self.last_update_time = {symbol: 0 for symbol in self.weights}
 
         self.current_price = self.initialize_current_price()
 
@@ -54,9 +54,6 @@ class Cointegrationzscore(BaseStrategy):
         return pd.DataFrame([initial_data])
 
     def handle_event(self, event: MarketEvent):
-        # self.logger.info(f"{len(self.data)}")
-        # self.logger.info(event)
-
         if isinstance(event.data, OhlcvMsg):
             self.update_current_price(event.data)
         else:
@@ -87,8 +84,6 @@ class Cointegrationzscore(BaseStrategy):
         return len(timestamps) == 1 and None not in timestamps
 
     def process_data(self, ts_event: int) -> None:
-        # self.logger.info("Aligned timestamps. Processing data...")
-
         # Update historical data
         self.update_data(ts_event)
 
@@ -97,7 +92,7 @@ class Cointegrationzscore(BaseStrategy):
         self.update_zscore()
 
         # Generate Signal
-        self.generate_signals(ts_event)
+        self.generate_signals()  # ts_event)
 
     def update_data(self, ts_event: int) -> None:
         """
@@ -120,7 +115,7 @@ class Cointegrationzscore(BaseStrategy):
         )
 
         # Append the new spread to the instance variable
-        self.spread.extend(spread_series.tolist())
+        self.spread.extend(spread_series.tolist())  # pyright: ignore
 
     def update_zscore(self) -> None:
         """
@@ -130,19 +125,20 @@ class Cointegrationzscore(BaseStrategy):
         mean = spread_series.rolling(window=self.zscore_lookback).mean()
         std = spread_series.rolling(window=self.zscore_lookback).std()
         self.zscore.append(
-            ((spread_series.iloc[-1] - mean.iloc[-1]) / std.iloc[-1])
+            (
+                (spread_series.iloc[-1] - mean.iloc[-1])  # pyright: ignore
+                / std.iloc[-1]  # pyright: ignore
+            )
         )
 
     # Generate Signals
-    def generate_signals(self, ts_event: int):
+    def generate_signals(self):  # , ts_event: int):
         current_zscore = self.zscore[-1]
         self.logger.info(f"zscore : {current_zscore}")
 
         trade_instructions = []
-        if self.is_valid_for_signal_generation(ts_event):
-            # self.logger.info("Checking signals.")
+        if self.is_valid_for_signal_generation():  # ts_event):
             if not self._has_open_positions():
-                # self.logger.info("No positions")
                 # Check for entry signal
                 if self._entry_signal(current_zscore):
                     trade_instructions.extend(
@@ -155,15 +151,16 @@ class Cointegrationzscore(BaseStrategy):
                         self.create_trade_instructions(self.last_signal)
                     )
                     self.signal_id += 1
-                    self.last_signal = None
+                    self.last_signal = Signal.NoSignal
 
-        # self.logger.info("Calling set signal")
         self.set_signal(
             trade_instructions,
             self.order_book.last_updated,
         )
 
-    def is_valid_for_signal_generation(self, ts_event: int) -> bool:
+    def is_valid_for_signal_generation(
+        self,
+    ) -> bool:  # , ts_event: int) -> bool:
         """
         Validate whether the current state allows for signal generation.
         """
@@ -180,14 +177,14 @@ class Cointegrationzscore(BaseStrategy):
             for symbol in self.weights.keys()
         )
 
-    def check_futures_expiration_window(self, ts_event: int) -> bool:
-        """
-        Ensure none of the tickers are within their rolling expiration window.
-        """
-        return all(
-            not self.symbols_map.map[symbol].in_rolling_window(ts_event)
-            for symbol in self.weights
-        )
+    # def check_futures_expiration_window(self, ts_event: int) -> bool:
+    #     """
+    #     Ensure none of the tickers are within their rolling expiration window.
+    #     """
+    #     return all(
+    #         not self.symbols_map.map[symbol].in_rolling_window(ts_event)
+    #         for symbol in self.weights
+    #     )
 
     def _has_open_positions(self) -> bool:
         """Return True if any positions are currently open in the portfolio."""
@@ -241,15 +238,8 @@ class Cointegrationzscore(BaseStrategy):
         trade_instructions = []
 
         for instrument, weight in self.weights.items():
-            try:
-                self.logger.info(quantities)
-                self.logger.info(quantities[instrument])
-            except Exception as e:
-                self.logger.info(f"error here - {e}")
-
             action, quantity = self.get_action_and_quantity(
                 signal,
-                instrument,
                 weight,
                 quantities[instrument],
             )
@@ -259,14 +249,13 @@ class Cointegrationzscore(BaseStrategy):
                     order_type=OrderType.MARKET,
                     action=action,
                     signal_id=self.signal_id,
-                    # leg_id=len(trade_instructions) + 1,
                     weight=weight,
                     quantity=float(quantity),
                 )
             )
         return trade_instructions
 
-    def get_order_quantities(self, signal: Signal) -> Dict[str, float]:
+    def get_order_quantities(self, signal: Signal) -> Dict[int, float]:
         """
         Calculate order quantities based on the signal type and available capital.
         """
@@ -292,7 +281,9 @@ class Cointegrationzscore(BaseStrategy):
         self.logger.info(f"\nTRADE CAPITAL ALLOCATION : {trade_capital}\n")
         return trade_capital
 
-    def order_quantities_on_margin(self, trade_capital: float):
+    def order_quantities_on_margin(
+        self, trade_capital: float
+    ) -> Dict[int, float]:
         quantities = {}
         weight_sum = sum(map(abs, self.weights.values()))
 
@@ -306,24 +297,33 @@ class Cointegrationzscore(BaseStrategy):
 
         return quantities
 
-    def order_quantities_on_notional(self, trade_capital: float):
+    def order_quantities_on_notional(
+        self, trade_capital: float
+    ) -> Dict[int, float]:
         quantities = {}
-        for ticker, percent in self.asset_allocation.items():
+        for instrument_id, percent in self.weights.items():
+            symbol = self.symbols_map.get_symbol_by_id(instrument_id)
+
+            if not symbol:
+                raise Exception("Symbol not found in symbol_map.")
+
             ticker_allocation = trade_capital * percent
-            price = self.order_book.current_price(ticker)
+            mkt_data = self.order_book.retrieve(instrument_id)
             notional_value = (
-                price
-                * self.symbols_map[ticker].price_multiplier
-                * self.symbols_map[ticker].quantity_multiplier
+                mkt_data.pretty_price
+                * symbol.price_multiplier
+                * symbol.quantity_multiplier
             )
-            quantities[ticker] = math.floor(ticker_allocation / notional_value)
+
+            quantities[instrument_id] = math.floor(
+                ticker_allocation / notional_value
+            )
 
         return quantities
 
     def get_action_and_quantity(
         self,
         signal: Signal,
-        ticker: str,
         hedge_ratio: float,
         quantity: float,
     ) -> Tuple[Action, float]:
@@ -350,6 +350,8 @@ class Cointegrationzscore(BaseStrategy):
             # Exit Undervalued means we are exiting a long position (COVER) or selling a short position (SELL)
             action = Action.SELL if hedge_ratio > 0 else Action.COVER
             quantity *= -1 if hedge_ratio > 0 else 1
+        else:
+            action = Action.DEFAULT
 
         return action, quantity
 
@@ -359,87 +361,6 @@ class Cointegrationzscore(BaseStrategy):
         """
         self.data["spread"] = self.spread
         self.data["z-score"] = self.zscore
-        # self.data["z-score"] = [np.nan] * (self.zscore_lookback - 1) + list(
-        #     self.zscore
-        # )
-        # self.data = self.data.reset_index().rename(
-        #     columns={"index": "timestamp"}
-        # )
         self.data.reset_index(inplace=True)
         self.data.rename(columns={"index": "timestamp"}, inplace=True)
         return self.data
-
-    # def process_data(self, ts_event: int) -> None:
-    #     self.logger.info("Strategy - Aligned ts Processing data.")
-    #
-    #     # Update data log
-    #     new_row = self.current_price.copy()
-    #     new_row["timestamp"] = ts_event
-    #     new_row.set_index("timestamp", inplace=True)
-    #     self.data = pd.concat([self.data, new_row], ignore_index=False)
-    #
-    #     # Updated spread
-    #     self.update_spread(self.current_price)
-    #
-    #     if len(self.spread) < self.zscore_lookback:
-    #         return
-    #
-    #     # Update Zscore
-    #     self.update_zscore()
-    #
-    #     # all_in_session = all(
-    #     #     self.symbols_map.map[symbol].in_day_session(ts_event)
-    #     #     for symbol in self.weights.keys()
-    #     # )
-    #     # self.logger.debug(f"All in session {all_in_session}")
-    #     # Check if both tickers are in session before generating signals
-    #     day_session = self.check_in_day_session(ts_event)
-    #     not_expiration_window = self.check_futures_expiration_window(ts_event)
-    #
-    #     # not_in_rolling_window = all(
-    #     #     not self.symbols_map.map[symbol].in_rolling_window(ts_event)
-    #     #     for symbol in self.weights.keys()
-    #     # )
-    #     # self.logger.debug(f"None in rolling window : {not_in_rolling_window}")
-    #
-    #     # Check Signal
-    #     if (
-    #         self.order_book.tickers_loaded
-    #         and day_session
-    #         and not_expiration_window
-    #     ):
-    #         self.generate_signals()
-
-    # def primer(self, record: mbinary.RecordMsg) -> None:
-    #     # pass
-    #     # self.data = pd.DataFrame()
-    #     # self.initialize_current_price()
-    #     #
-    #     # while True:
-    #     # record = self.hist_data_client.next_record()
-    #
-    #     # if not record:
-    #     #     raise RuntimeError("Not enough records to prime strategy.")
-    #
-    #     # if record:
-    #     key = record.instrument_id
-    #     self.current_price[f"{key}"] = record.close / 1e9
-    #     self.current_price[f"{key}_log"] = np.log(record.close / 1e9)
-    #     self.last_update_time[key] = record.ts_event
-    #
-    #     # Check if all tickers have the same timestamp
-    #     if self.check_timestamps_aligned():
-    #         # Create new row
-    #         new_row = self.current_price.copy()
-    #         new_row["timestamp"] = record.ts_event
-    #         new_row.set_index("timestamp", inplace=True)
-    #         self.data = pd.concat([self.data, new_row], ignore_index=False)
-    #
-    #     if len(self.data) == self.zscore_lookback:
-    #         break
-    #
-    #     # Spread
-    #     self.update_spread(self.data)
-    #
-    #     # Z-score
-    #     self.update_zscore(True)

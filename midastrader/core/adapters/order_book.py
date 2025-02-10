@@ -133,7 +133,6 @@ class OrderBookManager(CoreAdapter):
             try:
                 item = self.data_queue.get(timeout=0.01)
                 if RecordMsg.is_record(item):
-                    self.logger.info(f"{type(item)}")
                     self.handle_record(item)
                 elif isinstance(item, EODEvent):
                     self.handle_eod(item)
