@@ -1,8 +1,10 @@
 import mbinary
 from dataclasses import dataclass
+from mbinary import PRICE_SCALE
 
-from midastrader.structs.constants import PRICE_FACTOR
 from midastrader.structs.symbol import SecurityType
+
+# from midastrader.structs.constants import PRICE_SCALE
 
 
 @dataclass
@@ -115,12 +117,12 @@ class Trade:
             leg_id=self.signal_id,
             timestamp=self.timestamp,
             ticker=ticker,
-            quantity=int(self.quantity * PRICE_FACTOR),
-            avg_price=int(self.avg_price * PRICE_FACTOR),
-            trade_value=int(self.trade_value * PRICE_FACTOR),
-            trade_cost=int(self.trade_cost * PRICE_FACTOR),
+            quantity=int(self.quantity * PRICE_SCALE),
+            avg_price=int(self.avg_price * PRICE_SCALE),
+            trade_value=int(self.trade_value * PRICE_SCALE),
+            trade_cost=int(self.trade_cost * PRICE_SCALE),
             action=self.action,
-            fees=int(self.fees * PRICE_FACTOR),
+            fees=int(self.fees * PRICE_SCALE),
         )
 
     def pretty_print(self, indent: str = "") -> str:

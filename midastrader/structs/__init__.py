@@ -1,6 +1,5 @@
 from .account import EquityDetails, Account
 from .active_orders import ActiveOrder, OrderStatus
-from .constants import PRICE_FACTOR
 from .orders import (
     Action,
     OrderType,
@@ -43,7 +42,6 @@ __all__ = [
     "Account",
     "ActiveOrder",
     "OrderStatus",
-    "PRICE_FACTOR",
     "Action",
     "OrderType",
     "BaseOrder",

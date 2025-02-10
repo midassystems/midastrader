@@ -5,14 +5,13 @@ import queue
 import threading
 import pandas as pd
 from datetime import datetime
-from mbinary import BacktestData
+from mbinary import BacktestData, PRICE_SCALE
 from midas_client.client import DatabaseClient
 
 from midastrader.structs.symbol import SymbolMap
 from midastrader.config import Parameters, Mode
 from midastrader.core.adapters.base_strategy import BaseStrategy
 from midastrader.utils.unix import unix_to_iso
-from midastrader.structs.constants import PRICE_FACTOR
 from midastrader.message_bus import MessageBus, EventType
 from midastrader.structs.events import TradeCommissionEvent, TradeEvent
 from midastrader.core.adapters.base import CoreAdapter
@@ -295,7 +294,7 @@ class PerformanceManager(CoreAdapter):
         Converts static performance statistics into an `mbinary.StaticStats` object.
 
         Behavior:
-            - Scales all percentage and ratio metrics using a `PRICE_FACTOR`.
+            - Scales all percentage and ratio metrics using a `PRICE_SCALE`.
             - Creates an `mbinary.StaticStats` object with all relevant performance statistics.
 
         Args:
@@ -309,51 +308,51 @@ class PerformanceManager(CoreAdapter):
             total_trades=static_stats["total_trades"],
             total_winning_trades=static_stats["total_winning_trades"],
             total_losing_trades=static_stats["total_losing_trades"],
-            avg_profit=int(static_stats["avg_profit"] * PRICE_FACTOR),
+            avg_profit=int(static_stats["avg_profit"] * PRICE_SCALE),
             avg_profit_percent=int(
-                static_stats["avg_profit_percent"] * PRICE_FACTOR
+                static_stats["avg_profit_percent"] * PRICE_SCALE
             ),
-            avg_gain=int(static_stats["avg_gain"] * PRICE_FACTOR),
+            avg_gain=int(static_stats["avg_gain"] * PRICE_SCALE),
             avg_gain_percent=int(
-                static_stats["avg_gain_percent"] * PRICE_FACTOR
+                static_stats["avg_gain_percent"] * PRICE_SCALE
             ),
-            avg_loss=int(static_stats["avg_loss"] * PRICE_FACTOR),
+            avg_loss=int(static_stats["avg_loss"] * PRICE_SCALE),
             avg_loss_percent=int(
-                static_stats["avg_loss_percent"] * PRICE_FACTOR
+                static_stats["avg_loss_percent"] * PRICE_SCALE
             ),
             profitability_ratio=int(
-                static_stats["profitability_ratio"] * PRICE_FACTOR
+                static_stats["profitability_ratio"] * PRICE_SCALE
             ),
-            profit_factor=int(static_stats["profit_factor"] * PRICE_FACTOR),
+            profit_factor=int(static_stats["profit_factor"] * PRICE_SCALE),
             profit_and_loss_ratio=int(
-                static_stats["profit_and_loss_ratio"] * PRICE_FACTOR
+                static_stats["profit_and_loss_ratio"] * PRICE_SCALE
             ),
-            total_fees=int(static_stats["total_fees"] * PRICE_FACTOR),
-            net_profit=int(static_stats["net_profit"] * PRICE_FACTOR),
+            total_fees=int(static_stats["total_fees"] * PRICE_SCALE),
+            net_profit=int(static_stats["net_profit"] * PRICE_SCALE),
             beginning_equity=int(
-                static_stats["beginning_equity"] * PRICE_FACTOR
+                static_stats["beginning_equity"] * PRICE_SCALE
             ),
-            ending_equity=int(static_stats["ending_equity"] * PRICE_FACTOR),
-            total_return=int(static_stats["total_return"] * PRICE_FACTOR),
+            ending_equity=int(static_stats["ending_equity"] * PRICE_SCALE),
+            total_return=int(static_stats["total_return"] * PRICE_SCALE),
             annualized_return=int(
-                static_stats["annualized_return"] * PRICE_FACTOR
+                static_stats["annualized_return"] * PRICE_SCALE
             ),
             daily_standard_deviation_percentage=int(
                 static_stats["daily_standard_deviation_percentage"]
-                * PRICE_FACTOR
+                * PRICE_SCALE
             ),
             annual_standard_deviation_percentage=int(
                 static_stats["annual_standard_deviation_percentage"]
-                * PRICE_FACTOR
+                * PRICE_SCALE
             ),
             max_drawdown_percentage_period=int(
-                static_stats["max_drawdown_percentage_period"] * PRICE_FACTOR
+                static_stats["max_drawdown_percentage_period"] * PRICE_SCALE
             ),
             max_drawdown_percentage_daily=int(
-                static_stats["max_drawdown_percentage_daily"] * PRICE_FACTOR
+                static_stats["max_drawdown_percentage_daily"] * PRICE_SCALE
             ),
-            sharpe_ratio=int(static_stats["sharpe_ratio"] * PRICE_FACTOR),
-            sortino_ratio=int(static_stats["sortino_ratio"] * PRICE_FACTOR),
+            sharpe_ratio=int(static_stats["sharpe_ratio"] * PRICE_SCALE),
+            sortino_ratio=int(static_stats["sortino_ratio"] * PRICE_SCALE),
         )
 
     def generate_backtest_name(self) -> str:
@@ -423,7 +422,7 @@ class PerformanceManager(CoreAdapter):
         Converts account summary data into an `mbinary.AccountSummary` object.
 
         Behavior:
-            - Scales monetary and percentage metrics using a `PRICE_FACTOR`.
+            - Scales monetary and percentage metrics using a `PRICE_SCALE`.
             - Populates `mbinary.AccountSummary` with fields for both start and end timestamps, buying power,
               liquidity, margin requirements, PnL, cash balance, and net liquidation values.
 
@@ -437,53 +436,53 @@ class PerformanceManager(CoreAdapter):
             currency=account["currency"],
             start_timestamp=int(account["start_timestamp"]),
             start_buying_power=int(
-                account["start_buying_power"] * PRICE_FACTOR
+                account["start_buying_power"] * PRICE_SCALE
             ),
             start_excess_liquidity=int(
-                account["start_excess_liquidity"] * PRICE_FACTOR
+                account["start_excess_liquidity"] * PRICE_SCALE
             ),
             start_full_available_funds=int(
-                account["start_full_available_funds"] * PRICE_FACTOR
+                account["start_full_available_funds"] * PRICE_SCALE
             ),
             start_full_init_margin_req=int(
-                account["start_full_init_margin_req"] * PRICE_FACTOR
+                account["start_full_init_margin_req"] * PRICE_SCALE
             ),
             start_full_maint_margin_req=int(
-                account["start_full_maint_margin_req"] * PRICE_FACTOR
+                account["start_full_maint_margin_req"] * PRICE_SCALE
             ),
-            start_futures_pnl=int(account["start_futures_pnl"] * PRICE_FACTOR),
+            start_futures_pnl=int(account["start_futures_pnl"] * PRICE_SCALE),
             start_net_liquidation=int(
-                account["start_net_liquidation"] * PRICE_FACTOR
+                account["start_net_liquidation"] * PRICE_SCALE
             ),
             start_total_cash_balance=int(
-                account["start_total_cash_balance"] * PRICE_FACTOR
+                account["start_total_cash_balance"] * PRICE_SCALE
             ),
             start_unrealized_pnl=int(
-                account["start_unrealized_pnl"] * PRICE_FACTOR
+                account["start_unrealized_pnl"] * PRICE_SCALE
             ),
             end_timestamp=int(account["end_timestamp"]),
-            end_buying_power=int(account["end_buying_power"] * PRICE_FACTOR),
+            end_buying_power=int(account["end_buying_power"] * PRICE_SCALE),
             end_excess_liquidity=int(
-                account["end_excess_liquidity"] * PRICE_FACTOR
+                account["end_excess_liquidity"] * PRICE_SCALE
             ),
             end_full_available_funds=int(
-                account["end_full_available_funds"] * PRICE_FACTOR
+                account["end_full_available_funds"] * PRICE_SCALE
             ),
             end_full_init_margin_req=int(
-                account["end_full_init_margin_req"] * PRICE_FACTOR
+                account["end_full_init_margin_req"] * PRICE_SCALE
             ),
             end_full_maint_margin_req=int(
-                account["end_full_maint_margin_req"] * PRICE_FACTOR
+                account["end_full_maint_margin_req"] * PRICE_SCALE
             ),
-            end_futures_pnl=int(account["end_futures_pnl"] * PRICE_FACTOR),
+            end_futures_pnl=int(account["end_futures_pnl"] * PRICE_SCALE),
             end_net_liquidation=int(
-                account["end_net_liquidation"] * PRICE_FACTOR
+                account["end_net_liquidation"] * PRICE_SCALE
             ),
             end_total_cash_balance=int(
-                account["end_total_cash_balance"] * PRICE_FACTOR
+                account["end_total_cash_balance"] * PRICE_SCALE
             ),
             end_unrealized_pnl=int(
-                account["end_unrealized_pnl"] * PRICE_FACTOR
+                account["end_unrealized_pnl"] * PRICE_SCALE
             ),
         )
 

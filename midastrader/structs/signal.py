@@ -1,8 +1,8 @@
 import mbinary
 from dataclasses import dataclass
 from typing import Optional
+from mbinary import PRICE_SCALE, QUANTITY_SCALE
 
-from midastrader.structs.constants import PRICE_FACTOR, QUANTITY_FACATOR
 from midastrader.structs.orders import (
     OrderType,
     Action,
@@ -129,8 +129,8 @@ class SignalInstruction:
             action=self.action.value,
             trade_id=self.signal_id,
             leg_id=self.signal_id,
-            weight=int(self.weight * PRICE_FACTOR),
-            quantity=int(self.quantity * QUANTITY_FACATOR),
+            weight=int(self.weight * PRICE_SCALE),
+            quantity=int(self.quantity * QUANTITY_SCALE),
             limit_price=str(self.limit_price) if self.limit_price else "",
             aux_price=str(self.aux_price) if self.aux_price else "",
         )

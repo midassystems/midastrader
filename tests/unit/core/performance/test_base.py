@@ -5,6 +5,7 @@ import random
 from time import sleep
 import threading
 from datetime import time
+from mbinary import PRICE_SCALE
 from unittest.mock import Mock, MagicMock
 
 from midastrader.structs.events.market_event import MarketEvent
@@ -23,7 +24,6 @@ from midastrader.structs.events import (
 from midastrader.structs.orders import OrderType, Action
 from midastrader.structs.signal import SignalInstruction
 from midastrader.core.adapters.base_strategy import BaseStrategy
-from midastrader.structs.constants import PRICE_FACTOR
 from midastrader.structs.symbol import (
     Equity,
     Currency,
@@ -583,25 +583,25 @@ class TestPerformanceManager(unittest.TestCase):
         # Validate account
         expected_account = mbinary.AccountSummary(
             start_timestamp=165000000000,
-            start_full_available_funds=int(768953.53 * PRICE_FACTOR),
-            start_full_init_margin_req=int(263.95 * PRICE_FACTOR),
-            start_net_liquidation=int(769217.48 * PRICE_FACTOR),
-            start_buying_power=int(2563178.43 * PRICE_FACTOR),
-            start_unrealized_pnl=int(0.00 * PRICE_FACTOR),
-            start_full_maint_margin_req=int(263.95 * PRICE_FACTOR),
-            start_excess_liquidity=int(768953.53 * PRICE_FACTOR),
-            start_futures_pnl=int(-367.50 * PRICE_FACTOR),
-            start_total_cash_balance=int(-10557.9223 * PRICE_FACTOR),
+            start_full_available_funds=int(768953.53 * PRICE_SCALE),
+            start_full_init_margin_req=int(263.95 * PRICE_SCALE),
+            start_net_liquidation=int(769217.48 * PRICE_SCALE),
+            start_buying_power=int(2563178.43 * PRICE_SCALE),
+            start_unrealized_pnl=int(0.00 * PRICE_SCALE),
+            start_full_maint_margin_req=int(263.95 * PRICE_SCALE),
+            start_excess_liquidity=int(768953.53 * PRICE_SCALE),
+            start_futures_pnl=int(-367.50 * PRICE_SCALE),
+            start_total_cash_balance=int(-10557.9223 * PRICE_SCALE),
             end_timestamp=166000000000,
-            end_full_available_funds=int(762459.99 * PRICE_FACTOR),
-            end_full_init_margin_req=int(6802.69 * PRICE_FACTOR),
-            end_net_liquidation=int(769262.67 * PRICE_FACTOR),
-            end_unrealized_pnl=int(-11.73 * PRICE_FACTOR),
-            end_full_maint_margin_req=int(5495.00 * PRICE_FACTOR),
-            end_excess_liquidity=int(763767.68 * PRICE_FACTOR),
-            end_buying_power=int(2541533.29 * PRICE_FACTOR),
-            end_futures_pnl=int(-373.30 * PRICE_FACTOR),
-            end_total_cash_balance=int(768538.5532 * PRICE_FACTOR),
+            end_full_available_funds=int(762459.99 * PRICE_SCALE),
+            end_full_init_margin_req=int(6802.69 * PRICE_SCALE),
+            end_net_liquidation=int(769262.67 * PRICE_SCALE),
+            end_unrealized_pnl=int(-11.73 * PRICE_SCALE),
+            end_full_maint_margin_req=int(5495.00 * PRICE_SCALE),
+            end_excess_liquidity=int(763767.68 * PRICE_SCALE),
+            end_buying_power=int(2541533.29 * PRICE_SCALE),
+            end_futures_pnl=int(-373.30 * PRICE_SCALE),
+            end_total_cash_balance=int(768538.5532 * PRICE_SCALE),
             currency="USD",
         )
 

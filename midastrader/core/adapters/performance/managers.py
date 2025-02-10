@@ -2,6 +2,7 @@ import mbinary
 import numpy as np
 import pandas as pd
 from typing import List, Dict
+from mbinary import PRICE_SCALE
 from quant_analytics.backtest.metrics import Metrics
 
 from midastrader.structs.trade import Trade
@@ -13,7 +14,6 @@ from midastrader.structs.events import (
 from midastrader.utils.unix import resample_timestamp
 from midastrader.structs.account import EquityDetails, Account
 from midastrader.structs.symbol import SymbolMap
-from midastrader.structs.constants import PRICE_FACTOR
 from midastrader.utils.logger import SystemLogger
 
 
@@ -559,12 +559,10 @@ class EquityManager:
         return [
             mbinary.TimeseriesStats(
                 timestamp=stat["timestamp"],
-                equity_value=int(stat["equity_value"] * PRICE_FACTOR),
-                percent_drawdown=int(stat["percent_drawdown"] * PRICE_FACTOR),
-                cumulative_return=int(
-                    stat["cumulative_return"] * PRICE_FACTOR
-                ),
-                period_return=int(stat["period_return"] * PRICE_FACTOR),
+                equity_value=int(stat["equity_value"] * PRICE_SCALE),
+                percent_drawdown=int(stat["percent_drawdown"] * PRICE_SCALE),
+                cumulative_return=int(stat["cumulative_return"] * PRICE_SCALE),
+                period_return=int(stat["period_return"] * PRICE_SCALE),
             )
             for stat in self.period_stats_dict
         ]
@@ -580,12 +578,10 @@ class EquityManager:
         return [
             mbinary.TimeseriesStats(
                 timestamp=stat["timestamp"],
-                equity_value=int(stat["equity_value"] * PRICE_FACTOR),
-                percent_drawdown=int(stat["percent_drawdown"] * PRICE_FACTOR),
-                cumulative_return=int(
-                    stat["cumulative_return"] * PRICE_FACTOR
-                ),
-                period_return=int(stat["period_return"] * PRICE_FACTOR),
+                equity_value=int(stat["equity_value"] * PRICE_SCALE),
+                percent_drawdown=int(stat["percent_drawdown"] * PRICE_SCALE),
+                cumulative_return=int(stat["cumulative_return"] * PRICE_SCALE),
+                period_return=int(stat["period_return"] * PRICE_SCALE),
             )
             for stat in self.daily_stats_dict
         ]
