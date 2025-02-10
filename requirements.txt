@@ -35,9 +35,9 @@ korean-lunar-calendar==0.3.1
 lxml==5.2.1
 markdown-it-py==3.0.0
 matplotlib==3.9.0
-mbinary==1.0.21
+mbinary==1.0.22
 mdurl==0.1.2
-midas_client==1.0.17
+midas_client==1.0.18
 more-itertools==10.5.0
 multidict==6.0.5
 multitasking==0.0.11
