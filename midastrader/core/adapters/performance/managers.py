@@ -839,7 +839,7 @@ class SignalManager:
         Returns:
             List[mbinary.Signals]: A list of signals converted into the `mbinary.Signals` format.
         """
-        for signal in self.signals:
-            self.logger.info(signal.instructions[0].quantity)
-            self.logger.info(signal.instructions[0].weight)
+        # for signal in self.signals:
+        #     self.logger.info(signal.instructions[0].quantity)
+        #     self.logger.info(signal.instructions[0].weight)
         return [signal.to_mbinary(symbols_map) for signal in self.signals]
