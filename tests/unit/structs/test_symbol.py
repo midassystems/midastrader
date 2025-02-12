@@ -32,6 +32,7 @@ class TestEquity(unittest.TestCase):
         self.exchange = Venue.NASDAQ
         self.fees = 0.1
         self.initial_margin = 0
+        self.maintenance_margin = 0
         self.quantity_multiplier = 1
         self.price_multiplier = 1
         self.company_name = "Apple Inc."
@@ -54,6 +55,7 @@ class TestEquity(unittest.TestCase):
             exchange=self.exchange,
             fees=self.fees,
             initial_margin=self.initial_margin,
+            maintenance_margin=self.maintenance_margin,
             quantity_multiplier=self.quantity_multiplier,
             price_multiplier=self.price_multiplier,
             company_name=self.company_name,
@@ -77,6 +79,7 @@ class TestEquity(unittest.TestCase):
             exchange=self.exchange,
             fees=self.fees,
             initial_margin=self.initial_margin,
+            maintenance_margin=self.maintenance_margin,
             quantity_multiplier=self.quantity_multiplier,
             price_multiplier=self.price_multiplier,
             company_name=self.company_name,
@@ -95,6 +98,7 @@ class TestEquity(unittest.TestCase):
         self.assertEqual(equity.exchange, self.exchange)
         self.assertEqual(equity.fees, self.fees)
         self.assertEqual(equity.initial_margin, self.initial_margin)
+        self.assertEqual(equity.maintenance_margin, self.maintenance_margin)
         self.assertEqual(equity.price_multiplier, self.price_multiplier)
         self.assertEqual(equity.quantity_multiplier, self.quantity_multiplier)
         self.assertEqual(equity.company_name, self.company_name)
@@ -210,6 +214,7 @@ class TestEquity(unittest.TestCase):
                 exchange=self.exchange,
                 fees=self.fees,
                 initial_margin=self.initial_margin,
+                maintenance_margin=self.maintenance_margin,
                 quantity_multiplier=self.quantity_multiplier,
                 price_multiplier=self.price_multiplier,
                 company_name=self.company_name,
@@ -233,6 +238,7 @@ class TestEquity(unittest.TestCase):
                 exchange=self.exchange,
                 fees=self.fees,
                 initial_margin=self.initial_margin,
+                maintenance_margin=self.maintenance_margin,
                 quantity_multiplier=self.quantity_multiplier,
                 price_multiplier=self.price_multiplier,
                 company_name=self.company_name,
@@ -256,6 +262,7 @@ class TestEquity(unittest.TestCase):
                 exchange=self.exchange,
                 fees=self.fees,
                 initial_margin=self.initial_margin,
+                maintenance_margin=self.maintenance_margin,
                 quantity_multiplier=self.quantity_multiplier,
                 price_multiplier=self.price_multiplier,
                 company_name=self.company_name,
@@ -279,6 +286,7 @@ class TestEquity(unittest.TestCase):
                 exchange=2345,  # pyright: ignore
                 fees=self.fees,
                 initial_margin=self.initial_margin,
+                maintenance_margin=self.maintenance_margin,
                 quantity_multiplier=self.quantity_multiplier,
                 price_multiplier=self.price_multiplier,
                 company_name=self.company_name,
@@ -300,6 +308,7 @@ class TestEquity(unittest.TestCase):
                 exchange=self.exchange,
                 fees="1234",  # pyright: ignore
                 initial_margin=self.initial_margin,
+                maintenance_margin=self.maintenance_margin,
                 quantity_multiplier=self.quantity_multiplier,
                 price_multiplier=self.price_multiplier,
                 company_name=self.company_name,
@@ -323,6 +332,30 @@ class TestEquity(unittest.TestCase):
                 exchange=self.exchange,
                 fees=self.fees,
                 initial_margin="12345",  # pyright: ignore
+                maintenance_margin=self.maintenance_margin,
+                quantity_multiplier=self.quantity_multiplier,
+                price_multiplier=self.price_multiplier,
+                company_name=self.company_name,
+                industry=self.industry,
+                market_cap=self.market_cap,
+                shares_outstanding=self.shares_outstanding,
+                slippage_factor=self.slippage_factor,
+            )
+        with self.assertRaisesRegex(
+            TypeError, "'maintenance_margin' must be an int or float."
+        ):
+            Equity(
+                instrument_id=self.instrument_id,
+                broker_ticker=self.broker_ticker,
+                data_ticker=self.data_ticker,
+                midas_ticker=self.midas_ticker,
+                trading_sessions=self.trading_sessions,
+                security_type=self.security_type,
+                currency=self.currency,
+                exchange=self.exchange,
+                fees=self.fees,
+                initial_margin=self.initial_margin,
+                maintenance_margin="12345",  # pyright: ignore
                 quantity_multiplier=self.quantity_multiplier,
                 price_multiplier=self.price_multiplier,
                 company_name=self.company_name,
@@ -347,6 +380,7 @@ class TestEquity(unittest.TestCase):
                 exchange=self.exchange,
                 fees=self.fees,
                 initial_margin=self.initial_margin,
+                maintenance_margin=self.maintenance_margin,
                 quantity_multiplier="12345",  # pyright: ignore
                 price_multiplier=self.price_multiplier,
                 company_name=self.company_name,
@@ -370,6 +404,7 @@ class TestEquity(unittest.TestCase):
                 exchange=self.exchange,
                 fees=self.fees,
                 initial_margin=self.initial_margin,
+                maintenance_margin=self.maintenance_margin,
                 quantity_multiplier=self.quantity_multiplier,
                 price_multiplier="12345",  # pyright: ignore
                 company_name=self.company_name,
@@ -393,6 +428,7 @@ class TestEquity(unittest.TestCase):
                 exchange=self.exchange,
                 fees=self.fees,
                 initial_margin=self.initial_margin,
+                maintenance_margin=self.maintenance_margin,
                 quantity_multiplier=self.quantity_multiplier,
                 price_multiplier=self.price_multiplier,
                 company_name=1234,  # pyright: ignore
@@ -416,6 +452,7 @@ class TestEquity(unittest.TestCase):
                 exchange=self.exchange,
                 fees=self.fees,
                 initial_margin=self.initial_margin,
+                maintenance_margin=self.maintenance_margin,
                 quantity_multiplier=self.quantity_multiplier,
                 price_multiplier=self.price_multiplier,
                 company_name=self.company_name,
@@ -439,6 +476,7 @@ class TestEquity(unittest.TestCase):
                 exchange=self.exchange,
                 fees=self.fees,
                 initial_margin=self.initial_margin,
+                maintenance_margin=self.maintenance_margin,
                 quantity_multiplier=self.quantity_multiplier,
                 price_multiplier=self.price_multiplier,
                 company_name=self.company_name,
@@ -462,6 +500,7 @@ class TestEquity(unittest.TestCase):
                 exchange=self.exchange,
                 fees=self.fees,
                 initial_margin=self.initial_margin,
+                maintenance_margin=self.maintenance_margin,
                 quantity_multiplier=self.quantity_multiplier,
                 price_multiplier=self.price_multiplier,
                 company_name=self.company_name,
@@ -485,6 +524,7 @@ class TestEquity(unittest.TestCase):
                 exchange=self.exchange,
                 fees=self.fees,
                 initial_margin=self.initial_margin,
+                maintenance_margin=self.maintenance_margin,
                 quantity_multiplier=self.quantity_multiplier,
                 price_multiplier=self.price_multiplier,
                 company_name=self.company_name,
@@ -508,6 +548,7 @@ class TestEquity(unittest.TestCase):
                 exchange=self.exchange,
                 fees=-1,
                 initial_margin=self.initial_margin,
+                maintenance_margin=self.maintenance_margin,
                 quantity_multiplier=self.quantity_multiplier,
                 price_multiplier=self.price_multiplier,
                 company_name=self.company_name,
@@ -531,6 +572,7 @@ class TestEquity(unittest.TestCase):
                 exchange=self.exchange,
                 fees=self.fees,
                 initial_margin=-1,
+                maintenance_margin=self.maintenance_margin,
                 quantity_multiplier=self.quantity_multiplier,
                 price_multiplier=self.price_multiplier,
                 company_name=self.company_name,
@@ -554,6 +596,7 @@ class TestEquity(unittest.TestCase):
                 exchange=self.exchange,
                 fees=self.fees,
                 initial_margin=self.initial_margin,
+                maintenance_margin=self.maintenance_margin,
                 quantity_multiplier=self.quantity_multiplier,
                 price_multiplier=0,
                 company_name=self.company_name,
@@ -578,6 +621,7 @@ class TestEquity(unittest.TestCase):
                 exchange=self.exchange,
                 fees=self.fees,
                 initial_margin=self.initial_margin,
+                maintenance_margin=self.maintenance_margin,
                 quantity_multiplier=0,
                 price_multiplier=self.price_multiplier,
                 company_name=self.company_name,
@@ -601,6 +645,7 @@ class TestEquity(unittest.TestCase):
                 exchange=self.exchange,
                 fees=self.fees,
                 initial_margin=self.initial_margin,
+                maintenance_margin=self.maintenance_margin,
                 quantity_multiplier=self.quantity_multiplier,
                 price_multiplier=self.price_multiplier,
                 company_name=self.company_name,
@@ -624,6 +669,7 @@ class TestFuture(unittest.TestCase):
         self.exchange = Venue.CME
         self.fees = 0.1
         self.initial_margin = 4000.598
+        self.maintenance_margin = 4000.598
         self.quantity_multiplier = 40000
         self.price_multiplier = 0.01
         self.product_code = "HE"
@@ -654,6 +700,7 @@ class TestFuture(unittest.TestCase):
             exchange=self.exchange,
             fees=self.fees,
             initial_margin=self.initial_margin,
+            maintenance_margin=self.maintenance_margin,
             quantity_multiplier=self.quantity_multiplier,
             price_multiplier=self.price_multiplier,
             product_code=self.product_code,
@@ -689,6 +736,7 @@ class TestFuture(unittest.TestCase):
             exchange=self.exchange,
             fees=self.fees,
             initial_margin=self.initial_margin,
+            maintenance_margin=self.maintenance_margin,
             quantity_multiplier=self.quantity_multiplier,
             price_multiplier=self.price_multiplier,
             product_code=self.product_code,
@@ -911,6 +959,7 @@ class TestFuture(unittest.TestCase):
                 exchange=self.exchange,
                 fees=self.fees,
                 initial_margin=self.initial_margin,
+                maintenance_margin=self.maintenance_margin,
                 quantity_multiplier=self.quantity_multiplier,
                 price_multiplier=self.price_multiplier,
                 product_code=1234,  # pyright: ignore
@@ -942,6 +991,7 @@ class TestFuture(unittest.TestCase):
                 exchange=self.exchange,
                 fees=self.fees,
                 initial_margin=self.initial_margin,
+                maintenance_margin=self.maintenance_margin,
                 quantity_multiplier=self.quantity_multiplier,
                 price_multiplier=self.price_multiplier,
                 product_code=self.product_code,
@@ -973,6 +1023,7 @@ class TestFuture(unittest.TestCase):
                 exchange=self.exchange,
                 fees=self.fees,
                 initial_margin=self.initial_margin,
+                maintenance_margin=self.maintenance_margin,
                 quantity_multiplier=self.quantity_multiplier,
                 price_multiplier=self.price_multiplier,
                 product_code=self.product_code,
@@ -1004,6 +1055,7 @@ class TestFuture(unittest.TestCase):
                 exchange=self.exchange,
                 fees=self.fees,
                 initial_margin=self.initial_margin,
+                maintenance_margin=self.maintenance_margin,
                 quantity_multiplier=self.quantity_multiplier,
                 price_multiplier=self.price_multiplier,
                 product_code=self.product_code,
@@ -1035,6 +1087,7 @@ class TestFuture(unittest.TestCase):
                 exchange=self.exchange,
                 fees=self.fees,
                 initial_margin=self.initial_margin,
+                maintenance_margin=self.maintenance_margin,
                 quantity_multiplier=self.quantity_multiplier,
                 price_multiplier=self.price_multiplier,
                 product_code=self.product_code,
@@ -1066,6 +1119,7 @@ class TestFuture(unittest.TestCase):
                 exchange=self.exchange,
                 fees=self.fees,
                 initial_margin=self.initial_margin,
+                maintenance_margin=self.maintenance_margin,
                 quantity_multiplier=self.quantity_multiplier,
                 price_multiplier=self.price_multiplier,
                 product_code=self.product_code,
@@ -1098,6 +1152,7 @@ class TestFuture(unittest.TestCase):
                 exchange=self.exchange,
                 fees=self.fees,
                 initial_margin=self.initial_margin,
+                maintenance_margin=self.maintenance_margin,
                 quantity_multiplier=self.quantity_multiplier,
                 price_multiplier=self.price_multiplier,
                 product_code=self.product_code,
@@ -1129,6 +1184,7 @@ class TestFuture(unittest.TestCase):
                 exchange=self.exchange,
                 fees=self.fees,
                 initial_margin=self.initial_margin,
+                maintenance_margin=self.maintenance_margin,
                 quantity_multiplier=self.quantity_multiplier,
                 price_multiplier=self.price_multiplier,
                 product_code=self.product_code,
@@ -1160,6 +1216,7 @@ class TestFuture(unittest.TestCase):
                 exchange=self.exchange,
                 fees=self.fees,
                 initial_margin=self.initial_margin,
+                maintenance_margin=self.maintenance_margin,
                 quantity_multiplier=self.quantity_multiplier,
                 price_multiplier=self.price_multiplier,
                 product_code=self.product_code,
@@ -1193,6 +1250,7 @@ class TestFuture(unittest.TestCase):
                 exchange=self.exchange,
                 fees=self.fees,
                 initial_margin=self.initial_margin,
+                maintenance_margin=self.maintenance_margin,
                 quantity_multiplier=self.quantity_multiplier,
                 price_multiplier=self.price_multiplier,
                 product_code=self.product_code,
@@ -1221,6 +1279,7 @@ class TestOption(unittest.TestCase):
         self.exchange = Venue.NASDAQ
         self.fees = 0.1
         self.initial_margin = 0
+        self.maintenance_margin = 0
         self.quantity_multiplier = 100
         self.price_multiplier = 1
         self.strike_price = 109.99
@@ -1246,6 +1305,7 @@ class TestOption(unittest.TestCase):
             exchange=self.exchange,
             fees=self.fees,
             initial_margin=self.initial_margin,
+            maintenance_margin=self.maintenance_margin,
             quantity_multiplier=self.quantity_multiplier,
             price_multiplier=self.price_multiplier,
             strike_price=self.strike_price,
@@ -1271,6 +1331,7 @@ class TestOption(unittest.TestCase):
             exchange=self.exchange,
             fees=self.fees,
             initial_margin=self.initial_margin,
+            maintenance_margin=self.maintenance_margin,
             quantity_multiplier=self.quantity_multiplier,
             price_multiplier=self.price_multiplier,
             strike_price=self.strike_price,
@@ -1396,6 +1457,7 @@ class TestOption(unittest.TestCase):
                 exchange=self.exchange,
                 fees=self.fees,
                 initial_margin=self.initial_margin,
+                maintenance_margin=self.maintenance_margin,
                 quantity_multiplier=self.quantity_multiplier,
                 price_multiplier=self.price_multiplier,
                 strike_price="12345",  # pyright: ignore
@@ -1421,6 +1483,7 @@ class TestOption(unittest.TestCase):
                 exchange=self.exchange,
                 fees=self.fees,
                 initial_margin=self.initial_margin,
+                maintenance_margin=self.maintenance_margin,
                 quantity_multiplier=self.quantity_multiplier,
                 price_multiplier=self.price_multiplier,
                 strike_price=self.strike_price,
@@ -1446,6 +1509,7 @@ class TestOption(unittest.TestCase):
                 exchange=self.exchange,
                 fees=self.fees,
                 initial_margin=self.initial_margin,
+                maintenance_margin=self.maintenance_margin,
                 quantity_multiplier=self.quantity_multiplier,
                 price_multiplier=self.price_multiplier,
                 strike_price=self.strike_price,
@@ -1471,6 +1535,7 @@ class TestOption(unittest.TestCase):
                 exchange=self.exchange,
                 fees=self.fees,
                 initial_margin=self.initial_margin,
+                maintenance_margin=self.maintenance_margin,
                 quantity_multiplier=self.quantity_multiplier,
                 price_multiplier=self.price_multiplier,
                 strike_price=self.strike_price,
@@ -1496,6 +1561,7 @@ class TestOption(unittest.TestCase):
                 exchange=self.exchange,
                 fees=self.fees,
                 initial_margin=self.initial_margin,
+                maintenance_margin=self.maintenance_margin,
                 quantity_multiplier=self.quantity_multiplier,
                 price_multiplier=self.price_multiplier,
                 strike_price=self.strike_price,
@@ -1521,6 +1587,7 @@ class TestOption(unittest.TestCase):
                 exchange=self.exchange,
                 fees=self.fees,
                 initial_margin=self.initial_margin,
+                maintenance_margin=self.maintenance_margin,
                 quantity_multiplier=self.quantity_multiplier,
                 price_multiplier=self.price_multiplier,
                 strike_price=self.strike_price,
@@ -1548,6 +1615,7 @@ class TestOption(unittest.TestCase):
                 exchange=self.exchange,
                 fees=self.fees,
                 initial_margin=self.initial_margin,
+                maintenance_margin=self.maintenance_margin,
                 quantity_multiplier=self.quantity_multiplier,
                 price_multiplier=self.price_multiplier,
                 strike_price=0,
@@ -1573,6 +1641,7 @@ class TestSymbolFactory(unittest.TestCase):
             "exchange": "CME",
             "fees": 0.85,
             "initial_margin": 5627.17,
+            "maintenance_margin": 4000,
             "quantity_multiplier": 40000,
             "price_multiplier": 0.01,
             "product_code": "HE",
@@ -1612,6 +1681,7 @@ class TestSymbolMap(unittest.TestCase):
             "exchange": "CME",
             "fees": 0.85,
             "initial_margin": 5627.17,
+            "maintenance_margin": 4000,
             "quantity_multiplier": 40000,
             "price_multiplier": 0.01,
             "product_code": "HE",

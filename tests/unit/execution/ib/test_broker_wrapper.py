@@ -41,6 +41,7 @@ class TestBrokerApp(unittest.TestCase):
             currency=Currency.USD,
             exchange=Venue.CME,
             initial_margin=4564.17,
+            maintenance_margin=4000.0,
             quantity_multiplier=40000,
             price_multiplier=0.01,
             product_code="HE",
@@ -70,6 +71,7 @@ class TestBrokerApp(unittest.TestCase):
             exchange=Venue.NASDAQ,
             fees=0.1,
             initial_margin=0,
+            maintenance_margin=0,
             quantity_multiplier=1,
             price_multiplier=1,
             company_name="Apple Inc.",
@@ -296,6 +298,7 @@ class TestBrokerApp(unittest.TestCase):
             price_multiplier=0.01,
             market_price=he_market_price / 0.01,
             initial_margin=4564.17,
+            maintenance_margin=4000.0,
         )
 
         # Test data

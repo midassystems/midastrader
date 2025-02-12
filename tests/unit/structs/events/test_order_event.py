@@ -34,6 +34,7 @@ class TestOrderEvent(unittest.TestCase):
             exchange=Venue.NASDAQ,
             fees=0.1,
             initial_margin=0,
+            maintenance_margin=0,
             quantity_multiplier=1,
             price_multiplier=1,
             company_name="Apple Inc.",

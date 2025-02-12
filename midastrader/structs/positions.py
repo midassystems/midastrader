@@ -18,7 +18,8 @@ class Impact:
         cash (float): The current cash value associated with the position.
     """
 
-    margin_required: float
+    init_margin_required: float
+    maintenance_margin_required: float
     unrealized_pnl: float
     liquidation_value: float
     cash: float
@@ -57,7 +58,8 @@ class Position(ABC):
     initial_cost: float = 0.0
     market_value: float = 0.0
     unrealized_pnl: float = 0.0
-    margin_required: float = 0.0
+    init_margin_required: float = 0.0
+    maintenance_margin_required: float = 0.0
     liquidation_value: float = 0.0
 
     def __post_init__(self):
@@ -94,7 +96,8 @@ class Position(ABC):
         self.calculate_initial_value()
         self.calculate_initial_cost()
         self.calculate_market_value()
-        self.calculate_margin_required()
+        self.calculate_init_margin_required()
+        self.calculate_maintenance_margin_required()
         self.calculate_unrealized_pnl()
         self.calculate_liquidation_value()
 
@@ -137,7 +140,14 @@ class Position(ABC):
         pass
 
     @abstractmethod
-    def calculate_margin_required(self) -> None:
+    def calculate_init_margin_required(self) -> None:
+        """
+        Calculates the margin required to maintain the position.
+        """
+        pass
+
+    @abstractmethod
+    def calculate_maintenance_margin_required(self) -> None:
         """
         Calculates the margin required to maintain the position.
         """
@@ -190,7 +200,8 @@ class Position(ABC):
             "market_price": self.market_price,
             "market_value": self.market_value,
             "unrealized_pnl": self.unrealized_pnl,
-            "margin_required": self.margin_required,
+            "init_margin_required": self.init_margin_required,
+            "maintenance_margin_required": self.maintenance_margin_required,
             "liquidation_value": self.liquidation_value,
         }
 
@@ -216,7 +227,8 @@ class Position(ABC):
             f"{indent}Market Value: {self.market_value}\n"
             f"{indent}Unrealized P&L: {self.unrealized_pnl}\n"
             f"{indent}Liquidation Value: {self.liquidation_value}\n"
-            f"{indent}Margin Required: {self.margin_required}\n"
+            f"{indent}Init Margin Required: {self.init_margin_required}\n"
+            f"{indent}Maintenance Margin Required: {self.maintenance_margin_required}\n"
         )
 
 
@@ -245,6 +257,7 @@ class FuturePosition(Position):
     """
 
     initial_margin: float = 0.0
+    maintenance_margin: float = 0.0
 
     def __post_init__(self):
         """
@@ -257,6 +270,11 @@ class FuturePosition(Position):
         # Type check
         if not isinstance(self.initial_margin, (int, float)):
             raise TypeError("'initial_margin' must be of type int or float.")
+
+        if not isinstance(self.maintenance_margin, (int, float)):
+            raise TypeError(
+                "'maintenance_margin' must be of type int or float."
+            )
 
         # Value constraints
         if self.initial_margin < 0:
@@ -276,10 +294,11 @@ class FuturePosition(Position):
         self.calculate_liquidation_value()
 
         return Impact(
-            margin_required=self.margin_required,
-            unrealized_pnl=self.unrealized_pnl,
-            liquidation_value=self.liquidation_value,
-            cash=self.initial_cost * -1,
+            self.init_margin_required,
+            self.maintenance_margin_required,
+            self.unrealized_pnl,
+            self.liquidation_value,
+            self.initial_cost * -1,
         )
 
     def calculate_initial_value(self) -> None:
@@ -321,11 +340,19 @@ class FuturePosition(Position):
             * self.quantity_multiplier
         )
 
-    def calculate_margin_required(self) -> None:
+    def calculate_init_margin_required(self) -> None:
         """
         Calculates the margin required to maintain the position.
         """
-        self.margin_required = self.initial_margin * abs(self.quantity)
+        self.init_margin_required = self.initial_margin * abs(self.quantity)
+
+    def calculate_maintenance_margin_required(self) -> None:
+        """
+        Calculates the margin required to maintain the position.
+        """
+        self.maintenance_margin_required = self.maintenance_margin * abs(
+            self.quantity
+        )
 
     def calculate_liquidation_value(self) -> None:
         """
@@ -388,7 +415,8 @@ class FuturePosition(Position):
         self.calculate_initial_value()
         self.calculate_market_value()
         self.calculate_initial_cost()
-        self.calculate_margin_required()
+        self.calculate_init_margin_required()
+        self.calculate_maintenance_margin_required()
         self.calculate_unrealized_pnl()
         self.calculate_liquidation_value()
 
@@ -410,10 +438,11 @@ class FuturePosition(Position):
         returned_cost = initial_cost - self.initial_cost
 
         return Impact(
-            margin_required=self.margin_required,
-            unrealized_pnl=self.unrealized_pnl,
-            liquidation_value=self.liquidation_value,
-            cash=returned_cost + realized_pnl,
+            self.init_margin_required,
+            self.maintenance_margin_required,
+            self.unrealized_pnl,
+            self.liquidation_value,
+            returned_cost + realized_pnl,
         )
 
     def to_dict(self) -> dict:
@@ -425,6 +454,8 @@ class FuturePosition(Position):
         """
         base_dict = super().to_dict()
         base_dict.update({"initial_margin": self.initial_margin})
+        base_dict.update({"maintenance_margin": self.maintenance_margin})
+
         return base_dict
 
     def pretty_print(self, indent: str = "") -> str:
@@ -439,6 +470,8 @@ class FuturePosition(Position):
         """
         string = super().pretty_print(indent)
         string += f"{indent}Initial Margin': {self.initial_margin}\n"
+        string += f"{indent}Maintenance Margin': {self.maintenance_margin}\n"
+
         return string
 
 
@@ -482,10 +515,11 @@ class EquityPosition(Position):
         self.calculate_liquidation_value()
 
         return Impact(
-            margin_required=self.margin_required,
-            unrealized_pnl=self.unrealized_pnl,
-            liquidation_value=self.liquidation_value,
-            cash=self.initial_cost * -1,
+            self.init_margin_required,
+            self.maintenance_margin_required,
+            self.unrealized_pnl,
+            self.liquidation_value,
+            self.initial_cost * -1,
         )
 
     def calculate_initial_value(self) -> None:
@@ -518,14 +552,23 @@ class EquityPosition(Position):
             self.market_price * self.quantity * self.quantity_multiplier
         ) - self.initial_cost
 
-    def calculate_margin_required(self) -> None:
+    def calculate_init_margin_required(self) -> None:
         """
         Calculates the margin required for the equity position.
 
         Note:
             Margin is set to zero for equity positions.
         """
-        self.margin_required = 0
+        self.init_margin_required = 0
+
+    def calculate_maintenance_margin_required(self) -> None:
+        """
+        Calculates the margin required for the equity position.
+
+        Note:
+            Margin is set to zero for equity positions.
+        """
+        self.maintenance_margin_required = 0
 
     def calculate_liquidation_value(self) -> None:
         """
@@ -589,7 +632,8 @@ class EquityPosition(Position):
         self.calculate_initial_value()
         self.calculate_market_value()
         self.calculate_initial_cost()
-        self.calculate_margin_required()
+        self.calculate_init_margin_required()
+        self.calculate_maintenance_margin_required()
         self.calculate_unrealized_pnl()
         self.calculate_liquidation_value()
 
@@ -611,10 +655,11 @@ class EquityPosition(Position):
         returned_cost = initial_cost - self.initial_cost
 
         return Impact(
-            margin_required=self.margin_required,
-            unrealized_pnl=self.unrealized_pnl,
-            liquidation_value=self.liquidation_value,
-            cash=returned_cost + realized_pnl,
+            self.init_margin_required,
+            self.maintenance_margin_required,
+            self.unrealized_pnl,
+            self.liquidation_value,
+            returned_cost + realized_pnl,
         )
 
     def to_dict(self) -> dict:
@@ -707,10 +752,11 @@ class OptionPosition(Position):
         self.calculate_liquidation_value()
 
         return Impact(
-            margin_required=self.margin_required,
-            unrealized_pnl=self.unrealized_pnl,
-            liquidation_value=self.liquidation_value,
-            cash=self.initial_cost * -1,
+            self.init_margin_required,
+            self.maintenance_margin_required,
+            self.unrealized_pnl,
+            self.liquidation_value,
+            self.initial_cost * -1,
         )
 
     def calculate_initial_value(self) -> None:
@@ -773,14 +819,23 @@ class OptionPosition(Position):
         else:
             raise ValueError("Invalid action type. Must be 'BUY' or 'SELL'.")
 
-    def calculate_margin_required(self) -> None:
+    def calculate_init_margin_required(self) -> None:
         """
         Calculates the margin required for the options position.
 
         Note:
             Margin is set to zero for options positions.
         """
-        self.margin_required = 0
+        self.init_margin_required = 0
+
+    def calculate_maintenance_margin_required(self) -> None:
+        """
+        Calculates the margin required for the options position.
+
+        Note:
+            Margin is set to zero for options positions.
+        """
+        self.maintenance_margin_required = 0
 
     def calculate_liquidation_value(self) -> None:
         """
@@ -843,7 +898,8 @@ class OptionPosition(Position):
         self.calculate_initial_value()
         self.calculate_market_value()
         self.calculate_initial_cost()
-        self.calculate_margin_required()
+        self.calculate_init_margin_required()
+        self.calculate_maintenance_margin_required()
         self.calculate_unrealized_pnl()
         self.calculate_liquidation_value()
 
@@ -865,10 +921,11 @@ class OptionPosition(Position):
         returned_cost = initial_cost - self.initial_cost
 
         return Impact(
-            margin_required=self.margin_required,
-            unrealized_pnl=self.unrealized_pnl,
-            liquidation_value=self.liquidation_value,
-            cash=returned_cost + realized_pnl,
+            self.init_margin_required,
+            self.maintenance_margin_required,
+            self.unrealized_pnl,
+            self.liquidation_value,
+            returned_cost + realized_pnl,
         )
 
     def to_dict(self) -> dict:
@@ -938,5 +995,6 @@ def position_factory(
 
     if asset_type == SecurityType.FUTURE:
         kwargs["initial_margin"] = symbol.initial_margin
+        kwargs["maintenance_margin"] = symbol.maintenance_margin
 
     return asset_classes[asset_type](**kwargs)

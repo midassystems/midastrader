@@ -39,7 +39,7 @@ class Account:
     full_init_margin_req: float
     net_liquidation: float
     unrealized_pnl: float
-    full_maint_margin_req: Optional[float] = 0
+    full_maint_margin_req: float
     excess_liquidity: Optional[float] = 0
     currency: Optional[str] = ""
     buying_power: Optional[float] = 0.0
@@ -157,7 +157,7 @@ class Account:
         Returns:
             bool: True if a margin call is triggered, False otherwise.
         """
-        return self.full_available_funds < self.full_init_margin_req
+        return self.full_available_funds < self.full_maint_margin_req
 
     def to_dict(self, prefix: str = "") -> dict:
         """

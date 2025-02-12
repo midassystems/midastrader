@@ -30,6 +30,7 @@ class TestFuturePosition(unittest.TestCase):
         self.quantity_multiplier = 40000
         self.price_multiplier = 0.01
         self.initial_margin = 5000.0
+        self.maintenance_margin = 4000.0
         self.market_price = 90.0
 
         # Position object
@@ -41,6 +42,7 @@ class TestFuturePosition(unittest.TestCase):
             quantity_multiplier=self.quantity_multiplier,
             market_price=self.market_price,
             initial_margin=self.initial_margin,
+            maintenance_margin=self.maintenance_margin,
         )
 
     # Basic Validation
@@ -54,6 +56,7 @@ class TestFuturePosition(unittest.TestCase):
             quantity_multiplier=self.quantity_multiplier,
             market_price=self.market_price,
             initial_margin=self.initial_margin,
+            maintenance_margin=self.maintenance_margin,
         )
 
         # Expected
@@ -67,7 +70,9 @@ class TestFuturePosition(unittest.TestCase):
             * self.market_price
             * self.price_multiplier
         )
-        margin_required = self.initial_margin * self.quantity
+        init_margin_required = self.initial_margin * self.quantity
+        maint_margin_required = self.maintenance_margin * self.quantity
+
         unrealized_pnl = (
             (self.market_price - self.avg_price)
             * self.price_multiplier
@@ -87,7 +92,10 @@ class TestFuturePosition(unittest.TestCase):
         self.assertEqual(initial_cost, position.initial_cost)
         self.assertEqual(market_value, position.market_value)
         self.assertEqual(unrealized_pnl, position.unrealized_pnl)
-        self.assertEqual(margin_required, position.margin_required)
+        self.assertEqual(init_margin_required, position.init_margin_required)
+        self.assertEqual(
+            maint_margin_required, position.maintenance_margin_required
+        )
         self.assertEqual(liquidation_value, position.liquidation_value)
 
     def test_position_impact(self):
@@ -99,7 +107,9 @@ class TestFuturePosition(unittest.TestCase):
 
         # Expected
         expected_impact = Impact(
-            margin_required=abs(self.quantity) * self.initial_margin,
+            init_margin_required=abs(self.quantity) * self.initial_margin,
+            maintenance_margin_required=abs(self.quantity)
+            * self.maintenance_margin,
             unrealized_pnl=(
                 (current_price - self.avg_price)
                 * self.price_multiplier
@@ -118,7 +128,11 @@ class TestFuturePosition(unittest.TestCase):
 
         # Validate
         self.assertAlmostEqual(
-            expected_impact.margin_required, impact.margin_required
+            expected_impact.init_margin_required, impact.init_margin_required
+        )
+        self.assertAlmostEqual(
+            expected_impact.maintenance_margin_required,
+            impact.maintenance_margin_required,
         )
         self.assertAlmostEqual(
             expected_impact.unrealized_pnl, impact.unrealized_pnl
@@ -141,7 +155,8 @@ class TestFuturePosition(unittest.TestCase):
 
         # Expected
         expected_impact = Impact(
-            margin_required=0,
+            init_margin_required=0,
+            maintenance_margin_required=0,
             unrealized_pnl=0,
             liquidation_value=0,
             cash=(abs(quantity) * self.initial_margin)
@@ -155,7 +170,11 @@ class TestFuturePosition(unittest.TestCase):
 
         # Validate
         self.assertAlmostEqual(
-            expected_impact.margin_required, impact.margin_required
+            expected_impact.init_margin_required, impact.init_margin_required
+        )
+        self.assertAlmostEqual(
+            expected_impact.maintenance_margin_required,
+            impact.maintenance_margin_required,
         )
         self.assertAlmostEqual(
             expected_impact.unrealized_pnl, impact.unrealized_pnl
@@ -178,7 +197,10 @@ class TestFuturePosition(unittest.TestCase):
 
         # Expected
         expected_impact = Impact(
-            margin_required=(self.quantity + quantity) * self.initial_margin,
+            init_margin_required=(self.quantity + quantity)
+            * self.initial_margin,
+            maintenance_margin_required=(self.quantity + quantity)
+            * self.maintenance_margin,
             unrealized_pnl=(
                 (current_price - self.avg_price)
                 * self.price_multiplier
@@ -199,7 +221,11 @@ class TestFuturePosition(unittest.TestCase):
 
         # Validate
         self.assertAlmostEqual(
-            expected_impact.margin_required, impact.margin_required
+            expected_impact.init_margin_required, impact.init_margin_required
+        )
+        self.assertAlmostEqual(
+            expected_impact.maintenance_margin_required,
+            impact.maintenance_margin_required,
         )
         self.assertAlmostEqual(
             expected_impact.unrealized_pnl, impact.unrealized_pnl
@@ -222,8 +248,10 @@ class TestFuturePosition(unittest.TestCase):
 
         # Expected
         expected_impact = Impact(
-            margin_required=(self.quantity + quantity)
-            * self.initial_margin,  # remaining quantity * margin per contract
+            init_margin_required=(self.quantity + quantity)
+            * self.initial_margin,
+            maintenance_margin_required=(self.quantity + quantity)
+            * self.maintenance_margin,
             unrealized_pnl=(
                 (current_price - self.avg_price)
                 * self.price_multiplier
@@ -250,7 +278,11 @@ class TestFuturePosition(unittest.TestCase):
 
         # Validate
         self.assertAlmostEqual(
-            expected_impact.margin_required, impact.margin_required
+            expected_impact.init_margin_required, impact.init_margin_required
+        )
+        self.assertAlmostEqual(
+            expected_impact.maintenance_margin_required,
+            impact.maintenance_margin_required,
         )
         self.assertAlmostEqual(
             expected_impact.unrealized_pnl, impact.unrealized_pnl
@@ -276,8 +308,10 @@ class TestFuturePosition(unittest.TestCase):
 
         # Expected
         expected_impact = Impact(
-            margin_required=abs(self.quantity + quantity)
+            init_margin_required=abs(self.quantity + quantity)
             * self.initial_margin,  # remaining quantity * margin per contract
+            maintenance_margin_required=abs(self.quantity + quantity)
+            * self.maintenance_margin,  # remaining quantity * margin per contract
             unrealized_pnl=0,  # no unrealized pnl as all units remaining  are new
             liquidation_value=(
                 abs(self.quantity + quantity) * self.initial_margin
@@ -294,7 +328,11 @@ class TestFuturePosition(unittest.TestCase):
 
         # Validate
         self.assertAlmostEqual(
-            expected_impact.margin_required, impact.margin_required
+            expected_impact.init_margin_required, impact.init_margin_required
+        )
+        self.assertAlmostEqual(
+            expected_impact.maintenance_margin_required,
+            impact.maintenance_margin_required,
         )
         self.assertAlmostEqual(
             expected_impact.unrealized_pnl, impact.unrealized_pnl
@@ -472,6 +510,7 @@ class TestEquityPosition(unittest.TestCase):
         self.quantity_multiplier = 1
         self.price_multiplier = 1.00
         self.initial_margin = 0.0
+        self.maintenance_margin = 0.0
         self.market_price = 20.0
 
         # Position object
@@ -501,7 +540,8 @@ class TestEquityPosition(unittest.TestCase):
         initial_cost = self.avg_price * self.quantity
         market_value = self.market_price * self.quantity
         unrealized_pnl = market_value - initial_value
-        margin_required = 0
+        init_margin_required = 0
+        maint_margin_required = 0
         liquidation_value = self.market_price * self.quantity
 
         # Validate
@@ -511,7 +551,10 @@ class TestEquityPosition(unittest.TestCase):
         self.assertEqual(market_value, position.market_value)
         self.assertEqual(unrealized_pnl, position.unrealized_pnl)
         self.assertEqual(liquidation_value, position.liquidation_value)
-        self.assertEqual(margin_required, position.margin_required)
+        self.assertEqual(init_margin_required, position.init_margin_required)
+        self.assertEqual(
+            maint_margin_required, position.maintenance_margin_required
+        )
 
     def test_position_impact(self):
         current_price = 25
@@ -522,7 +565,8 @@ class TestEquityPosition(unittest.TestCase):
 
         # Expected
         expected_impact = Impact(
-            margin_required=0,
+            init_margin_required=0,
+            maintenance_margin_required=0,
             unrealized_pnl=((current_price - self.avg_price) * self.quantity),
             liquidation_value=(current_price * self.quantity),
             cash=self.quantity * self.avg_price * -1,
@@ -530,7 +574,11 @@ class TestEquityPosition(unittest.TestCase):
 
         # Validate
         self.assertAlmostEqual(
-            expected_impact.margin_required, impact.margin_required
+            expected_impact.init_margin_required, impact.init_margin_required
+        )
+        self.assertAlmostEqual(
+            expected_impact.maintenance_margin_required,
+            impact.maintenance_margin_required,
         )
         self.assertAlmostEqual(
             expected_impact.unrealized_pnl, impact.unrealized_pnl
@@ -553,7 +601,8 @@ class TestEquityPosition(unittest.TestCase):
 
         # Expected
         expected_impact = Impact(
-            margin_required=0,
+            init_margin_required=0,
+            maintenance_margin_required=0,
             unrealized_pnl=0,
             liquidation_value=0,
             cash=(current_price * abs(quantity)),
@@ -561,7 +610,11 @@ class TestEquityPosition(unittest.TestCase):
 
         # Validate
         self.assertAlmostEqual(
-            expected_impact.margin_required, impact.margin_required
+            expected_impact.init_margin_required, impact.init_margin_required
+        )
+        self.assertAlmostEqual(
+            expected_impact.maintenance_margin_required,
+            impact.maintenance_margin_required,
         )
         self.assertAlmostEqual(
             expected_impact.unrealized_pnl, impact.unrealized_pnl
@@ -584,7 +637,8 @@ class TestEquityPosition(unittest.TestCase):
 
         # Expected
         expected_impact = Impact(
-            margin_required=0,
+            init_margin_required=0,
+            maintenance_margin_required=0,
             unrealized_pnl=(current_price - self.avg_price) * self.quantity,
             liquidation_value=current_price * (self.quantity + quantity),
             cash=current_price * quantity * -1,
@@ -592,7 +646,11 @@ class TestEquityPosition(unittest.TestCase):
 
         # Validate
         self.assertAlmostEqual(
-            expected_impact.margin_required, impact.margin_required
+            expected_impact.init_margin_required, impact.init_margin_required
+        )
+        self.assertAlmostEqual(
+            expected_impact.maintenance_margin_required,
+            impact.maintenance_margin_required,
         )
         self.assertAlmostEqual(
             expected_impact.unrealized_pnl, impact.unrealized_pnl
@@ -615,7 +673,8 @@ class TestEquityPosition(unittest.TestCase):
 
         # Expected
         expected_impact = Impact(
-            margin_required=0,
+            init_margin_required=0,
+            maintenance_margin_required=0,
             unrealized_pnl=(current_price - self.avg_price)
             * (abs(self.quantity + quantity)),
             liquidation_value=abs(self.quantity + quantity) * current_price,
@@ -624,7 +683,11 @@ class TestEquityPosition(unittest.TestCase):
 
         # Validate
         self.assertAlmostEqual(
-            expected_impact.margin_required, impact.margin_required
+            expected_impact.init_margin_required, impact.init_margin_required
+        )
+        self.assertAlmostEqual(
+            expected_impact.maintenance_margin_required,
+            impact.maintenance_margin_required,
         )
         self.assertAlmostEqual(
             expected_impact.unrealized_pnl, impact.unrealized_pnl
@@ -647,7 +710,8 @@ class TestEquityPosition(unittest.TestCase):
 
         # Expected
         expected_impact = Impact(
-            margin_required=0,
+            init_margin_required=0,
+            maintenance_margin_required=0,
             unrealized_pnl=0,
             liquidation_value=(self.quantity + quantity) * current_price,
             cash=(current_price * abs(quantity)),
@@ -655,7 +719,11 @@ class TestEquityPosition(unittest.TestCase):
 
         # Validate
         self.assertAlmostEqual(
-            expected_impact.margin_required, impact.margin_required
+            expected_impact.init_margin_required, impact.init_margin_required
+        )
+        self.assertAlmostEqual(
+            expected_impact.maintenance_margin_required,
+            impact.maintenance_margin_required,
         )
         self.assertAlmostEqual(
             expected_impact.unrealized_pnl, impact.unrealized_pnl
@@ -831,7 +899,8 @@ class TestOptionPosition(unittest.TestCase):
             * self.market_price
             * self.price_multiplier
         )
-        margin_required = 0
+        init_margin_required = 0
+        maintenance_margin_required = 0
         unrealized_pnl = (
             (self.market_price - self.avg_price)
             * self.price_multiplier
@@ -850,7 +919,10 @@ class TestOptionPosition(unittest.TestCase):
         self.assertEqual(initial_value, position.initial_value)
         self.assertEqual(initial_cost, position.initial_cost)
         self.assertEqual(market_value, position.market_value)
-        self.assertEqual(margin_required, position.margin_required)
+        self.assertEqual(init_margin_required, position.init_margin_required)
+        self.assertEqual(
+            maintenance_margin_required, position.maintenance_margin_required
+        )
         self.assertEqual(unrealized_pnl, position.unrealized_pnl)
         self.assertEqual(liquidation_value, position.liquidation_value)
 
@@ -863,7 +935,8 @@ class TestOptionPosition(unittest.TestCase):
 
         # Expected
         expected_impact = Impact(
-            margin_required=0,
+            init_margin_required=0,
+            maintenance_margin_required=0,
             unrealized_pnl=(
                 (current_price - self.avg_price)
                 * self.price_multiplier
@@ -879,7 +952,11 @@ class TestOptionPosition(unittest.TestCase):
 
         # Validate
         self.assertAlmostEqual(
-            expected_impact.margin_required, impact.margin_required
+            expected_impact.init_margin_required, impact.init_margin_required
+        )
+        self.assertAlmostEqual(
+            expected_impact.maintenance_margin_required,
+            impact.maintenance_margin_required,
         )
         self.assertAlmostEqual(
             expected_impact.unrealized_pnl, impact.unrealized_pnl
@@ -905,7 +982,8 @@ class TestOptionPosition(unittest.TestCase):
 
         # Expected
         expected_impact = Impact(
-            margin_required=0,
+            init_margin_required=0,
+            maintenance_margin_required=0,
             unrealized_pnl=(current_price - self.avg_price)
             * self.quantity
             * self.quantity_multiplier,
@@ -917,7 +995,11 @@ class TestOptionPosition(unittest.TestCase):
 
         # Validate
         self.assertAlmostEqual(
-            expected_impact.margin_required, impact.margin_required
+            expected_impact.init_margin_required, impact.init_margin_required
+        )
+        self.assertAlmostEqual(
+            expected_impact.maintenance_margin_required,
+            impact.maintenance_margin_required,
         )
         self.assertAlmostEqual(
             expected_impact.unrealized_pnl, impact.unrealized_pnl
@@ -944,7 +1026,8 @@ class TestOptionPosition(unittest.TestCase):
 
         # Expected
         expected_impact = Impact(
-            margin_required=0,
+            init_margin_required=0,
+            maintenance_margin_required=0,
             unrealized_pnl=(current_price - self.avg_price)
             * abs(self.quantity + quantity)
             * self.quantity_multiplier,
@@ -956,7 +1039,11 @@ class TestOptionPosition(unittest.TestCase):
 
         # Validate
         self.assertAlmostEqual(
-            expected_impact.margin_required, impact.margin_required
+            expected_impact.init_margin_required, impact.init_margin_required
+        )
+        self.assertAlmostEqual(
+            expected_impact.maintenance_margin_required,
+            impact.maintenance_margin_required,
         )
         self.assertAlmostEqual(
             expected_impact.unrealized_pnl, impact.unrealized_pnl
@@ -983,7 +1070,8 @@ class TestOptionPosition(unittest.TestCase):
 
         # Expected
         expected_impact = Impact(
-            margin_required=0,
+            init_margin_required=0,
+            maintenance_margin_required=0,
             unrealized_pnl=0,
             liquidation_value=(quantity + self.quantity)
             * current_price
@@ -994,7 +1082,11 @@ class TestOptionPosition(unittest.TestCase):
 
         # Validate
         self.assertAlmostEqual(
-            expected_impact.margin_required, impact.margin_required
+            expected_impact.init_margin_required, impact.init_margin_required
+        )
+        self.assertAlmostEqual(
+            expected_impact.maintenance_margin_required,
+            impact.maintenance_margin_required,
         )
         self.assertAlmostEqual(
             expected_impact.unrealized_pnl, impact.unrealized_pnl
@@ -1083,6 +1175,7 @@ class TestPositionfactory(unittest.TestCase):
             exchange=Venue.NASDAQ,
             fees=0.1,
             initial_margin=0,
+            maintenance_margin=0,
             quantity_multiplier=1,
             price_multiplier=1,
             company_name="Apple Inc.",
@@ -1123,6 +1216,7 @@ class TestPositionfactory(unittest.TestCase):
             exchange=Venue.CME,
             fees=0.1,
             initial_margin=4000.598,
+            maintenance_margin=4000.0,
             quantity_multiplier=40000,
             price_multiplier=0.01,
             product_code="HE",
@@ -1171,6 +1265,7 @@ class TestPositionfactory(unittest.TestCase):
             exchange=Venue.NASDAQ,
             fees=0.1,
             initial_margin=0,
+            maintenance_margin=0,
             quantity_multiplier=100,
             price_multiplier=1,
             strike_price=109.99,
