@@ -324,6 +324,7 @@ class Symbol(ABC):
     exchange: Venue
     fees: float
     initial_margin: float
+    maintenance_margin: float
     quantity_multiplier: int
     price_multiplier: float
     trading_sessions: TradingSession
@@ -353,6 +354,8 @@ class Symbol(ABC):
             raise TypeError("'fees' must be int or float.")
         if not isinstance(self.initial_margin, (float, int)):
             raise TypeError("'initial_margin' must be an int or float.")
+        if not isinstance(self.maintenance_margin, (float, int)):
+            raise TypeError("'maintenance_margin' must be an int or float.")
         if not isinstance(self.quantity_multiplier, (float, int)):
             raise TypeError("'quantity_multiplier' must be type int or float.")
         if not isinstance(self.price_multiplier, (float, int)):

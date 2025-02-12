@@ -43,6 +43,7 @@ class TestDummyClient(unittest.TestCase):
             currency=Currency.USD,
             exchange=Venue.CME,
             initial_margin=4564.17,
+            maintenance_margin=4000.0,
             quantity_multiplier=40000,
             price_multiplier=0.01,
             product_code="HE",
@@ -72,6 +73,7 @@ class TestDummyClient(unittest.TestCase):
             exchange=Venue.NASDAQ,
             fees=0.1,
             initial_margin=0,
+            maintenance_margin=0,
             quantity_multiplier=1,
             price_multiplier=1,
             company_name="Apple Inc.",
@@ -223,6 +225,7 @@ class TestDummyClient(unittest.TestCase):
             price_multiplier=0.01,
             market_price=10,
             initial_margin=5000,
+            maintenance_margin=4000.0,
         )
         hogs_symbol = self.symbols_map.get_symbol("HEJ4")
 
@@ -276,15 +279,19 @@ class TestDummyClient(unittest.TestCase):
         hogs_liquidation_value = (
             hogs_position.quantity * hogs_position.initial_margin
         ) + hogs_unrealized_pnl
-        hogs_margin_required = (
+        hogs_init_margin_required = (
             hogs_position.initial_margin * hogs_position.quantity
+        )
+        hogs_maintenance_margin_required = (
+            hogs_position.maintenance_margin * hogs_position.quantity
         )
 
         aapl_unrealized_pnl = (
             current_price - aapl_position.avg_price
         ) * aapl_position.quantity
         aapl_liquidation_value = current_price * aapl_position.quantity
-        aapl_margin_required = 0
+        aapl_init_margin_required = 0
+        aapl_maintenance_margin_required = 0
 
         expected_account = Account(
             timestamp=1777700000000000,
@@ -292,7 +299,10 @@ class TestDummyClient(unittest.TestCase):
             net_liquidation=hogs_liquidation_value
             + aapl_liquidation_value
             + self.capital,
-            full_init_margin_req=hogs_margin_required + aapl_margin_required,
+            full_init_margin_req=hogs_init_margin_required
+            + aapl_init_margin_required,
+            full_maint_margin_req=hogs_maintenance_margin_required
+            + aapl_maintenance_margin_required,
             unrealized_pnl=hogs_unrealized_pnl + aapl_unrealized_pnl,
         )
 
@@ -361,7 +371,7 @@ class TestDummyClient(unittest.TestCase):
     def test_check_margin_call(self):
         # Margin Call
         self.broker.account.full_available_funds = 100
-        self.broker.account.full_init_margin_req = 2000
+        self.broker.account.full_maint_margin_req = 2000
 
         # Test
         self.logger.logger.info = Mock()
@@ -373,7 +383,7 @@ class TestDummyClient(unittest.TestCase):
     def test_check_margin_call_no_call(self):
         # No Margin Call
         self.broker.account.full_available_funds = 2000
-        self.broker.account.full_init_margin_req = 200
+        self.broker.account.full_maint_margin_req = 200
 
         # Test
         self.logger.logger.info = Mock()

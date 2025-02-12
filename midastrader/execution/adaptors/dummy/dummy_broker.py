@@ -62,15 +62,20 @@ class DummyBroker:
         self.trade_id = 0
         self.threads = []
         self.positions: Dict[int, Position] = {}
-        self.unrealized_pnl: Dict[str, float] = {"account": 0}
-        self.margin_required: Dict[str, float] = {"account": 0}
-        self.liquidation_value: Dict[str, float] = {"account": 0}
+        self.unrealized_pnl: Dict[int, float] = {}
+        self.init_margin_required: Dict[int, float] = {}
+        self.maintenance_margin_required: Dict[int, float] = {}
+        self.liquidation_value: Dict[int, float] = {}
+        # self.unrealized_pnl: Dict[str, float] = {"account": 0}
+        # self.margin_required: Dict[str, float] = {"account": 0}
+        # self.liquidation_value: Dict[str, float] = {"account": 0}
         self.last_trades: Dict[int, Trade] = {}
         self.account = Account(
             timestamp=0,
             full_available_funds=capital,
             net_liquidation=capital,
             full_init_margin_req=0,
+            full_maint_margin_req=0,
             unrealized_pnl=0,
         )
         self.return_account()
@@ -376,10 +381,13 @@ class DummyBroker:
             impact = position.position_impact()
 
             # Update postion specific account values
-            self.unrealized_pnl[str(instrument_id)] = impact.unrealized_pnl
-            self.margin_required[str(instrument_id)] = impact.margin_required
-            self.liquidation_value[str(instrument_id)] = (
-                impact.liquidation_value
+            self.unrealized_pnl[instrument_id] = impact.unrealized_pnl
+            self.liquidation_value[instrument_id] = impact.liquidation_value
+            self.init_margin_required[instrument_id] = (
+                impact.init_margin_required
+            )
+            self.maintenance_margin_required[instrument_id] = (
+                impact.maintenance_margin_required
             )
 
         # Update Account values
@@ -387,7 +395,10 @@ class DummyBroker:
             value for value in self.unrealized_pnl.values()
         )
         self.account.full_init_margin_req = sum(
-            value for value in self.margin_required.values()
+            value for value in self.init_margin_required.values()
+        )
+        self.account.full_maint_margin_req = sum(
+            value for value in self.maintenance_margin_required.values()
         )
         self.account.net_liquidation = (
             sum(value for value in self.liquidation_value.values())

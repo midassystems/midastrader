@@ -68,6 +68,7 @@ class BrokerApp(EWrapper, EClient):
             timestamp=0,
             full_available_funds=0,
             full_init_margin_req=0,
+            full_maint_margin_req=0,
             net_liquidation=0,
             unrealized_pnl=0,
         )
