@@ -370,7 +370,7 @@ class TestDummyClient(unittest.TestCase):
 
     def test_check_margin_call(self):
         # Margin Call
-        self.broker.account.full_available_funds = 100
+        self.broker.account.net_liquidation = 100
         self.broker.account.full_maint_margin_req = 2000
 
         # Test
@@ -382,7 +382,7 @@ class TestDummyClient(unittest.TestCase):
 
     def test_check_margin_call_no_call(self):
         # No Margin Call
-        self.broker.account.full_available_funds = 2000
+        self.broker.account.net_liquidation = 2000
         self.broker.account.full_maint_margin_req = 200
 
         # Test

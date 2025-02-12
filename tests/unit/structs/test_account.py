@@ -72,7 +72,7 @@ class AccountTest(unittest.TestCase):
         self.assertEqual(equity_value, expected)
 
     def test_check_margin_call_true(self):
-        self.account_obj.full_available_funds = 0
+        self.account_obj.net_liquidation = 0
 
         # Test
         result = self.account_obj.check_margin_call()
