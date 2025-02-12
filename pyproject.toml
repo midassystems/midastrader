@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "midastrader"  
-version = "1.0.17" 
+version = "1.0.18" 
 description = "A robust backtesting and live trading engine designed for seamless strategy development and deployment. It supports user-defined strategies, multi-threaded execution, and integrations with brokers and data sources."  
 readme = "README.md"  
 keywords = ["algorithmic-trading","event-driven-backtest", "quantitative-finance", "finance", "markets"]  
