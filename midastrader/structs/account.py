@@ -157,7 +157,7 @@ class Account:
         Returns:
             bool: True if a margin call is triggered, False otherwise.
         """
-        return self.full_available_funds < self.full_maint_margin_req
+        return self.net_liquidation < self.full_maint_margin_req
 
     def to_dict(self, prefix: str = "") -> dict:
         """
