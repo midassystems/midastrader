@@ -11,8 +11,6 @@ from midastrader.execution import ExecutionEngine
 from midastrader.message_bus import MessageBus
 from midastrader.core import CoreEngine
 
-# from midastrader.core.risk.risk_handler import RiskHandler
-
 
 class EngineBuilder:
     """
@@ -261,8 +259,6 @@ class Engine:
         Raises:
             RuntimeError: If the system fails to load required components.
         """
-        # self.logger.info(f"Initializing system with mode: {self.mode.value}")
-
         # Risk Model
         if self.config.risk_class:
             self.core_engine.set_risk_model()
@@ -274,10 +270,7 @@ class Engine:
         )
 
         strategy = strategy_class(self.symbols_map, self.bus)
-
         self.core_engine.set_strategy(strategy)
-
-        # self.logger.info("Trading system initialized successfully.")
 
     def start(self):
         """
@@ -317,10 +310,8 @@ class Engine:
         self.data_engine.stop()
 
         # Shut down engines in order
-        # self.logger.info("Saving performance results...")
         self.core_engine.stop()
 
-        # self.logger.info("Liquidating positions...")
         self.execution_engine.stop()
         self.core_engine.save()
         self.core_engine.wait_until_complete()
@@ -342,24 +333,8 @@ class Engine:
         self.execution_engine.stop()
 
         self.core_engine.save()
-        # self.core_engine.wait_until_complete()
 
         self.logger.info("Live completed ...")
-
-        # self.broker_client.request_account_summary()
-        # time.sleep(5)  # time for final account summary request-maybe shorten
-        # self.performance_manager.save()
-
-    # def stop(self):
-    #     """
-    #     Gracefully shut down the trading engine.
-    #
-    #     Disconnects live data feeds and performs cleanup operations.
-    #     """
-    #     self.logger.info("Shutting down the engine.")
-    #     if self.mode == Mode.LIVE:
-    #         self.live_data_client.disconnect()
-    #     self.logger.info("Engine shutdown complete.")
 
     def _signal_handler(self, signum, frame):
         """
@@ -371,99 +346,3 @@ class Engine:
         """
         self.logger.info("Signal received, preparing to shut down.")
         self.running = False  # Stop the event loop
-
-
-# =========  Delete below ==========
-
-# def _run_backtest_event_loop(self):
-#     """Event loop for backtesting."""
-#     # Load Initial account data
-#     self.broker_client.update_account()
-#
-#     while self.hist_data_client.data_stream():
-#         continue
-#
-#     # Perform EOD operations for the last trading day
-#     self.broker_client.liquidate_positions()
-#
-#     # Finalize and save to database
-#     self.performance_manager.save(self.mode, self.config.output_path)
-
-
-# def connect_execution_engine(self):
-#     self.execution_engine.connect()
-
-# def connect_data_engine(self):
-#     pass
-
-# def connect_core_engine(self):
-#     pass
-
-#
-#     def setup_live_environment(self):
-#         """
-#         Configure the live trading environment.
-#
-#         Establishes connections to live data feeds, brokers, and validates trading contracts.
-#
-#         Raises:
-#             RuntimeError: If contract validation fails or live data cannot be loaded.
-#         """
-#         # Set up connections
-#         self.broker_client.connect()
-#
-#         # Validate Contracts
-#         self.contract_handler = ContractManager(self.broker_client)
-#         for symbol in self.symbols_map.symbols:
-#             if not self.contract_handler.validate_contract(symbol.contract):
-#                 raise RuntimeError(f"{symbol.broker_ticker} invalid contract.")
-#
-#         # Laod Hist Data
-#         self._load_historical_data()
-#
-#         # Load Live Data
-#         self.live_data_client.connect()
-#         self._load_live_data()
-#
-#     def setup_backtest_environment(self):
-#         """
-#         Configure the backtest environment.
-#
-#         Loads historical data needed for simulation and backtesting.
-#         Raises:
-#             RuntimeError: If backtest data cannot be loaded.
-#         """
-#         self._load_historical_data()
-#
-#     def _load_live_data(self):
-#         """
-#         Subscribe to live data feeds for the trading symbols.
-#
-#         Raises:
-#             ValueError: If live data fails to load for any symbol.
-#         """
-#         try:
-#             for symbol in self.symbols_map.symbols:
-#                 self.live_data_client.get_data(
-#                     data_type=self.parameters.data_type,
-#                     contract=symbol.contract,
-#                 )
-#         except ValueError:
-#             raise ValueError(f"Error loading live data for {symbol.ticker}.")
-#
-#     def _load_historical_data(self):
-#         """
-#         Load historical data for backtesting.
-#
-#         Raises:
-#             RuntimeError: If the backtest data fails to load.
-#         """
-#         response = self.hist_data_client.get_data(
-#             self.parameters,
-#             self.config.data_file,
-#         )
-#
-#         if response:
-#             self.logger.info("Backtest data loaded.")
-#         else:
-#             raise RuntimeError("Backtest data did not load.")

@@ -1,15 +1,9 @@
-# noqa: C901
-# import pandas as pd
-# import pandas_market_calendars as mcal
-# from datetime import timedelta
 from enum import Enum
 from typing import Optional, Dict, List
 from ibapi.contract import Contract
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import time, datetime
-
-# from pandas_market_calendars.market_calendar import DEFAULT
 
 from midastrader.structs.orders import Action
 from midastrader.utils.unix import unix_to_iso
@@ -329,9 +323,8 @@ class Symbol(ABC):
     price_multiplier: float
     trading_sessions: TradingSession
     slippage_factor: float
-    # contract: Contract = field(init=False)
 
-    def __post_init__(self):  # noqa: C901
+    def __post_init__(self):
         """
         Validates the input attributes and enforces constraints on numeric fields.
 
@@ -385,40 +378,6 @@ class Symbol(ABC):
         contract.exchange = self.exchange.value
         contract.multiplier = str(self.quantity_multiplier)
         return contract
-
-    # def to_contract_data(self) -> dict:
-    #     """
-    #     Constructs a dictionary containing key contract details for IB API.
-    #
-    #     Returns:
-    #         Dict[str, str]: A dictionary with details such as symbol, security type, currency, exchange, and multiplier.
-    #     """
-    #     return {
-    #         "symbol": self.broker_ticker,
-    #         "secType": self.security_type.value,
-    #         "currency": self.currency.value,
-    #         "exchange": self.exchange.value,
-    #         "multiplier": self.quantity_multiplier,
-    #     }
-    #
-    # def to_contract(self) -> Contract:
-    #     """
-    #     Creates an IB API `Contract` object using the symbol's details.
-    #
-    #     Returns:
-    #         Contract: A fully initialized `Contract` object.
-    #
-    #     Raises:
-    #         Exception: If an error occurs during contract creation.
-    #     """
-    #     try:
-    #         contract_data = self.to_contract_data()
-    #         contract = Contract()
-    #         for key, value in contract_data.items():
-    #             setattr(contract, key, value)
-    #         return contract
-    #     except Exception as e:
-    #         raise Exception(f"Unexpected error during Contract creation: {e}")
 
     def to_dict(self) -> dict:
         """
@@ -499,7 +458,6 @@ class Symbol(ABC):
         dt = datetime.fromisoformat(
             unix_to_iso(timestamp_ns, tz_info="America/New_York")
         )
-        # time = dt.time()
 
         return (
             self.trading_sessions.day_open
@@ -591,21 +549,8 @@ class Equity(Symbol):
         if not isinstance(self.shares_outstanding, int):
             raise TypeError("'shares_outstanding' must be of type int.")
 
-        # Create contract object
-        # self.contract = self.to_contract()
-
     def ib_contract(self) -> Contract:
         return super().ib_contract()
-
-    # def to_contract_data(self) -> dict:
-    #     """
-    #     Constructs a dictionary containing key contract details for the equity.
-    #
-    #     Returns:
-    #         dict: Contract data including broker ticker, security type, currency, exchange, and multiplier.
-    #     """
-    #     data = super().to_contract_data()
-    #     return data
 
     def to_dict(self) -> dict:
         """
@@ -741,9 +686,6 @@ class Future(Symbol):
         if self.tick_size <= 0:
             raise ValueError("'tickSize' must be greater than zero.")
 
-        # Create contract object
-        # self.contract = self.to_contract()
-
     def ib_contract(self) -> Contract:
         contract = super().ib_contract()
         contract.lastTradeDateOrContractMonth = (
@@ -751,20 +693,6 @@ class Future(Symbol):
         )
 
         return contract
-
-    #
-    # def to_contract_data(self) -> dict:
-    #     """
-    #     Generates contract data required for trading or IB API.
-    #
-    #     Returns:
-    #         dict: A dictionary with contract-specific attributes including last trade date.
-    #     """
-    #     data = super().to_contract_data()
-    #     data["lastTradeDateOrContractMonth"] = (
-    #         self.lastTradeDateOrContractMonth
-    #     )
-    #     return data
 
     def to_dict(self) -> dict:
         """
@@ -1080,9 +1008,6 @@ class Option(Symbol):
         if self.strike_price <= 0:
             raise ValueError("'strike' must be greater than zero.")
 
-        # Create contract object
-        # self.contract = self.to_contract()
-
     def ib_contract(self) -> Contract:
         contract = super().ib_contract()
         contract.lastTradeDateOrContractMonth = (
@@ -1090,25 +1015,8 @@ class Option(Symbol):
         )
         contract.right = self.option_type.value
         contract.strike = self.strike_price
-        #     data["strike"] = self.strike_price
 
         return contract
-
-    # def to_contract_data(self) -> dict:
-    #     """
-    #     Constructs a dictionary representation for creating an IBKR Contract object.
-    #
-    #     Returns:
-    #         dict: A dictionary containing option-specific contract details such as strike price,
-    #               expiration date, and option type, in addition to base contract details.
-    #     """
-    #     data = super().to_contract_data()
-    #     data["lastTradeDateOrContractMonth"] = (
-    #         self.lastTradeDateOrContractMonth
-    #     )
-    #     data["right"] = self.option_type.value
-    #     data["strike"] = self.strike_price
-    #     return data
 
     def to_dict(self) -> dict:
         """

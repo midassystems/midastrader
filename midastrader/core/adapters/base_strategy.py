@@ -1,6 +1,4 @@
 import queue
-
-# import threading
 import pandas as pd
 import importlib.util
 from typing import Type
@@ -47,7 +45,6 @@ class BaseStrategy(CoreAdapter):
         self.order_book = OrderBook.get_instance()
         self.portfolio_server = PortfolioServer.get_instance()
         self.historical_data = None
-        # self.running = threading.Event()
 
         # Subscribe to orderbook updates
         self.orderbook_queue = self.bus.subscribe(EventType.ORDER_BOOK)

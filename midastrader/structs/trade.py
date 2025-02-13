@@ -4,8 +4,6 @@ from mbinary import PRICE_SCALE
 
 from midastrader.structs.symbol import SecurityType
 
-# from midastrader.structs.constants import PRICE_SCALE
-
 
 @dataclass
 class Trade:

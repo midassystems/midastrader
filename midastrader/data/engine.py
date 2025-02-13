@@ -89,7 +89,7 @@ class DataEngine:
         for adapter in self.adapters.values():
             # Start the threads for each vendor
             thread = threading.Thread(target=adapter.process, daemon=True)
-            self.threads.append(thread)  # Keep track of threads
+            self.threads.append(thread)
             thread.start()
             adapter.is_running.wait()
 
@@ -98,24 +98,22 @@ class DataEngine:
 
     def start_live(self):
         """Start adapters in seperate threads."""
+        # Start historical data and load all into the buffer and processes buffer
         historical = self.adapters["historical"]
         hist_thread = threading.Thread(target=historical.process, daemon=True)
-        # self.threads.append(thread)
         hist_thread.start()
         historical.is_shutdown.wait()
-        hist_thread.join()  # Hold until historical data loaded
+        hist_thread.join()
 
         while not self.message_bus.topics[EventType.DATA].empty():
             continue
 
         self.logger.info("Historical data fully processed ...")
-        # self.logger.info("all data processed proceeding to others")
 
         for adapter in self.adapters.values():
             if not isinstance(adapter, HistoricalAdaptor):
-                # Start the threads for each vendor
                 thread = threading.Thread(target=adapter.process, daemon=True)
-                self.threads.append(thread)  # Keep track of threads
+                self.threads.append(thread)
                 thread.start()
                 adapter.is_running.wait()
 
@@ -136,12 +134,10 @@ class DataEngine:
         """
         Wait for the engine to complete processing.
         """
-        self.completed.wait()  # Block until the completed event is set
+        self.completed.wait()
 
     def stop(self):
         """Start adapters in separate threads."""
         for adapter in self.adapters.values():
             adapter.shutdown_event.set()
             adapter.is_shutdown.wait()
-
-        # self.logger.info("Shutting down DataEngine ...")

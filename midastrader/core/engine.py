@@ -12,8 +12,6 @@ from midastrader.core.adapters import (
     PerformanceManager,
 )
 
-# from midastrader.core.adapters.risk import RiskHandler
-
 
 class CoreEngine:
     def __init__(
@@ -85,8 +83,6 @@ class CoreEngine:
 
         Attaches the risk model to the database observer to track risk updates.
         """
-        return
-
         # if self.config.risk_class:
         #     self.risk_model = RiskHandler(self.config.risk_class)
         #
@@ -95,6 +91,7 @@ class CoreEngine:
         #         self.observer,
         #         EventType.RISK_MODEL_UPDATE,
         #     )
+        return
 
     def set_strategy(self, strategy: BaseStrategy):
         """
@@ -104,17 +101,9 @@ class CoreEngine:
         """
         if not isinstance(strategy, BaseStrategy):
             raise TypeError("Strategy must be an instance of BaseStrategy")
-        # self._strategy = value
 
         self.adapters["strategy"] = strategy
-        # strategy(
-        #     self.symbols_map,
-        #     self.message_bus,
-        # )
-
-        self.adapters["performance_manager"].set_strategy(
-            self.adapters["strategy"]
-        )
+        self.adapters["performance_manager"].set_strategy(strategy)
 
     def start(self):
         """Start adapters in seperate threads."""
@@ -122,7 +111,7 @@ class CoreEngine:
 
         for adapter in self.adapters.values():
             thread = threading.Thread(target=adapter.process, daemon=True)
-            self.threads.append(thread)  # Keep track of threads
+            self.threads.append(thread)
             thread.start()
             adapter.is_running.wait()
 
@@ -139,7 +128,7 @@ class CoreEngine:
             thread.join()  # Wait for each thread to finish
 
         self.logger.info("CoreEngine threads completed, shutting down ...")
-        self.completed.set()  # Signal that the DataEngine is done
+        self.completed.set()
 
     def wait_until_complete(self):
         """
@@ -154,23 +143,13 @@ class CoreEngine:
         self.adapters["order_book"].shutdown_event.set()
         self.adapters["order_book"].is_shutdown.wait()
 
-        # Shutdown strategy
-        # self.adapters["strategy"].shutdown_event.set()
-        # self.adapters["strategy"].is_shutdown.wait()
-
         # Shutdown OrderExecutionManager
         self.adapters["order_manager"].shutdown_event.set()
         self.adapters["order_manager"].is_shutdown.wait()
 
-        # self.logger.info("Shutting down CoreEngine main components ...")
-        # self.adapters["performance_manager"].save()
-        # self.adapters["portfolio_server"].shutdown_event.set()
-        # self.adapters["performance_manager"].shutdown_event.set()
-
     def save(self):
         """Start adapters in separate threads."""
         # Shutdown performance manaer
-        # self.adapters["performance_manager"].save()
         self.adapters["performance_manager"].shutdown_event.set()
         self.adapters["performance_manager"].is_shutdown.wait()
 
@@ -178,7 +157,6 @@ class CoreEngine:
         self.adapters["portfolio_server"].shutdown_event.set()
         self.adapters["portfolio_server"].is_shutdown.wait()
 
+        # Shutdown strategy
         self.adapters["strategy"].shutdown_event.set()
         self.adapters["strategy"].is_shutdown.wait()
-
-        # self.logger.info("Shutting down CoreEngine components ...")

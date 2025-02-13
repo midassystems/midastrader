@@ -1,5 +1,4 @@
-from typing import Union
-from mbinary import OhlcvMsg, BboMsg, RecordMsg
+from mbinary import RecordMsg
 from dataclasses import dataclass, field
 
 from midastrader.structs.events.base import SystemEvent
@@ -21,7 +20,7 @@ class MarketEvent(SystemEvent):
     """
 
     timestamp: int
-    data: RecordMsg  # Union[OhlcvMsg, BboMsg]
+    data: RecordMsg
     type: str = field(init=False, default="MARKET_DATA")
 
     def __post_init__(self):

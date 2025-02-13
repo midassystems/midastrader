@@ -6,36 +6,15 @@ from mbinary import PRICE_SCALE
 from quant_analytics.backtest.metrics import Metrics
 
 from midastrader.structs.trade import Trade
+from midastrader.utils.unix import resample_timestamp
+from midastrader.structs.account import EquityDetails, Account
+from midastrader.structs.symbol import SymbolMap
+from midastrader.utils.logger import SystemLogger
 from midastrader.structs.events import (
     SignalEvent,
     TradeEvent,
     TradeCommissionEvent,
 )
-from midastrader.utils.unix import resample_timestamp
-from midastrader.structs.account import EquityDetails, Account
-from midastrader.structs.symbol import SymbolMap
-from midastrader.utils.logger import SystemLogger
-
-
-# def _convert_timestamp(df: pd.DataFrame, column: str = "timestamp") -> None:
-#     """
-#     Converts a Unix timestamp column in a DataFrame to a localized and human-readable timestamp.
-#
-#     The function converts Unix timestamps in the specified column to ISO 8601 format, adjusts the timezone
-#     to 'America/New_York', and removes the timezone information for consistency.
-#
-#     Args:
-#         df (pd.DataFrame): The DataFrame containing the timestamp column to convert.
-#         column (str, optional): The name of the column with Unix timestamps. Defaults to "timestamp".
-#
-#     Returns:
-#         None: The function modifies the DataFrame in place.
-#     """
-#     df[column] = pd.to_datetime(
-#         df[column].map(lambda x: unix_to_iso(x, "EST"))
-#     )
-#     df[column] = df[column].dt.tz_convert("America/New_York")
-#     df[column] = df[column].dt.tz_localize(None)
 
 
 class TradeManager:
@@ -57,7 +36,6 @@ class TradeManager:
         """
         self.logger = SystemLogger.get_logger()
         self.trades: Dict[str, Trade] = {}
-        # self.logger = logger
 
     def update_trades(self, event: TradeEvent) -> None:
         """
@@ -160,36 +138,7 @@ class TradeManager:
                         ].sum(),
                     ),
                 ],
-                # "trade_cost": [
-                #     (
-                #         "entry_cost",
-                #         lambda x: x[
-                #             (df["action"].isin(["LONG", "SHORT"]))
-                #             & (~df["is_rollover"])
-                #         ].sum(),
-                #     ),
-                #     (
-                #         "exit_cost",
-                #         lambda x: x[
-                #             df["action"].isin(["SELL", "COVER"])
-                #         ].sum(),
-                #     ),
-                # ],
-                # "trade_cost": [
-                #     (
-                #         "entry_value",
-                #         lambda x: x[
-                #             df["action"].isin(["LONG", "SHORT"])
-                #         ].sum(),
-                #     ),
-                #     (
-                #         "exit_value",
-                #         lambda x: x[
-                #             df["action"].isin(["SELL", "COVER"])
-                #         ].sum(),
-                #     ),
-                # ],
-                "fees": "sum",  # Sum of all fees for each trade group
+                "fees": "sum",
             }
         )
 
@@ -218,28 +167,6 @@ class TradeManager:
         aggregated["pnl_percentage"] = aggregated["pnl"] / aggregated[
             "entry_cost"
         ].replace(0, np.nan)
-
-        # # Calculate percentage gain/loss based on the entry value
-        # gain_loss = (aggregated["exit_value"] + aggregated["entry_value"]) * -1
-        # aggregated["gain/loss"] = gain_loss
-        #
-        # # Calculate Profit and Loss (PnL)
-        # pnl = gain_loss + aggregated["fees"]
-        # aggregated["pnl"] = pnl
-        # aggregated["pnl_percentage"] = pnl / aggregated["entry_cost"]
-
-        # aggregated["gain/loss"] = (
-        #     aggregated["exit_value"] + aggregated["entry_value"]
-        # ) * -1
-        #
-        # # Calculate Profit and Loss (PnL)
-        # aggregated["pnl"] = (
-        #     aggregated["exit_value"] + aggregated["entry_value"]
-        # ) * -1 + aggregated["fees"]
-        #
-        # aggregated["pnl_percentage"] = (
-        #     aggregated["pnl"] / aggregated["entry_cost"]
-        # )  # * 100
 
         # Reset index to make 'trade_id' a column again
         aggregated.reset_index(inplace=True)
@@ -839,7 +766,4 @@ class SignalManager:
         Returns:
             List[mbinary.Signals]: A list of signals converted into the `mbinary.Signals` format.
         """
-        # for signal in self.signals:
-        #     self.logger.info(signal.instructions[0].quantity)
-        #     self.logger.info(signal.instructions[0].weight)
         return [signal.to_mbinary(symbols_map) for signal in self.signals]

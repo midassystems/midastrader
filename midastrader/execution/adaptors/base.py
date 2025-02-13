@@ -17,8 +17,6 @@ class ExecutionAdapter(ABC):
         self.is_running = threading.Event()
         self.is_shutdown = threading.Event()
 
-        # self.order_queue = self.bus.subscribe(EventType.ORDER)
-
     @abstractmethod
     def process(self) -> None:
         pass

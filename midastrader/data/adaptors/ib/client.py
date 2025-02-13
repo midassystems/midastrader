@@ -59,7 +59,7 @@ class IBAdaptor(DataAdapter):
         self.port = int(kwargs["port"])
         self.clientId = kwargs["client_id"]
         self.account = kwargs["account_id"]
-        self.lock = threading.Lock()  # create a lock
+        self.lock = threading.Lock()
 
         self.validated_contracts = {}
 

@@ -66,9 +66,6 @@ class DummyBroker:
         self.init_margin_required: Dict[int, float] = {}
         self.maintenance_margin_required: Dict[int, float] = {}
         self.liquidation_value: Dict[int, float] = {}
-        # self.unrealized_pnl: Dict[str, float] = {"account": 0}
-        # self.margin_required: Dict[str, float] = {"account": 0}
-        # self.liquidation_value: Dict[str, float] = {"account": 0}
         self.last_trades: Dict[int, Trade] = {}
         self.account = Account(
             timestamp=0,
@@ -276,9 +273,8 @@ class DummyBroker:
         """
 
         orders = event.orders
-        # action = event.action
         timestamp = event.timestamp
-        # signal_id = event.signal_id
+
         for order in orders:
             symbol = self.symbols_map.get_symbol_by_id(order.instrument_id)
             if symbol:
@@ -304,7 +300,6 @@ class DummyBroker:
                 # Create Execution Events
                 self._update_trades(
                     timestamp,
-                    # trade_id,
                     order.signal_id,
                     symbol,
                     quantity,
@@ -374,8 +369,6 @@ class DummyBroker:
             margin requirements, and net liquidation value.
         """
         for instrument_id, position in self.positions.items():
-            # symbol = self.symbols_map.get_symbol(contract.symbol)
-            # if symbol:
             mkt_data = self.order_book.retrieve(instrument_id)
             position.market_price = mkt_data.pretty_price
             impact = position.position_impact()
@@ -410,7 +403,6 @@ class DummyBroker:
         self,
         timestamp: int,
         signal_id: int,
-        # leg_id: int,
         symbol: Symbol,
         quantity: float,
         action: Action,
@@ -456,7 +448,6 @@ class DummyBroker:
         # Keep for liquidation if needed at the end
         self.last_trades[symbol.instrument_id] = trade
 
-        # trade_id_str = f"{trade_id}{leg_id}{action}"
         self.bus.publish(
             EventType.TRADE_UPDATE,
             TradeEvent(str(self.trade_id), trade),
@@ -526,19 +517,10 @@ class DummyBroker:
                         is_rollover=False,
                     )
 
-                    # self.last_trades[contract] = trade
-                    # id = f"{trade.trade_id}{trade.leg_id}{trade.action}"
                     self.bus.publish(
                         EventType.TRADE_UPDATE,
                         TradeEvent(str(self.trade_id), trade),
                     )
-
-            # # Output liquidation
-            # string = "Positions liquidate:"
-            # for contract, trade in self.last_trades.items():
-            #     string += f"\n  {contract} : {trade}"
-            #
-            # self.logger.info(f"\n{string}")
 
     def return_positions(self) -> None:
         """
@@ -586,5 +568,3 @@ class DummyBroker:
             EquityDetails: Details of the broker's equity value.
         """
         self.bus.publish(EventType.EQUITY_UPDATE, self.account.equity_value())
-
-        # return self.account.equity_value()

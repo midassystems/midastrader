@@ -47,6 +47,7 @@ class HistoricalAdaptor(DataAdapter):
         self.next_date = None
         self.current_date = None
         self.eod_triggered = False
+
         self.eod_event = threading.Event()  # Thread-safe synchronization
 
     def process(self):
@@ -111,27 +112,6 @@ class HistoricalAdaptor(DataAdapter):
         self.data = data
         return True
 
-    #
-    # def next_record(self) -> RecordMsg:
-    #     """
-    #     Retrieves the next record from the data buffer and adjusts its instrument ID.
-    #
-    #     Returns:
-    #         RecordMsg: The next record with updated instrument ID.
-    #     """
-    #     record = self.data.replay()
-    #
-    #     if record is None:
-    #         return RecordMsg()
-    #
-    #     # Adjust instrument id
-    #     id = record.hd.instrument_id
-    #     ticker = self.data.metadata.mappings.get_ticker(id)
-    #     new_id = self.symbols_map.get_symbol(ticker).instrument_id
-    #     record.instrument_id = new_id
-    #
-    #     return record
-
     def data_stream(self) -> bool:
         """
         Simulates streaming of market data by processing the next record in the data buffer.
@@ -155,7 +135,6 @@ class HistoricalAdaptor(DataAdapter):
         new_id = symbol.instrument_id
         record.instrument_id = new_id
 
-        # Check for end of trading da
         if self.mode == Mode.BACKTEST:
             self._check_eod(record)
 
@@ -179,7 +158,7 @@ class HistoricalAdaptor(DataAdapter):
         if not self.current_date or date > self.current_date:
             self.current_date = date
             self.eod_triggered = False
-            self.bus.publish(EventType.EOD_PROCESSED, False)  # Reset flag
+            self.bus.publish(EventType.EOD_PROCESSED, False)
 
         symbol = self.symbols_map.map[record.instrument_id]
 

@@ -124,7 +124,6 @@ class PortfolioServerManager(CoreAdapter):
         super().__init__(symbols_map, bus)
         self.server = PortfolioServer.get_instance()
         self.threads = []
-        # self.running = threading.Event()
 
         # Subscribe to events
         self.order_queue = self.bus.subscribe(EventType.ORDER_UPDATE)

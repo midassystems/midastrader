@@ -35,8 +35,6 @@ class SignalInstruction:
     order_type: OrderType
     action: Action
     signal_id: int
-    # trade_id: int = 0
-    # leg_id: int = 0
     weight: float = 0.0
     quantity: float = 0.0
     limit_price: Optional[float] = 0.0
@@ -61,8 +59,6 @@ class SignalInstruction:
             raise TypeError("'action' field must be of type Action enum.")
         if not isinstance(self.signal_id, int):
             raise TypeError("'signal_id' field must of type int.")
-        # if not isinstance(self.leg_id, int):
-        # raise TypeError("'leg_id' field must be of type int.")
         if not isinstance(self.quantity, float):
             raise TypeError("'quantity' field must be of type float.")
         if self.order_type == OrderType.LIMIT and not isinstance(
@@ -81,8 +77,6 @@ class SignalInstruction:
         # Value Constraint
         if self.signal_id <= 0:
             raise ValueError("'signal_id' field must be greater than zero.")
-        # if self.leg_id <= 0:
-        # raise ValueError("'leg_id' field must must be greater than zero.")
         if self.limit_price and self.limit_price <= 0:
             raise ValueError(
                 "'limit_price' field must must be greater than zero."
@@ -104,7 +98,6 @@ class SignalInstruction:
             "order_type": self.order_type.value,
             "action": self.action.value,
             "signal_id": self.signal_id,
-            # "leg_id": self.leg_id,
             "weight": round(self.weight, 4),
             "quantity": self.quantity,
             "limit_price": (self.limit_price if self.limit_price else ""),
@@ -180,7 +173,6 @@ class SignalInstruction:
             f"Instrument: {self.instrument}, "
             f"Order Type: {self.order_type.name}, "
             f"Action: {self.action.name}, "
-            # f"Trade ID: {self.trade_id}, "
             f"Signal ID: {self.signal_id}, "
             f"Weight: {self.weight}, "
             f"Quantity: {self.quantity}, "

@@ -88,7 +88,6 @@ class PerformanceManager(CoreAdapter):
         self.output_dir = output_dir
         self._strategy: Optional[BaseStrategy] = None
         self.threads = []
-        # self.running = threading.Event()
 
         # Subscribe to events
         self.account_queue = self.bus.subscribe(EventType.ACCOUNT_UPDATE_LOG)

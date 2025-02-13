@@ -32,7 +32,6 @@ class OrderExecutionManager(CoreAdapter):
         super().__init__(symbols_map, bus)
         self.order_book = OrderBook.get_instance()
         self.portfolio_server = PortfolioServer.get_instance()
-        # self.running = threading.Event()
 
         # Subcriptions
         self.signal_queue = self.bus.subscribe(EventType.SIGNAL)
@@ -68,7 +67,7 @@ class OrderExecutionManager(CoreAdapter):
 
         self.cleanup()
 
-    def cleanup(self):
+    def cleanup(self) -> None:
         while True:
             try:
                 event = self.signal_queue.get(timeout=1)
@@ -152,29 +151,14 @@ class OrderExecutionManager(CoreAdapter):
 
                 if not order:
                     self.logger.warning(
-                        f"Skipping order {signal.signal_id}: error creating order."
+                        f"Error creating order {signal.signal_id}."
                     )
                     return
-                #
-                # if current_price is None:
-                #     self.logger.warning(
-                #         f"Skipping trade {trade.trade_id}: No current price for {symbol.instrument_id}"
-                #     )
-                #     return
-
                 order_cost = symbol.cost(
                     float(order.quantity),
                     current_price.pretty_price,
                 )
 
-                # order_details = {
-                #     "timestamp": timestamp,
-                #     # "signal_id": signal.signal_id,
-                #     # "action": signal.action,
-                #     # "symbol": symbol,
-                #     "order": order,
-                # }
-                #
                 orders.append(order)
 
                 # SELL/Cover are exits so available capital will be freed up
@@ -187,27 +171,12 @@ class OrderExecutionManager(CoreAdapter):
                 )
 
         if total_capital_required <= self.portfolio_server.capital:
-            # for order in orders:
             self._set_order(timestamp, orders)
-
-            # order["timestamp"],
-            #     order["signal_id"],
-            #     order["action"],
-            #     order["symbol"],
-            #     order["order"],
-            # )
         else:
-            self.logger.debug("Not enough capital to execute all orders")
+            self.logger.info("Not enough capital to execute all orders")
             self.bus.publish(EventType.UPDATE_SYSTEM, False)
 
-    def _set_order(
-        self,
-        timestamp: int,
-        # signal_id: int,
-        # action: Action,
-        # symbol: Symbol,
-        orders: List[BaseOrder],
-    ) -> None:
+    def _set_order(self, timestamp: int, orders: List[BaseOrder]) -> None:
         """
         Queues an OrderEvent for execution based on the provided order details.
 
@@ -223,14 +192,7 @@ class OrderExecutionManager(CoreAdapter):
             RuntimeError: If creating the `OrderEvent` fails due to invalid input or unexpected errors.
         """
         try:
-            order_event = OrderEvent(
-                timestamp=timestamp,
-                # signal_id=signal_id,
-                # action=action,
-                # symbol=symbol,
-                orders=orders,
-            )
-            self.logger.info(order_event)
+            order_event = OrderEvent(timestamp, orders)
             self.bus.publish(EventType.ORDER, order_event)
         except (ValueError, TypeError) as e:
             raise RuntimeError(f"Failed to set OrderEvent due to input : {e}")
