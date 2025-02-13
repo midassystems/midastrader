@@ -169,8 +169,9 @@ class OrderBookManager(CoreAdapter):
         self.bus.publish(EventType.EOD_PROCESSED, True)
 
     def handle_record(self, record: RecordMsg) -> None:
-        if record.rollover_flag == 1:
-            self.handle_rollover(record)
+        if self.mode == Mode.BACKTEST:
+            if record.rollover_flag == 1:
+                self.handle_rollover(record)
 
         # Update the order book with the new market data
         self.book._update(record)
@@ -181,7 +182,7 @@ class OrderBookManager(CoreAdapter):
             data=record,
         )
 
-        self.logger.debug(market_event)
+        # self.logger.debug(market_event)  # delete
 
         # Check inital data loaded
         if not self.book.tickers_loaded:

@@ -230,6 +230,7 @@ class OrderExecutionManager(CoreAdapter):
                 # symbol=symbol,
                 orders=orders,
             )
+            self.logger.info(order_event)
             self.bus.publish(EventType.ORDER, order_event)
         except (ValueError, TypeError) as e:
             raise RuntimeError(f"Failed to set OrderEvent due to input : {e}")

@@ -2,7 +2,7 @@ import threading
 from enum import Enum
 from typing import Dict
 
-from midastrader.message_bus import MessageBus
+from midastrader.message_bus import EventType, MessageBus
 from midastrader.structs.symbol import SymbolMap
 from midastrader.config import Parameters, Mode
 from midastrader.utils.logger import SystemLogger
@@ -99,10 +99,17 @@ class DataEngine:
     def start_live(self):
         """Start adapters in seperate threads."""
         historical = self.adapters["historical"]
-        thread = threading.Thread(target=historical.process, daemon=True)
-        self.threads.append(thread)
-        thread.start()
-        thread.join()  # Hold until historical data loaded
+        hist_thread = threading.Thread(target=historical.process, daemon=True)
+        # self.threads.append(thread)
+        hist_thread.start()
+        historical.is_shutdown.wait()
+        hist_thread.join()  # Hold until historical data loaded
+
+        while not self.message_bus.topics[EventType.DATA].empty():
+            continue
+
+        self.logger.info("Historical data fully processed ...")
+        # self.logger.info("all data processed proceeding to others")
 
         for adapter in self.adapters.values():
             if not isinstance(adapter, HistoricalAdaptor):

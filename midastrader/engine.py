@@ -342,7 +342,7 @@ class Engine:
         self.execution_engine.stop()
 
         self.core_engine.save()
-        self.core_engine.wait_until_complete()
+        # self.core_engine.wait_until_complete()
 
         self.logger.info("Live completed ...")
 
