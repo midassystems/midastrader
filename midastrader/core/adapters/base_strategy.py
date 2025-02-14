@@ -1,4 +1,5 @@
 import queue
+import threading
 import pandas as pd
 import importlib.util
 from typing import Type
@@ -45,6 +46,7 @@ class BaseStrategy(CoreAdapter):
         self.order_book = OrderBook.get_instance()
         self.portfolio_server = PortfolioServer.get_instance()
         self.historical_data = None
+        self.threads = []
 
         # Subscribe to orderbook updates
         self.orderbook_queue = self.bus.subscribe(EventType.ORDER_BOOK)
@@ -58,9 +60,35 @@ class BaseStrategy(CoreAdapter):
             event_type (EventType): The type of the event (e.g., `MARKET_DATA`).
             event (MarketEvent): The market event containing data to process.
         """
-        self.logger.info("Strategy running ...")
-        self.is_running.set()
+        try:
+            self.threads.append(
+                threading.Thread(target=self.process_orderbook, daemon=True)
+            )
+            self.threads.append(
+                threading.Thread(target=self.process_initial_data, daemon=True)
+            )
 
+            for thread in self.threads:
+                thread.start()
+
+            self.logger.info("Strategy running ...")
+            self.is_running.set()
+
+            for thread in self.threads:
+                thread.join()
+
+        finally:
+            self.cleanup()
+
+    def process_orderbook(self) -> None:
+        """
+        Handles incoming events and processes them according to the strategy logic.
+
+        Args:
+            subject (Subject): The subject that triggered the event.
+            event_type (EventType): The type of the event (e.g., `MARKET_DATA`).
+            event (MarketEvent): The market event containing data to process.
+        """
         while not self.shutdown_event.is_set():
             try:
                 event = self.orderbook_queue.get(timeout=0.01)
@@ -68,7 +96,13 @@ class BaseStrategy(CoreAdapter):
             except queue.Empty:
                 continue
 
-        self.cleanup()
+    def process_initial_data(self) -> None:
+        while not self.shutdown_event.is_set():
+            if self.bus.get_flag(EventType.INITIAL_DATA):
+                self.handle_initial_data()
+                break
+
+        self.logger.info("Strategy process initial data thread ending.")
 
     def cleanup(self):
         while True:
@@ -83,6 +117,10 @@ class BaseStrategy(CoreAdapter):
 
     @abstractmethod
     def handle_event(self, event: MarketEvent) -> None:
+        pass
+
+    # @abstractmethod
+    def handle_initial_data(self) -> None:
         pass
 
     @abstractmethod

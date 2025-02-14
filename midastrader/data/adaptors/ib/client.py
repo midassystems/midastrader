@@ -53,12 +53,13 @@ class IBAdaptor(DataAdapter):
         super().__init__(symbols_map, bus)
 
         self.logger = SystemLogger.get_logger()
-        self.app = DataApp(bus, kwargs["tick_interval"])
+        self.app = DataApp(bus)
         self.data_type = LiveDataType[kwargs["data_type"].upper()]
         self.host = kwargs["host"]
         self.port = int(kwargs["port"])
         self.clientId = kwargs["client_id"]
         self.account = kwargs["account_id"]
+        self.tick_interval: int = kwargs["tick_interval"]
         self.lock = threading.Lock()
 
         self.validated_contracts = {}
@@ -242,6 +243,9 @@ class IBAdaptor(DataAdapter):
         Args:
             contract (Contract): The financial contract for which quote data is requested.
         """
+        # Needed if controlling the flow f tickes so as o not throttle system
+        self.app.set_tick_interval(self.tick_interval)
+
         reqId = self._get_valid_id()
         instrument_id = self.symbols_map.get_id(contract.symbol)
 

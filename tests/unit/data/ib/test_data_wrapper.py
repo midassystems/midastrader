@@ -10,7 +10,8 @@ from midastrader.data.adaptors.ib.wrapper import DataApp
 class TestDataApp(unittest.TestCase):
     def setUp(self):
         self.bus = MessageBus()
-        self.data_app = DataApp(self.bus, tick_interval=5)
+        self.tick_interval = 5
+        self.data_app = DataApp(self.bus)
 
     def test_200_error_valid(self):
         # Simulate an error code for contract not found

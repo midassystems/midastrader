@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 from mbinary import OhlcvMsg
 import threading
-from typing import Union, Optional
+from typing import Union
 from decimal import Decimal
 from ibapi.common import TickAttrib
 from ibapi.client import EClient
@@ -35,7 +35,7 @@ class DataApp(EWrapper, EClient):
         timer_thread (threading.Thread): Timer thread for periodic operations.
     """
 
-    def __init__(self, message_bus: MessageBus, tick_interval: Optional[int]):
+    def __init__(self, message_bus: MessageBus):
         """
         Initializes a new instance of DataApp, setting up attributes for managing data interactions with IB API.
 
@@ -52,6 +52,11 @@ class DataApp(EWrapper, EClient):
         self.reqId_to_instrument = {}
         self.tick_data = {}
 
+        # Tick Data specific
+        self.update_interval: int = 0
+        self.is_running: bool = False
+        self.timer_thread: Union[None, threading.Thread] = None
+
         # Event Handling
         self.connected_event = threading.Event()
         self.valid_id_event = threading.Event()
@@ -62,13 +67,23 @@ class DataApp(EWrapper, EClient):
 
         # Tick interval updater FOR TICK DATA
         # Seconds interval for pushing the event
-        if tick_interval:
-            self.update_interval = tick_interval
-            self.is_running = True
-            self.timer_thread = threading.Thread(
-                target=self._run_timer, daemon=True
-            )
-            self.timer_thread.start()
+        # self.logger.info(tick_interval)
+        # if tick_interval:
+        #     self.update_interval = tick_interval
+        #     self.is_running = True
+        #     self.timer_thread = threading.Thread(
+        #         target=self._run_timer, daemon=True
+        #     )
+        #     self.timer_thread.start()
+
+    def set_tick_interval(self, tick_interval: int) -> None:
+        self.update_interval = tick_interval
+        self.is_running = True
+        self.timer_thread = threading.Thread(
+            target=self._run_timer,
+            daemon=True,
+        )
+        self.timer_thread.start()
 
     def _run_timer(self) -> None:
         """
@@ -83,7 +98,8 @@ class DataApp(EWrapper, EClient):
         Gracefully stops the timer thread and other resources.
         """
         self.is_running = False
-        self.timer_thread.join()
+        if self.timer_thread:
+            self.timer_thread.join()
         self.logger.info("Shutting down the DataApp.")
 
     def error(

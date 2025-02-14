@@ -44,6 +44,9 @@ class TestStrategy(BaseStrategy):
     def prepare(self):
         pass
 
+    def handle_initial_data(self):
+        pass
+
     def handle_event(self, event: MarketEvent) -> None:
         pass
 

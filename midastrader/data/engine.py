@@ -1,3 +1,4 @@
+import time
 import threading
 from enum import Enum
 from typing import Dict
@@ -100,13 +101,10 @@ class DataEngine:
         """Start adapters in seperate threads."""
         # Start historical data and load all into the buffer and processes buffer
         historical = self.adapters["historical"]
-        hist_thread = threading.Thread(target=historical.process, daemon=True)
-        hist_thread.start()
-        historical.is_shutdown.wait()
-        hist_thread.join()
+        historical.process()
 
-        while not self.message_bus.topics[EventType.DATA].empty():
-            continue
+        while not self.message_bus.is_queue_empty(EventType.ORDER_BOOK):
+            time.sleep(0.1)  # Add a small sleep to avoid busy-waiting
 
         self.logger.info("Historical data fully processed ...")
 

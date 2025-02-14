@@ -1,4 +1,5 @@
 import queue
+import time
 import threading
 from typing import Dict
 from threading import Lock
@@ -143,6 +144,10 @@ class PortfolioServerManager(CoreAdapter):
                 threading.Thread(target=self.process_account, daemon=True)
             )
 
+            self.threads.append(
+                threading.Thread(target=self.initial_data, daemon=True)
+            )
+
             for thread in self.threads:
                 thread.start()
 
@@ -158,6 +163,20 @@ class PortfolioServerManager(CoreAdapter):
     def cleanup(self) -> None:
         self.logger.info("Shutting down PortfolioserverManager...")
         self.is_shutdown.set()
+
+    def initial_data(self) -> None:
+        initial_data = False
+
+        while not initial_data:
+            initial_data = all(
+                [
+                    self.server.position_manager.initial_data,
+                    self.server.account_manager.initial_data,
+                ]
+            )
+            time.sleep(0.1)
+
+        self.bus.publish(EventType.INITIAL_DATA, True)
 
     def process_orders(self) -> None:
         """

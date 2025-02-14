@@ -34,6 +34,7 @@ class EventType(Enum):
     RISK_UPDATE = auto()
 
     # Flags
+    INITIAL_DATA = auto()
     UPDATE_EQUITY = auto()
     UPDATE_SYSTEM = auto()
     ROLLED_OVER = auto()
@@ -65,6 +66,7 @@ class MessageBus:
             EventType.ACCOUNT_UPDATE_LOG: queue.Queue(),
             EventType.EQUITY_UPDATE: queue.Queue(),
             EventType.TRADE_UPDATE: queue.Queue(),
+            EventType.INITIAL_DATA: False,
             EventType.ORDER_BOOK_UPDATED: False,
             EventType.OB_PROCESSED: False,
             EventType.EOD_PROCESSED: False,
@@ -122,3 +124,15 @@ class MessageBus:
             ):
                 raise ValueError(f"Topic '{topic}' is not a flag-based topic.")
             return self.topics[topic]
+
+    def is_queue_empty(self, topic: EventType) -> bool:
+        with self.lock:
+            if topic not in self.topics:
+                raise ValueError(f"Topic '{topic} is not defined.")
+
+            if not isinstance(self.topics[topic], queue.Queue):
+                raise ValueError(
+                    f"Topic '{topic}' is not a queue-based topic."
+                )
+
+            return self.topics[topic].empty()

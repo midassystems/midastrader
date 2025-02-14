@@ -235,9 +235,7 @@ class IBAdaptor(ExecutionAdapter):
                 orderId = self._get_valid_id()
                 ib_order = order.ib_order()
                 symbol = self.symbols_map.get_symbol_by_id(order.instrument_id)
-                self.logger.info(
-                    f"Order Id - {orderId},Ib order {ib_order}, symbol: {symbol.midas_ticker}"
-                )
+
                 if symbol:
                     self.app.placeOrder(
                         orderId=orderId,

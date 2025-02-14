@@ -120,6 +120,7 @@ class PositionManager:
         self.logger = SystemLogger.get_logger()
         self.positions: Dict[int, Position] = {}
         self.pending_positions_update = set()
+        self.initial_data = False
 
     @property
     def get_positions(self) -> Dict[int, Position]:
@@ -167,6 +168,10 @@ class PositionManager:
         # Notify listener and log
         self.pending_positions_update.discard(instrument_id)
 
+        # Signal the orders have been updated atleast once
+        if not self.initial_data:
+            self.initial_data = True
+
     def _output_positions(self) -> str:
         """
         Generates a formatted string representation of all positions for logging.
@@ -201,6 +206,7 @@ class AccountManager:
         """
         self.logger = SystemLogger.get_logger()
         self.account: Account = Account(0, 0, 0, 0, 0, 0, 0, "", 0, 0, 0)
+        self.initial_data = False
 
     @property
     def get_capital(self) -> float:
@@ -232,3 +238,7 @@ class AccountManager:
         self.logger.debug(
             f"\nACCOUNT UPDATED: \n{self.account.pretty_print("  ")}"
         )
+
+        # Signal the orders have been updated atleast once
+        if not self.initial_data:
+            self.initial_data = True
