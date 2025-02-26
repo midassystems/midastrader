@@ -167,7 +167,7 @@ class TestTradeInsructions(unittest.TestCase):
             )
 
         with self.assertRaisesRegex(
-            TypeError, "'order_type' field must be of type OrderType enum."
+            TypeError, "'order_type' must be of type OrderType enum."
         ):
             SignalInstruction(
                 instrument=self.instrument,

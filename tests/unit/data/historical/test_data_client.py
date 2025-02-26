@@ -92,9 +92,7 @@ class TestHistoricalAdaptor(unittest.TestCase):
 
         # Dataclient instance
         self.bus = MessageBus()
-        kwargs = {
-            "data_file": "tests/unit/test_HE.c.0_ZC.c.0__ohlcv-1h_2024-09-01_2024-12-31.bin"
-        }
+        kwargs = {"data_file": "tests/he_zc_ohlcv-1h.bin"}
         self.adaptor = HistoricalAdaptor(
             self.symbols_map,
             self.bus,

@@ -52,9 +52,7 @@ class SignalInstruction:
         if not isinstance(self.instrument, int):
             raise TypeError("'instrument' field must be of type int.")
         if not isinstance(self.order_type, OrderType):
-            raise TypeError(
-                "'order_type' field must be of type OrderType enum."
-            )
+            raise TypeError("'order_type' must be of type OrderType enum.")
         if not isinstance(self.action, Action):
             raise TypeError("'action' field must be of type Action enum.")
         if not isinstance(self.signal_id, int):
@@ -120,8 +118,7 @@ class SignalInstruction:
             ticker=ticker,
             order_type=self.order_type.value,
             action=self.action.value,
-            trade_id=self.signal_id,
-            leg_id=self.signal_id,
+            signal_id=self.signal_id,
             weight=int(self.weight * PRICE_SCALE),
             quantity=int(self.quantity * QUANTITY_SCALE),
             limit_price=str(self.limit_price) if self.limit_price else "",

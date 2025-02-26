@@ -112,7 +112,7 @@ class Trade:
         """
         return mbinary.Trades(
             trade_id=self.trade_id,
-            leg_id=self.signal_id,
+            signal_id=self.signal_id,
             timestamp=self.timestamp,
             ticker=ticker,
             quantity=int(self.quantity * PRICE_SCALE),
@@ -136,7 +136,7 @@ class Trade:
         return (
             f"{indent}Timestamp: {self.timestamp}\n"
             f"{indent}Trade ID: {self.trade_id}\n"
-            f"{indent}Leg ID: {self.signal_id}\n"
+            f"{indent}Signal ID: {self.signal_id}\n"
             f"{indent}Instrument: {self.instrument}\n"
             f"{indent}Quantity: {self.quantity}\n"
             f"{indent}Avg Price: {self.avg_price}\n"
