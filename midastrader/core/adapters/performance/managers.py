@@ -46,9 +46,8 @@ class TradeManager:
             trade_data (Trade): Trade object containing trade details.
         """
         self.trades[event.trade_id] = event.trade
-        self.logger.debug(
-            f"\nTrade Updated:\n{event.trade.pretty_print("  ")}\n"
-        )
+        trade_str = event.trade.pretty_print("  ")
+        self.logger.debug(f"\nTrade Updated:\n{trade_str}\n")
 
     def update_trade_commission(self, event: TradeCommissionEvent) -> None:
         """
@@ -65,9 +64,8 @@ class TradeManager:
         if event.trade_id in self.trades:
             self.trades[event.trade_id].fees = event.commission
             self.logger.debug(f"Commission Updated : {event.trade_id}")
-            self.logger.debug(
-                f"\nTrade Updated:\n{self.trades[event.trade_id].pretty_print("  ")}"
-            )
+            trade_str = self.trades[event.trade_id].pretty_print("  ")
+            self.logger.debug(f"\nTrade Updated:\n{trade_str}")
         else:
             self.logger.warning(
                 f"Trade ID {event.trade_id} not found for commission update."
@@ -82,7 +80,8 @@ class TradeManager:
         """
         string = ""
         for trade in self.trades.values():
-            string += f"{trade.pretty_print("  ")}\n"
+            trade_str = trade.pretty_print("  ")
+            string += f"{trade_str}\n"
         return string
 
     def _aggregate_trades(self) -> pd.DataFrame:
@@ -465,7 +464,7 @@ class EquityManager:
         Args:
             equity_details (EquityDetails): The equity details to be logged.
         """
-        if equity_details not in self.equity_value:
+        if not self.equity_value or equity_details != self.equity_value[-1]:
             self.equity_value.append(equity_details)
             self.logger.debug(
                 f"\nEQUITY UPDATED: \n  {self.equity_value[-1]}\n"
@@ -617,14 +616,15 @@ class EquityManager:
         raw_equity_curve = raw_equity_df["equity_value"].to_numpy()
         daily_returns = self.daily_stats["period_return"].to_numpy()
         period_returns = self.period_stats["period_return"].to_numpy()
-        annualized_return = round(((1 + daily_returns.mean()) ** 252) - 1, 4)
 
         return {
             "net_profit": float(Metrics.net_profit(raw_equity_curve)),
             "beginning_equity": float(raw_equity_curve[0]),
             "ending_equity": float(raw_equity_curve[-1]),
             "total_return": float(Metrics.total_return(raw_equity_curve)),
-            "annualized_return": float(annualized_return),
+            "annualized_return": float(
+                Metrics.annualize_returns(daily_returns)
+            ),
             "daily_standard_deviation_percentage": float(
                 Metrics.standard_deviation(daily_returns)
             ),

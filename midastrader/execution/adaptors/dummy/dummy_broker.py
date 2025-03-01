@@ -492,6 +492,7 @@ class DummyBroker:
                     current_price = mkt_data.pretty_price
                     position.market_price = current_price
                     position.calculate_liquidation_value()
+                    quantity = position.quantity * -1
 
                     self.trade_id += 1
                     trade = Trade(
@@ -500,14 +501,13 @@ class DummyBroker:
                         signal_id=self.last_trades[instrument_id].signal_id,
                         instrument=instrument_id,
                         security_type=symbol.security_type,
-                        quantity=round(position.quantity * -1, 4),
+                        quantity=round(quantity, 4),
                         avg_price=current_price * symbol.price_multiplier,
                         trade_value=round(
-                            symbol.value(position.quantity, current_price), 2
+                            symbol.value(quantity, current_price),
+                            2,
                         ),
-                        trade_cost=symbol.cost(
-                            position.quantity * -1, current_price
-                        ),
+                        trade_cost=symbol.cost(quantity, current_price),
                         action=(
                             Action.SELL.value
                             if position.action == "BUY"

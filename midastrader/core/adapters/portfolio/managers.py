@@ -92,7 +92,8 @@ class OrderManager:
         """
         string = ""
         for permId, order in self.active_orders.items():
-            string += f"{permId}:\n{order.pretty_print("  ")} \n"
+            order_str = order.pretty_print("  ")
+            string += f"{permId}:\n{order_str} \n"
         return string
 
 
@@ -181,7 +182,8 @@ class PositionManager:
         """
         string = ""
         for id, position in self.positions.items():
-            string += f"{id}:\n{position.pretty_print("  ")}\n"
+            position_str = position.pretty_print("  ")
+            string += f"{id}:\n{position_str}\n"
         return string
 
 
@@ -235,9 +237,8 @@ class AccountManager:
 
         """
         self.account = account_details
-        self.logger.debug(
-            f"\nACCOUNT UPDATED: \n{self.account.pretty_print("  ")}"
-        )
+        account_str = self.account.pretty_print("  ")
+        self.logger.debug(f"\nACCOUNT UPDATED: \n{account_str}")
 
         # Signal the orders have been updated atleast once
         if not self.initial_data:

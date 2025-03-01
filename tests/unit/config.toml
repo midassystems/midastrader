@@ -12,7 +12,7 @@ output_path = "output/"
 [vendor.historical]
 url = "http://127.0.0.1:8080"
 key = "your_database_key"
-data_file= "tests/unit/test_HE.c.0_ZC.c.0__ohlcv-1h_2024-09-01_2024-12-31.bin"
+data_file= "tests/unit/he_zc_ohlcv-1h.bin"
 
 [vendor.interactive_brokers]
 host="127.0.0.1"

@@ -9,11 +9,9 @@ output_path = "tests/integration/backtest/output/"
 
 # Data Vendors
 [vendor.historical]
-url = "http://192.53.120.167:8080" #"http://127.0.0.1:8080"
+url = "http://127.0.0.1:8080"
 key = "your_database_key"
-# data_file= "tests/integration/primer.bin" 
-# data_file="tests/integration/test_ohlcv-1h.bin"
-data_file= "tests/integration/test_he.c.0_zc.c.0.bin"
+data_file= "tests/integration/he_zc_ohlcv-1h.bin"
 
 # [vendor.interactive_brokers]
 # tick_interval = 5 # only matters for tick data
@@ -114,45 +112,3 @@ module = ""
 class = ""
 
 
-
-# # config.toml
-# [general]
-# # mode = "BACKTEST"
-# session_id = 1001
-# log_level = "INFO"
-# log_output = "file"
-# output_path = "tests/integration/backtest/output/"
-# data_file= "tests/integration/he_zc_2024-09-01_2024-12-10_ohlcv-1h.bin" 
-#
-# [database]
-# url = "http://192.53.120.167:8080" #"http://127.0.0.1:8080"
-# key = "your_database_key"
-#
-# [data_source]
-# host="127.0.0.1"
-# port="7497" #7496 for real account
-# account_id="U4976268"
-# client_id=1
-#
-# [broker]
-# host="127.0.0.1"
-# port="7497" # 7496 for real account
-# account_id="U4976268"
-# client_id=0
-#
-# [strategy.logic]
-# module = "tests/integration/strategy/logic.py"
-# class = "Cointegrationzscore"
-#
-# [strategy.parameters]
-# strategy_name = "Cointegrationzscore"
-# capital = 1000000
-# data_type = "BAR"
-# tick_interval = 5 # only matters for tick data
-# schema = "ohlcv-1h"
-# start = "2024-09-01"
-# end = "2024-12-10"
-# test_start = ""
-# test_end = "2024-12-11" #2024-05-04 00:00:00"
-# missing_values_strategy = "drop"
-# risk_free_rate = 0.04

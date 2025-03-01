@@ -503,6 +503,7 @@ class TestDummyClient(unittest.TestCase):
                 (
                     current_price
                     * hogs_position.quantity
+                    * -1
                     * hogs_position.quantity_multiplier
                     * hogs_position.price_multiplier
                 ),
@@ -523,7 +524,7 @@ class TestDummyClient(unittest.TestCase):
             security_type=SecurityType.STOCK,
             quantity=round(aapl_position.quantity * -1, 4),
             avg_price=float(current_price * 1),
-            trade_value=round(current_price * aapl_position.quantity, 2),
+            trade_value=round(current_price * aapl_position.quantity * -1, 2),
             trade_cost=round(current_price * abs(aapl_position.quantity), 2),
             action=Action.SELL.value,
             fees=0.0,
