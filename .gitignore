@@ -13,6 +13,9 @@ __pycache__/
 /output
 /dist
 
+# Except for specific files
+!he_zc_ohlcv-1h.bin
+
 # Django
 /db.sqlite3
 /static
