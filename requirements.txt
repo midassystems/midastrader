@@ -67,7 +67,7 @@ python-dateutil==2.9.0.post0
 python-decouple==3.8
 python-dotenv==1.0.1
 pytz==2024.1
-quant_analytics==1.0.5
+quant_analytics==1.0.7
 readme_renderer==44.0
 reportlab==4.2.0
 requests==2.32.3
