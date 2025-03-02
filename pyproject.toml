@@ -65,7 +65,7 @@ dependencies = [
     "matplotlib==3.9.0",
     "mbinary==1.0.26",
     "mdurl==0.1.2",
-    "midas_client==1.0.21",
+    "midas_client==1.0.22",
     "more-itertools==10.5.0",
     "multidict==6.0.5",
     "multitasking==0.0.11",
