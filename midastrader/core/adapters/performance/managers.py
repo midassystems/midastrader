@@ -60,7 +60,6 @@ class TradeManager:
         Raises:
             KeyError: If the trade ID does not exist in the trades dictionary.
         """
-        self.logger.info(f"{event.trade_id}{event.commission}")
         if event.trade_id in self.trades:
             self.trades[event.trade_id].fees = event.commission
             self.logger.debug(f"Commission Updated : {event.trade_id}")

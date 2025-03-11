@@ -69,6 +69,7 @@ class IBAdaptor(ExecutionAdapter):
         """
         self.request_account_summary()
         time.sleep(5)  # time for final account summary request-maybe shorten
+        self.disconnect()
         self.logger.info("IBAdaptor shutting down ...")
         self.is_shutdown.set()
 

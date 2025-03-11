@@ -518,8 +518,6 @@ class PerformanceManager(CoreAdapter):
             account=self.mbinary_account_summary(combined_data),
         )
 
-        # Save Live Summary Session
-        response = self.database.trading.create_live(self.live_summary)
-        self.logger.info(
-            f"Live Session saved to database with response : {response}"
-        )
+        # # Save Live Summary Session
+        # response = self.database.trading.create_live(self.live_summary)
+        # self.logger.info(f"Live Session saved : {response}")

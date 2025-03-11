@@ -61,6 +61,11 @@ class DataEngine:
         self.adapters["historical"].get_data(self.parameters)
 
     def construct_adaptors(self, vendors: Dict[str, dict]) -> bool:
+        # In Backtest historical is the only vendor in use
+        if self.mode == Mode.BACKTEST:
+            historical_vendor = {"historical": vendors["historical"]}
+            vendors = historical_vendor
+
         for v in vendors.keys():
             adapter = Vendors.from_str(v).adapter()
             self.adapters[v] = adapter(

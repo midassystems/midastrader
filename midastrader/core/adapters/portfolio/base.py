@@ -170,7 +170,9 @@ class PortfolioServerManager(CoreAdapter):
         while not initial_data:
             initial_data = all(
                 [
-                    self.server.position_manager.initial_data,
+                    # IB api will return nothing if not positions. But if account is updated
+                    # that means any postions where returned
+                    # self.server.position_manager.initial_data,
                     self.server.account_manager.initial_data,
                 ]
             )

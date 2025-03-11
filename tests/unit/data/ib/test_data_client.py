@@ -281,15 +281,6 @@ class TestIBDataAdaptor(unittest.TestCase):
         # Validate
         self.assertEqual(self.adapter.app.reqId_to_instrument, {})
 
-    # Type Validation
-    def test_get_data_value_error(self):
-        contract = Contract()
-
-        with self.assertRaisesRegex(
-            ValueError, "'data_type' must be of type MarketDataType enum."
-        ):
-            self.adapter.get_data("BAR", contract)  # pyright: ignore
-
     # Basic Validation
     def change_is_valid_contract_true(self, reqId, contract):
         # Side effect for mocking reqContractdetails

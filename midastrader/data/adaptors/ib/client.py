@@ -114,6 +114,7 @@ class IBAdaptor(DataAdapter):
         Main processing loop that streams data and handles EOD synchronization.
         """
         self.logger.info("IBDataAdaptor shutting down ...")
+        self.disconnect()
         self.is_shutdown.set()
 
     # -- Connection --
@@ -192,10 +193,6 @@ class IBAdaptor(DataAdapter):
             self.stream_quote_data(contract)
         elif data_type == LiveDataType.BAR:
             self.stream_5_sec_bars(contract)
-        else:
-            raise ValueError(
-                "'data_type' must be of type MarketDataType enum."
-            )
 
     def stream_5_sec_bars(self, contract: Contract) -> None:
         """

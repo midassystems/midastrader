@@ -13,20 +13,20 @@ url = "http://127.0.0.1:8080"
 key = "your_database_key"
 data_file= "tests/integration/he_zc_ohlcv-1h.bin"
 
-# [vendor.interactive_brokers]
-# tick_interval = 5 # only matters for tick data
-# data_type = "BAR"
-# host="127.0.0.1"
-# port="7497" #7496 for real account
-# account_id="U4976268"
-# client_id=1
-#
-# # Executors 
-# [executor.interactive_brokers]
-# host="127.0.0.1"
-# port="7497" # 7496 for real account
-# account_id="U4976268"
-# client_id=0
+[vendor.interactive_brokers]
+tick_interval = 5 # only matters for tick data
+data_type = "BAR"
+host="127.0.0.1"
+port="7497" #7496 for real account
+account_id="U4976268"
+client_id=1
+
+# Executors 
+[executor.interactive_brokers]
+host="127.0.0.1"
+port="7497" # 7496 for real account
+account_id="U4976268"
+client_id=0
 
 # Strategy
 [strategy.logic]
