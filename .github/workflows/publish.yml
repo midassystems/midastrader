@@ -1,11 +1,11 @@
 name: Publish Pypi
 
-on:
-  workflow_run:
-    workflows: ['Bump-Version']
-    types: [completed]
-    branches:
-      - 'main'
+# on:
+#   workflow_run:
+#     workflows: ['Bump-Version']
+#     types: [completed]
+#     branches:
+#       - 'main'
 
 jobs:
   publish_pypi:

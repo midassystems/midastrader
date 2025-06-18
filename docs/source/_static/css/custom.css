@@ -1,0 +1,4 @@
+/* Narrow the left sidebar padding */
+.sidebar-drawer {
+  width: 0 !important;
+}

@@ -12,6 +12,7 @@ __pycache__/
 *.bin
 /output
 /dist
+docs/build/ 
 
 # Except for specific files
 !he_zc_ohlcv-1h.bin
